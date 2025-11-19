@@ -23,7 +23,6 @@ const speak = (text) => {
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
     const voices = window.speechSynthesis.getVoices();
-    // Prefer a robotic/authoritative voice
     const techVoice = voices.find(v => v.name.includes("Google US English")) || voices[0];
     utterance.voice = techVoice;
     utterance.rate = 1.1; 
@@ -89,7 +88,7 @@ export default function NexusAI() {
   const [ticker, setTicker] = useState('BTC/USD');
   const [price, setPrice] = useState(0);
   const [trend, setTrend] = useState(0);
-  const [stockSymbol, setStockSymbol] = useState('NVDA');
+  const [stockSymbol, setStockSymbol] = useState('NVDA'); 
   
   // Trading State
   const [balance, setBalance] = useState(24500.00);
@@ -109,7 +108,6 @@ export default function NexusAI() {
   useEffect(() => {
     const updateMarket = async () => {
       if (marketType === 'CRYPTO') {
-        // Real Crypto Data
         try {
           const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true');
           const data = await res.json();
@@ -118,7 +116,6 @@ export default function NexusAI() {
           setTicker("BTC/USD");
         } catch (e) { console.log("API Limit"); }
       } else {
-        // Simulated Stock Data (NVDA, TSLA, AAPL)
         setTicker(stockSymbol); 
         let base = stockSymbol === 'NVDA' ? 890 : stockSymbol === 'TSLA' ? 175 : 180; 
         const noise = (Math.random() - 0.5) * 1.5;
@@ -126,14 +123,12 @@ export default function NexusAI() {
         setTrend(t => t + (Math.random() - 0.5) * 0.1);
       }
 
-      // PnL Update & Auto-Close Logic
       setTrades(prev => prev.map(t => {
         if (t.status === 'CLOSED') return t;
         const diff = t.type === 'BUY' ? price - t.entry : t.entry - price;
         const mult = marketType === 'STOCKS' ? 10 : 1;
         const pnl = (diff * t.lots * 100 * mult).toFixed(2);
 
-        // Auto-Take Profit ($200) / Stop Loss (-$50)
         if (parseFloat(pnl) > 200 || parseFloat(pnl) < -50) {
           if (compound && parseFloat(pnl) > 0) setBalance(b => b + parseFloat(pnl));
           return { ...t, pnl, status: 'CLOSED' };
@@ -141,7 +136,6 @@ export default function NexusAI() {
         return { ...t, pnl };
       }));
 
-      // Auto-Pilot Execution
       if (autoPilot && Math.random() > 0.92) {
         executeTrade(Math.random() > 0.5 ? 'BUY' : 'SELL', true);
       }
@@ -155,8 +149,8 @@ export default function NexusAI() {
   useEffect(() => {
     const profits = trades.filter(t => t.status === 'CLOSED').reduce((acc, t) => acc + parseFloat(t.pnl), 0);
     if (profits > 0) {
-      const rawTax = profits * 0.30; // 30% Standard
-      const optimizedTax = rawTax * 0.60; // 40% Optimization
+      const rawTax = profits * 0.30;
+      const optimizedTax = rawTax * 0.60;
       setTaxLiability(rawTax);
       setTaxSaved(rawTax - optimizedTax);
     }
@@ -167,7 +161,7 @@ export default function NexusAI() {
   const scanMarket = async () => {
     setNewsHeadline("DECRYPTING INSTITUTIONAL SIGNALS...");
     const prompt = `You are a Wall Street Algo. Asset: ${ticker}. Price: ${price}. Trend: ${trend.toFixed(2)}%.
-    1. Headline: Short, punchy financial news causing this move.
+    1. Headline: Short, punchy financial news.
     2. Sentiment: BULLISH or BEARISH.
     3. Probability: 0-100%.
     Format: HEADLINE|SENTIMENT|PROBABILITY`;
@@ -222,13 +216,11 @@ export default function NexusAI() {
             <h1 className="text-xl font-black tracking-widest text-white">NEXUS<span className="text-amber-500">.OS</span></h1>
             <div className="h-6 w-px bg-white/10"></div>
             
-            {/* ASSET SWITCHER */}
             <div className="flex bg-zinc-900 rounded-lg p-1 border border-white/10">
                <button onClick={() => setMarketType('CRYPTO')} className={`px-3 py-1 text-[10px] font-bold rounded ${marketType === 'CRYPTO' ? 'bg-amber-500 text-black' : 'text-zinc-500'}`}>CRYPTO</button>
                <button onClick={() => setMarketType('STOCKS')} className={`px-3 py-1 text-[10px] font-bold rounded ${marketType === 'STOCKS' ? 'bg-blue-500 text-black' : 'text-zinc-500'}`}>STOCKS</button>
             </div>
             
-            {/* STOCK SELECTOR */}
             {marketType === 'STOCKS' && (
                 <div className="flex space-x-2">
                     {['NVDA', 'TSLA', 'AAPL'].map(sym => (
@@ -254,7 +246,6 @@ export default function NexusAI() {
           {activeTab === 'trade' && (
             <div className="grid grid-cols-12 gap-6 h-full">
                
-               {/* LEFT: ASSET & CHART */}
                <div className="col-span-8 flex flex-col gap-6">
                   <div className="bg-zinc-900/40 border border-white/10 rounded-2xl p-6 flex-1 flex flex-col relative overflow-hidden">
                      <div className="flex justify-between items-start z-10 relative">
@@ -271,7 +262,6 @@ export default function NexusAI() {
                         </div>
                      </div>
                      
-                     {/* Simulated Chart Lines */}
                      <div className="flex-1 flex items-end space-x-1 mt-6 opacity-50">
                         {[...Array(40)].map((_, i) => (
                            <div key={i} className={`w-full rounded-t-sm transition-all duration-500 ${trend >= 0 ? 'bg-emerald-500/20 hover:bg-emerald-500' : 'bg-rose-500/20 hover:bg-rose-500'}`} 
@@ -280,7 +270,6 @@ export default function NexusAI() {
                      </div>
                   </div>
 
-                  {/* BOTTOM: NEWS FEED */}
                   <div className="bg-zinc-900/40 border border-white/10 rounded-2xl p-5 flex items-center justify-between">
                      <div className="flex items-center space-x-4">
                         <div className={`p-3 rounded-full ${marketType === 'CRYPTO' ? 'bg-amber-500/10 text-amber-500' : 'bg-blue-500/10 text-blue-500'}`}><Radio className="animate-pulse" size={20} /></div>
@@ -295,7 +284,6 @@ export default function NexusAI() {
                   </div>
                </div>
 
-               {/* RIGHT: EXECUTION */}
                <div className="col-span-4 flex flex-col gap-6">
                   <div className="bg-zinc-900/40 border border-white/10 rounded-2xl p-6 space-y-6">
                      <div className="flex justify-between items-center pb-4 border-b border-white/5">
@@ -323,7 +311,6 @@ export default function NexusAI() {
                      </div>
                   </div>
 
-                  {/* POSITIONS LIST */}
                   <div className="bg-zinc-900/40 border border-white/10 rounded-2xl p-6 flex-1 overflow-hidden flex flex-col">
                      <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-4">Open Positions</h3>
                      <div className="flex-1 overflow-y-auto scrollbar-hide space-y-1">
@@ -342,9 +329,9 @@ export default function NexusAI() {
                <div className="col-span-2 bg-zinc-900/40 border border-white/10 p-6 rounded-2xl">
                   <h3 className="text-sm font-bold text-white mb-2">Optimization Log</h3>
                   <div className="text-xs font-mono text-zinc-500 space-y-2">
-                     <p>&gt; Routing profits through simulated shell structures...</p>
-                     <p>&gt; Harvesting unrealized losses on Sector 7...</p>
-                     <p>&gt; Compliance Check: <span className="text-emerald-500">PASSED</span></p>
+                     <p>→ Routing profits through simulated shell structures...</p>
+                     <p>→ Harvesting unrealized losses on Sector 7...</p>
+                     <p>→ Compliance Check: <span className="text-emerald-500">PASSED</span></p>
                   </div>
                </div>
             </div>
