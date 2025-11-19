@@ -1,0 +1,66 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* The Ghost Palette */
+  --ghost-bg: #050505;
+  --ghost-card: #0a0a0a;
+  --ghost-border: #333;
+  --neon-green: #00ff41;
+  --neon-purple: #bf00ff;
+}
+
+body {
+  background-color: var(--ghost-bg);
+  color: #e0e0e0;
+  font-family: 'Courier New', Courier, monospace; /* Tech vibe */
+  overflow: hidden; /* Application style */
+}
+
+/* The Cyber Grid Background */
+.bg-grid {
+  background-size: 40px 40px;
+  background-image: linear-gradient(to right, rgba(50, 50, 50, 0.1) 1px, transparent 1px),
+                    linear-gradient(to bottom, rgba(50, 50, 50, 0.1) 1px, transparent 1px);
+}
+
+/* CRT Scanline Effect (Overlay) */
+.scanlines {
+  background: linear-gradient(
+    to bottom,
+    rgba(255,255,255,0),
+    rgba(255,255,255,0) 50%,
+    rgba(0,0,0,0.2) 50%,
+    rgba(0,0,0,0.2)
+  );
+  background-size: 100% 4px;
+  position: fixed;
+  pointer-events: none;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 50;
+  opacity: 0.15;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #000; 
+}
+::-webkit-scrollbar-thumb {
+  background: #333; 
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--neon-green); 
+}
+
+/* Utility for Neon Glows */
+.glow-text {
+  text-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+}
+.glow-border {
+  box-shadow: 0 0 15px rgba(0, 255, 65, 0.1);
+}
