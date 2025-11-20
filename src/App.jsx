@@ -12,7 +12,7 @@ import {
 // ==============================================================================
 // 👇👇👇 PASTE YOUR API KEY BELOW THIS LINE 👇👇👇
 //
-const apiKey = ""; 
+const apiKey = "AIzaSyCzHZHnR6BNRFid1h7O-EH32jHUgVlkWYU"; 
 //
 // 👆👆👆 PASTE YOUR API KEY ABOVE THIS LINE 👆👆👆
 // ==============================================================================
