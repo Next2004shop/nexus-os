@@ -10,14 +10,15 @@ import {
 // ==============================================================================
 // 👇👇👇 PASTE YOUR API KEY BELOW THIS LINE 👇👇👇
 //
-const apiKey = "AIzaSyCzHZHnR6BNRFid1h7O-EH32jHUgVlkWYU"; 
+const apiKey = ""; 
 //
 // 👆👆👆 PASTE YOUR API KEY ABOVE THIS LINE 👆👆👆
 // ==============================================================================
 
 const GEMINI_MODEL = "gemini-2.5-flash-preview-09-2025";
+const MT5_BRIDGE_URL = "https://xcljmp73-5000.uks1.devtunnels.ms/";
 
-// --- VOICE MODULE ---
+// --- VOICE OUTPUT ---
 const speak = (text) => {
   if ('speechSynthesis' in window) {
     window.speechSynthesis.cancel();
@@ -84,11 +85,11 @@ export default function NexusAI() {
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   
   // Market Core
-  const [marketType, setMarketType] = useState('CRYPTO'); // 'CRYPTO' | 'STOCKS'
+  const [marketType, setMarketType] = useState('CRYPTO'); 
   const [ticker, setTicker] = useState('BTC/USD');
   const [price, setPrice] = useState(0);
   const [trend, setTrend] = useState(0);
-  const [stockSymbol, setStockSymbol] = useState('NVDA'); 
+  const [stockSymbol, setStockSymbol] = useState('NVDA');
   
   // Trading State
   const [balance, setBalance] = useState(24500.00);
@@ -103,6 +104,44 @@ export default function NexusAI() {
   const [taxLiability, setTaxLiability] = useState(0);
   const [taxSaved, setTaxSaved] = useState(0);
   const [brokerStatus, setBrokerStatus] = useState({ fxpesa: false, mt5: false });
+  
+  // Voice Input State
+  const [isListening, setIsListening] = useState(false);
+
+  // --- VOICE INPUT SETUP ---
+  const startListening = () => {
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.lang = 'en-US';
+        
+        setIsListening(true);
+        recognition.start();
+
+        recognition.onresult = (event) => {
+            const transcript = event.results[0][0].transcript.toLowerCase();
+            setIsListening(false);
+            handleVoiceCommand(transcript);
+        };
+        
+        recognition.onerror = () => setIsListening(false);
+        recognition.onend = () => setIsListening(false);
+    } else {
+        alert("Voice control not supported in this browser.");
+    }
+  };
+
+  const handleVoiceCommand = (cmd) => {
+      speak(`Command received: ${cmd}`);
+      if (cmd.includes('buy')) executeTrade('BUY');
+      else if (cmd.includes('sell') || cmd.includes('short')) executeTrade('SELL');
+      else if (cmd.includes('scan') || cmd.includes('analysis')) scanMarket();
+      else if (cmd.includes('auto pilot') || cmd.includes('autopilot')) {
+          setAutoPilot(!autoPilot);
+          speak("Auto pilot toggled.");
+      }
+  };
 
   // --- REAL-TIME DATA ENGINE ---
   useEffect(() => {
@@ -140,7 +179,6 @@ export default function NexusAI() {
         executeTrade(Math.random() > 0.5 ? 'BUY' : 'SELL', true);
       }
     };
-
     const interval = setInterval(updateMarket, 3000);
     return () => clearInterval(interval);
   }, [marketType, price, autoPilot, stockSymbol]);
@@ -165,7 +203,6 @@ export default function NexusAI() {
     2. Sentiment: BULLISH or BEARISH.
     3. Probability: 0-100%.
     Format: HEADLINE|SENTIMENT|PROBABILITY`;
-    
     const text = await callGemini(prompt);
     const parts = text.split('|');
     if (parts.length === 3) {
@@ -189,8 +226,20 @@ export default function NexusAI() {
   };
 
   const toggleBroker = (broker) => {
-    speak(`Handshake initiated with ${broker}. Verifying API keys... Connected.`);
+    speak(`Handshake initiated with ${broker}.`);
     setBrokerStatus(prev => ({ ...prev, [broker]: !prev[broker] }));
+    if (broker === 'mt5') {
+      fetch(MT5_BRIDGE_URL + 'status')
+        .then(res => res.json())
+        .then(data => {
+          if (data.status === 'ONLINE') {
+            speak('MetaTrader 5 Bridge connected.');
+          } else {
+            speak('MetaTrader 5 Bridge offline.');
+          }
+        })
+        .catch(() => speak('MetaTrader 5 Bridge connection error.'));
+    }
   };
 
   return (
@@ -215,29 +264,27 @@ export default function NexusAI() {
           <div className="flex items-center space-x-4">
             <h1 className="text-xl font-black tracking-widest text-white">NEXUS<span className="text-amber-500">.OS</span></h1>
             <div className="h-6 w-px bg-white/10"></div>
-            
             <div className="flex bg-zinc-900 rounded-lg p-1 border border-white/10">
                <button onClick={() => setMarketType('CRYPTO')} className={`px-3 py-1 text-[10px] font-bold rounded ${marketType === 'CRYPTO' ? 'bg-amber-500 text-black' : 'text-zinc-500'}`}>CRYPTO</button>
                <button onClick={() => setMarketType('STOCKS')} className={`px-3 py-1 text-[10px] font-bold rounded ${marketType === 'STOCKS' ? 'bg-blue-500 text-black' : 'text-zinc-500'}`}>STOCKS</button>
             </div>
-            
             {marketType === 'STOCKS' && (
                 <div className="flex space-x-2">
                     {['NVDA', 'TSLA', 'AAPL'].map(sym => (
-                        <button key={sym} onClick={() => setStockSymbol(sym)} className={`text-[10px] font-mono px-2 py-1 rounded border ${ticker === sym ? 'border-blue-500 text-blue-500' : 'border-zinc-800 text-zinc-600'}`}>
-                            {sym}
-                        </button>
+                        <button key={sym} onClick={() => setStockSymbol(sym)} className={`text-[10px] font-mono px-2 py-1 rounded border ${ticker === sym ? 'border-blue-500 text-blue-500' : 'border-zinc-800 text-zinc-600'}`}>{sym}</button>
                     ))}
                 </div>
             )}
-
           </div>
           <div className="flex items-center space-x-6">
              <div className="text-right">
                 <div className="text-[9px] text-zinc-500 font-mono uppercase">Equity</div>
                 <div className="text-sm font-mono font-bold text-white">${balance.toLocaleString()}</div>
              </div>
-             <button className="p-2 rounded-full bg-white/5 hover:bg-white/10"><Mic size={16} className="text-emerald-500" /></button>
+             {/* VOICE BUTTON */}
+             <button onClick={startListening} className={`p-3 rounded-full hover:scale-110 transition-all shadow-lg ${isListening ? 'bg-rose-600 text-white animate-pulse' : 'bg-white/10 text-emerald-500 hover:bg-white/20'}`}>
+                <Mic size={18} />
+             </button>
           </div>
         </header>
 
@@ -245,7 +292,6 @@ export default function NexusAI() {
         <main className="flex-1 p-6 overflow-y-auto">
           {activeTab === 'trade' && (
             <div className="grid grid-cols-12 gap-6 h-full">
-               
                <div className="col-span-8 flex flex-col gap-6">
                   <div className="bg-zinc-900/40 border border-white/10 rounded-2xl p-6 flex-1 flex flex-col relative overflow-hidden">
                      <div className="flex justify-between items-start z-10 relative">
@@ -261,15 +307,12 @@ export default function NexusAI() {
                            <div className="text-5xl font-black text-white opacity-20">{winProb}%</div>
                         </div>
                      </div>
-                     
                      <div className="flex-1 flex items-end space-x-1 mt-6 opacity-50">
                         {[...Array(40)].map((_, i) => (
-                           <div key={i} className={`w-full rounded-t-sm transition-all duration-500 ${trend >= 0 ? 'bg-emerald-500/20 hover:bg-emerald-500' : 'bg-rose-500/20 hover:bg-rose-500'}`} 
-                                style={{ height: `${Math.random() * 90 + 10}%` }}></div>
+                           <div key={i} className={`w-full rounded-t-sm transition-all duration-500 ${trend >= 0 ? 'bg-emerald-500/20 hover:bg-emerald-500' : 'bg-rose-500/20 hover:bg-rose-500'}`} style={{ height: `${Math.random() * 90 + 10}%` }}></div>
                         ))}
                      </div>
                   </div>
-
                   <div className="bg-zinc-900/40 border border-white/10 rounded-2xl p-5 flex items-center justify-between">
                      <div className="flex items-center space-x-4">
                         <div className={`p-3 rounded-full ${marketType === 'CRYPTO' ? 'bg-amber-500/10 text-amber-500' : 'bg-blue-500/10 text-blue-500'}`}><Radio className="animate-pulse" size={20} /></div>
@@ -278,39 +321,25 @@ export default function NexusAI() {
                            <div className="text-sm font-mono text-white max-w-2xl truncate">{newsHeadline}</div>
                         </div>
                      </div>
-                     <button onClick={scanMarket} className="px-6 py-3 bg-white text-black font-bold text-xs rounded-lg hover:scale-105 transition-transform">
-                        DEEP SCAN
-                     </button>
+                     <button onClick={scanMarket} className="px-6 py-3 bg-white text-black font-bold text-xs rounded-lg hover:scale-105 transition-transform">DEEP SCAN</button>
                   </div>
                </div>
-
                <div className="col-span-4 flex flex-col gap-6">
                   <div className="bg-zinc-900/40 border border-white/10 rounded-2xl p-6 space-y-6">
                      <div className="flex justify-between items-center pb-4 border-b border-white/5">
                         <span className="text-xs font-bold text-white">ORDER ENTRY</span>
-                        <div className={`text-[10px] font-mono px-2 py-1 rounded ${aiSentiment === 'BULLISH' ? 'bg-emerald-500/20 text-emerald-400' : aiSentiment === 'BEARISH' ? 'bg-rose-500/20 text-rose-400' : 'bg-zinc-800 text-zinc-500'}`}>
-                           SIGNAL: {aiSentiment}
-                        </div>
+                        <div className={`text-[10px] font-mono px-2 py-1 rounded ${aiSentiment === 'BULLISH' ? 'bg-emerald-500/20 text-emerald-400' : aiSentiment === 'BEARISH' ? 'bg-rose-500/20 text-rose-400' : 'bg-zinc-800 text-zinc-500'}`}>SIGNAL: {aiSentiment}</div>
                      </div>
-
                      <div className="grid grid-cols-2 gap-3">
-                        <button onClick={() => executeTrade('BUY')} className="py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-black text-lg tracking-widest transition-all active:scale-95 shadow-lg shadow-emerald-900/20">
-                           LONG
-                        </button>
-                        <button onClick={() => executeTrade('SELL')} className="py-4 bg-rose-600 hover:bg-rose-500 text-white rounded-xl font-black text-lg tracking-widest transition-all active:scale-95 shadow-lg shadow-rose-900/20">
-                           SHORT
-                        </button>
+                        <button onClick={() => executeTrade('BUY')} className="py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-black text-lg tracking-widest transition-all active:scale-95 shadow-lg shadow-emerald-900/20">LONG</button>
+                        <button onClick={() => executeTrade('SELL')} className="py-4 bg-rose-600 hover:bg-rose-500 text-white rounded-xl font-black text-lg tracking-widest transition-all active:scale-95 shadow-lg shadow-rose-900/20">SHORT</button>
                      </div>
-                     
                      <div className="pt-4 border-t border-white/5">
-                        <button onClick={() => { setAutoPilot(!autoPilot); speak(`Auto Pilot ${!autoPilot ? 'Active' : 'Disabled'}`); }} 
-                           className={`w-full py-3 rounded-lg border text-xs font-bold font-mono flex items-center justify-center transition-all ${autoPilot ? 'bg-purple-500/10 border-purple-500 text-purple-400' : 'bg-transparent border-zinc-700 text-zinc-500'}`}>
-                           <Cpu size={14} className="mr-2" />
-                           {autoPilot ? 'AI AUTO-PILOT: ENGAGED' : 'ENABLE AUTO-PILOT'}
+                        <button onClick={() => { setAutoPilot(!autoPilot); speak(`Auto Pilot ${!autoPilot ? 'Active' : 'Disabled'}`); }} className={`w-full py-3 rounded-lg border text-xs font-bold font-mono flex items-center justify-center transition-all ${autoPilot ? 'bg-purple-500/10 border-purple-500 text-purple-400' : 'bg-transparent border-zinc-700 text-zinc-500'}`}>
+                           <Cpu size={14} className="mr-2" /> {autoPilot ? 'AI AUTO-PILOT: ENGAGED' : 'ENABLE AUTO-PILOT'}
                         </button>
                      </div>
                   </div>
-
                   <div className="bg-zinc-900/40 border border-white/10 rounded-2xl p-6 flex-1 overflow-hidden flex flex-col">
                      <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-4">Open Positions</h3>
                      <div className="flex-1 overflow-y-auto scrollbar-hide space-y-1">
@@ -340,39 +369,22 @@ export default function NexusAI() {
           {activeTab === 'brokers' && (
              <div className="max-w-4xl mx-auto space-y-4 mt-10 animate-fadeIn">
                 <h2 className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-6 ml-1">Institutional Gateways</h2>
-                
                 <div className="p-6 bg-zinc-900/40 border border-white/5 rounded-2xl flex items-center justify-between group hover:border-blue-500/30 transition-all">
                    <div className="flex items-center">
-                      <div className="w-14 h-14 bg-blue-600/10 rounded-2xl flex items-center justify-center mr-6 border border-blue-500/20 group-hover:border-blue-500/50 transition-colors">
-                          <Globe className="text-blue-500" size={24} />
-                      </div>
-                      <div>
-                         <h3 className="font-bold text-white text-lg">FxPesa Direct</h3>
-                         <p className="text-xs text-zinc-500 font-mono mt-1">API Latency: {brokerStatus.fxpesa ? '14ms' : '---'}</p>
-                      </div>
+                      <div className="w-14 h-14 bg-blue-600/10 rounded-2xl flex items-center justify-center mr-6 border border-blue-500/20 group-hover:border-blue-500/50 transition-colors"><Globe className="text-blue-500" size={24} /></div>
+                      <div><h3 className="font-bold text-white text-lg">FxPesa Direct</h3><p className="text-xs text-zinc-500 font-mono mt-1">API Latency: {brokerStatus.fxpesa ? '14ms' : '---'}</p></div>
                    </div>
-                   <button onClick={() => toggleBroker('fxpesa')} className={`px-8 py-3 rounded-lg font-mono text-xs font-bold border transition-all ${brokerStatus.fxpesa ? 'bg-emerald-500/10 border-emerald-500 text-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.2)]' : 'bg-transparent border-zinc-700 text-zinc-400 hover:text-white hover:border-white'}`}>
-                      {brokerStatus.fxpesa ? '● STREAMING' : 'INITIALIZE LINK'}
-                   </button>
+                   <button onClick={() => toggleBroker('fxpesa')} className={`px-8 py-3 rounded-lg font-mono text-xs font-bold border transition-all ${brokerStatus.fxpesa ? 'bg-emerald-500/10 border-emerald-500 text-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.2)]' : 'bg-transparent border-zinc-700 text-zinc-400 hover:text-white hover:border-white'}`}>{brokerStatus.fxpesa ? '● STREAMING' : 'INITIALIZE LINK'}</button>
                 </div>
-
                 <div className="p-6 bg-zinc-900/40 border border-white/5 rounded-2xl flex items-center justify-between group hover:border-orange-500/30 transition-all">
                    <div className="flex items-center">
-                      <div className="w-14 h-14 bg-orange-600/10 rounded-2xl flex items-center justify-center mr-6 border border-orange-500/20 group-hover:border-orange-500/50 transition-colors">
-                          <Server className="text-orange-500" size={24} />
-                      </div>
-                      <div>
-                         <h3 className="font-bold text-white text-lg">MetaTrader 5 Bridge</h3>
-                         <p className="text-xs text-zinc-500 font-mono mt-1">Status: {brokerStatus.mt5 ? 'Synced' : 'Offline'}</p>
-                      </div>
+                      <div className="w-14 h-14 bg-orange-600/10 rounded-2xl flex items-center justify-center mr-6 border border-orange-500/20 group-hover:border-orange-500/50 transition-colors"><Server className="text-orange-500" size={24} /></div>
+                      <div><h3 className="font-bold text-white text-lg">MetaTrader 5 Bridge</h3><p className="text-xs text-zinc-500 font-mono mt-1">Status: {brokerStatus.mt5 ? 'Synced' : 'Offline'}</p></div>
                    </div>
-                   <button onClick={() => toggleBroker('mt5')} className={`px-8 py-3 rounded-lg font-mono text-xs font-bold border transition-all ${brokerStatus.mt5 ? 'bg-emerald-500/10 border-emerald-500 text-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.2)]' : 'bg-transparent border-zinc-700 text-zinc-400 hover:text-white hover:border-white'}`}>
-                      {brokerStatus.mt5 ? '● LINKED' : 'CONNECT LOCALHOST'}
-                   </button>
+                   <button onClick={() => toggleBroker('mt5')} className={`px-8 py-3 rounded-lg font-mono text-xs font-bold border transition-all ${brokerStatus.mt5 ? 'bg-emerald-500/10 border-emerald-500 text-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.2)]' : 'bg-transparent border-zinc-700 text-zinc-400 hover:text-white hover:border-white'}`}>{brokerStatus.mt5 ? '● LINKED' : 'CONNECT LOCALHOST'}</button>
                 </div>
              </div>
           )}
-
         </main>
       </div>
       <style>{`
