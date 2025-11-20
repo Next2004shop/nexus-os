@@ -197,19 +197,31 @@ export default function NexusAI() {
   // --- ACTIONS ---
 
   const scanMarket = async () => {
-    setNewsHeadline("DECRYPTING INSTITUTIONAL SIGNALS...");
-    const prompt = `You are a Wall Street Algo. Asset: ${ticker}. Price: ${price}. Trend: ${trend.toFixed(2)}%.
-    1. Headline: Short, punchy financial news.
-    2. Sentiment: BULLISH or BEARISH.
-    3. Probability: 0-100%.
-    Format: HEADLINE|SENTIMENT|PROBABILITY`;
+    setNewsHeadline("Analyzing like Musk, Axelrod, and Buffett...");
+    const prompt = `You are a hybrid of Elon Musk (visionary, bold, tech-driven), Bobby Axelrod (aggressive, tactical, hedge fund genius), and Warren Buffett (value investor, disciplined, long-term).
+Asset: ${ticker}. Price: ${price}. Trend: ${trend.toFixed(2)}%.
+
+1. Headline: Short, punchy, and insightful news as if spoken by one of these legends.
+2. Sentiment: BULLISH, BEARISH, or NEUTRAL. Use deep reasoning and context.
+3. Probability: 0-100% (confidence in the trade).
+4. Risk: LOW, MEDIUM, HIGH (based on volatility, fundamentals, and technicals).
+5. Opportunity: Describe the best move (e.g., "Wait for dip", "Go all in", "Trim position").
+Format: HEADLINE|SENTIMENT|PROBABILITY|RISK|OPPORTUNITY`;
     const text = await callGemini(prompt);
     const parts = text.split('|');
-    if (parts.length === 3) {
+    if (parts.length >= 5) {
+      setNewsHeadline(parts[0]);
+      setAiSentiment(parts[1].trim());
+      setWinProb(parseInt(parts[2]));
+      speak(`Scan complete for ${ticker}. Sentiment: ${parts[1]}, Confidence: ${parts[2]}%, Risk: ${parts[3]}, Opportunity: ${parts[4]}`);
+    } else if (parts.length === 3) {
       setNewsHeadline(parts[0]);
       setAiSentiment(parts[1].trim());
       setWinProb(parseInt(parts[2]));
       speak(`Scan complete for ${ticker}. Sentiment is ${parts[1]}. Win probability ${parts[2]} percent.`);
+    } else {
+      setNewsHeadline("Elite scan failed. Try again.");
+      speak("Elite scan failed. Try again.");
     }
   };
 
@@ -243,10 +255,9 @@ export default function NexusAI() {
   };
 
   return (
-    <div className="flex h-screen bg-black text-white font-sans overflow-hidden">
-      
+    <div className="flex flex-col min-h-screen bg-black text-white font-sans overflow-x-hidden">
       {/* --- SIDEBAR --- */}
-      <div className="w-16 border-r border-white/10 flex flex-col items-center py-6 bg-zinc-950">
+      <div className="fixed left-0 top-0 h-screen w-16 border-r border-white/10 flex flex-col items-center py-6 bg-zinc-950 z-30 md:static md:h-auto md:w-16">
         <div className="w-10 h-10 bg-amber-500 rounded-xl flex items-center justify-center text-black font-black mb-8 shadow-[0_0_15px_#f59e0b]">N</div>
         <nav className="space-y-6 flex-1">
           <button onClick={() => setActiveTab('trade')} className={`p-3 rounded-xl transition-all ${activeTab === 'trade' ? 'bg-white/10 text-amber-500' : 'text-zinc-600 hover:text-zinc-400'}`}><Terminal size={22} /></button>
@@ -255,28 +266,26 @@ export default function NexusAI() {
         </nav>
         <div className="text-emerald-500 animate-pulse"><Wifi size={18} /></div>
       </div>
-
       {/* --- MAIN CONTENT --- */}
-      <div className="flex-1 flex flex-col bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-zinc-900 via-black to-black">
-        
+      <div className="flex-1 flex flex-col bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-zinc-900 via-black to-black ml-16 md:ml-16">
         {/* HEADER */}
-        <header className="h-16 border-b border-white/10 flex items-center justify-between px-8 bg-black/50 backdrop-blur-md">
-          <div className="flex items-center space-x-4">
-            <h1 className="text-xl font-black tracking-widest text-white">NEXUS<span className="text-amber-500">.OS</span></h1>
-            <div className="h-6 w-px bg-white/10"></div>
+        <header className="h-16 border-b border-white/10 flex items-center justify-between px-4 md:px-8 bg-black/50 backdrop-blur-md sticky top-0 z-20">
+          <div className="flex items-center space-x-2 md:space-x-4">
+            <h1 className="text-lg md:text-xl font-black tracking-widest text-white">NEXUS<span className="text-amber-500">.OS</span></h1>
+            <div className="h-6 w-px bg-white/10 hidden md:block"></div>
             <div className="flex bg-zinc-900 rounded-lg p-1 border border-white/10">
-               <button onClick={() => setMarketType('CRYPTO')} className={`px-3 py-1 text-[10px] font-bold rounded ${marketType === 'CRYPTO' ? 'bg-amber-500 text-black' : 'text-zinc-500'}`}>CRYPTO</button>
-               <button onClick={() => setMarketType('STOCKS')} className={`px-3 py-1 text-[10px] font-bold rounded ${marketType === 'STOCKS' ? 'bg-blue-500 text-black' : 'text-zinc-500'}`}>STOCKS</button>
+               <button onClick={() => setMarketType('CRYPTO')} className={`px-2 md:px-3 py-1 text-[10px] font-bold rounded ${marketType === 'CRYPTO' ? 'bg-amber-500 text-black' : 'text-zinc-500'}`}>CRYPTO</button>
+               <button onClick={() => setMarketType('STOCKS')} className={`px-2 md:px-3 py-1 text-[10px] font-bold rounded ${marketType === 'STOCKS' ? 'bg-blue-500 text-black' : 'text-zinc-500'}`}>STOCKS</button>
             </div>
             {marketType === 'STOCKS' && (
-                <div className="flex space-x-2">
+                <div className="flex space-x-1 md:space-x-2">
                     {['NVDA', 'TSLA', 'AAPL'].map(sym => (
-                        <button key={sym} onClick={() => setStockSymbol(sym)} className={`text-[10px] font-mono px-2 py-1 rounded border ${ticker === sym ? 'border-blue-500 text-blue-500' : 'border-zinc-800 text-zinc-600'}`}>{sym}</button>
+                        <button key={sym} onClick={() => setStockSymbol(sym)} className={`text-[10px] font-mono px-1 md:px-2 py-1 rounded border ${ticker === sym ? 'border-blue-500 text-blue-500' : 'border-zinc-800 text-zinc-600'}`}>{sym}</button>
                     ))}
                 </div>
             )}
           </div>
-          <div className="flex items-center space-x-6">
+          <div className="flex items-center space-x-2 md:space-x-6">
              <div className="text-right">
                 <div className="text-[9px] text-zinc-500 font-mono uppercase">Equity</div>
                 <div className="text-sm font-mono font-bold text-white">${balance.toLocaleString()}</div>
@@ -287,61 +296,58 @@ export default function NexusAI() {
              </button>
           </div>
         </header>
-
         {/* DASHBOARD GRID */}
-        <main className="flex-1 p-6 overflow-y-auto">
+        <main className="flex-1 p-2 md:p-6 overflow-y-auto">
           {activeTab === 'trade' && (
-            <div className="grid grid-cols-12 gap-6 h-full">
-               <div className="col-span-8 flex flex-col gap-6">
-                  <div className="bg-zinc-900/40 border border-white/10 rounded-2xl p-6 flex-1 flex flex-col relative overflow-hidden">
-                     <div className="flex justify-between items-start z-10 relative">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-6 h-full">
+               <div className="md:col-span-8 flex flex-col gap-2 md:gap-6">
+                  <div className="bg-zinc-900/40 border border-white/10 rounded-2xl p-2 md:p-6 flex-1 flex flex-col relative overflow-hidden min-h-[220px] md:min-h-[320px]">
+                     <div className="flex flex-col md:flex-row justify-between items-start z-10 relative gap-2">
                         <div>
-                           <h2 className="text-6xl font-black text-white tracking-tighter mb-1">{ticker}</h2>
-                           <div className="flex items-center space-x-4">
-                              <span className={`text-3xl font-mono ${trend >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>${price.toLocaleString()}</span>
-                              <span className={`text-sm px-2 py-0.5 rounded bg-white/5 border border-white/5 ${trend >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{trend.toFixed(2)}%</span>
+                           <h2 className="text-3xl md:text-6xl font-black text-white tracking-tighter mb-1">{ticker}</h2>
+                           <div className="flex items-center space-x-2 md:space-x-4">
+                              <span className={`text-xl md:text-3xl font-mono ${trend >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>${price.toLocaleString()}</span>
+                              <span className={`text-xs md:text-sm px-2 py-0.5 rounded bg-white/5 border border-white/5 ${trend >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{trend.toFixed(2)}%</span>
                            </div>
                         </div>
                         <div className="text-right">
                            <div className="text-[10px] text-zinc-500 uppercase tracking-widest mb-1">AI Confidence</div>
-                           <div className="text-5xl font-black text-white opacity-20">{winProb}%</div>
+                           <div className="text-2xl md:text-5xl font-black text-white opacity-20">{winProb}%</div>
                         </div>
                      </div>
-                     <div className="flex-1 flex items-end space-x-1 mt-6 opacity-50">
+                     <div className="flex-1 flex items-end space-x-0.5 md:space-x-1 mt-2 md:mt-6 opacity-50">
                         {[...Array(40)].map((_, i) => (
                            <div key={i} className={`w-full rounded-t-sm transition-all duration-500 ${trend >= 0 ? 'bg-emerald-500/20 hover:bg-emerald-500' : 'bg-rose-500/20 hover:bg-rose-500'}`} style={{ height: `${Math.random() * 90 + 10}%` }}></div>
                         ))}
                      </div>
                   </div>
-                  <div className="bg-zinc-900/40 border border-white/10 rounded-2xl p-5 flex items-center justify-between">
-                     <div className="flex items-center space-x-4">
+                  <div className="bg-zinc-900/40 border border-white/10 rounded-2xl p-2 md:p-5 flex items-center justify-between">
+                     <div className="flex items-center space-x-2 md:space-x-4">
                         <div className={`p-3 rounded-full ${marketType === 'CRYPTO' ? 'bg-amber-500/10 text-amber-500' : 'bg-blue-500/10 text-blue-500'}`}><Radio className="animate-pulse" size={20} /></div>
                         <div>
                            <div className="text-[10px] text-zinc-500 uppercase tracking-widest">Incoming Intelligence</div>
-                           <div className="text-sm font-mono text-white max-w-2xl truncate">{newsHeadline}</div>
+                           <div className="text-xs md:text-sm font-mono text-white max-w-2xl truncate">{newsHeadline}</div>
                         </div>
                      </div>
-                     <button onClick={scanMarket} className="px-6 py-3 bg-white text-black font-bold text-xs rounded-lg hover:scale-105 transition-transform">DEEP SCAN</button>
+                     <button onClick={scanMarket} className="px-4 md:px-6 py-2 md:py-3 bg-white text-black font-bold text-xs rounded-lg hover:scale-105 transition-transform">DEEP SCAN</button>
                   </div>
                </div>
-               <div className="col-span-4 flex flex-col gap-6">
-                  <div className="bg-zinc-900/40 border border-white/10 rounded-2xl p-6 space-y-6">
-                     <div className="flex justify-between items-center pb-4 border-b border-white/5">
+               <div className="md:col-span-4 flex flex-col gap-2 md:gap-6">
+                  <div className="bg-zinc-900/40 border border-white/10 rounded-2xl p-2 md:p-6 space-y-2 md:space-y-6">
+                     <div className="flex justify-between items-center pb-2 md:pb-4 border-b border-white/5">
                         <span className="text-xs font-bold text-white">ORDER ENTRY</span>
                         <div className={`text-[10px] font-mono px-2 py-1 rounded ${aiSentiment === 'BULLISH' ? 'bg-emerald-500/20 text-emerald-400' : aiSentiment === 'BEARISH' ? 'bg-rose-500/20 text-rose-400' : 'bg-zinc-800 text-zinc-500'}`}>SIGNAL: {aiSentiment}</div>
                      </div>
-                     <div className="grid grid-cols-2 gap-3">
-                        <button onClick={() => executeTrade('BUY')} className="py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-black text-lg tracking-widest transition-all active:scale-95 shadow-lg shadow-emerald-900/20">LONG</button>
-                        <button onClick={() => executeTrade('SELL')} className="py-4 bg-rose-600 hover:bg-rose-500 text-white rounded-xl font-black text-lg tracking-widest transition-all active:scale-95 shadow-lg shadow-rose-900/20">SHORT</button>
+                     <div className="grid grid-cols-2 gap-2 md:gap-3">
+                        <button onClick={() => executeTrade('BUY')} className="py-2 md:py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-black text-lg tracking-widest transition-all active:scale-95 shadow-lg shadow-emerald-900/20">LONG</button>
+                        <button onClick={() => executeTrade('SELL')} className="py-2 md:py-4 bg-rose-600 hover:bg-rose-500 text-white rounded-xl font-black text-lg tracking-widest transition-all active:scale-95 shadow-lg shadow-rose-900/20">SHORT</button>
                      </div>
-                     <div className="pt-4 border-t border-white/5">
-                        <button onClick={() => { setAutoPilot(!autoPilot); speak(`Auto Pilot ${!autoPilot ? 'Active' : 'Disabled'}`); }} className={`w-full py-3 rounded-lg border text-xs font-bold font-mono flex items-center justify-center transition-all ${autoPilot ? 'bg-purple-500/10 border-purple-500 text-purple-400' : 'bg-transparent border-zinc-700 text-zinc-500'}`}>
-                           <Cpu size={14} className="mr-2" /> {autoPilot ? 'AI AUTO-PILOT: ENGAGED' : 'ENABLE AUTO-PILOT'}
-                        </button>
+                     <div className="pt-2 md:pt-4 border-t border-white/5">
+                        <button onClick={() => { setAutoPilot(!autoPilot); speak(`Auto Pilot ${!autoPilot ? 'Active' : 'Disabled'}`); }} className={`w-full py-2 md:py-3 rounded-lg border text-xs font-bold font-mono flex items-center justify-center transition-all ${autoPilot ? 'bg-purple-500/10 border-purple-500 text-purple-400' : 'bg-transparent border-zinc-700 text-zinc-500'}`}> <Cpu size={14} className="mr-2" /> {autoPilot ? 'AI AUTO-PILOT: ENGAGED' : 'ENABLE AUTO-PILOT'} </button>
                      </div>
                   </div>
-                  <div className="bg-zinc-900/40 border border-white/10 rounded-2xl p-6 flex-1 overflow-hidden flex flex-col">
-                     <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-4">Open Positions</h3>
+                  <div className="bg-zinc-900/40 border border-white/10 rounded-2xl p-2 md:p-6 flex-1 overflow-hidden flex flex-col">
+                     <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2 md:mb-4">Open Positions</h3>
                      <div className="flex-1 overflow-y-auto scrollbar-hide space-y-1">
                         {trades.length === 0 && <div className="text-center text-zinc-700 text-xs font-mono mt-10">NO ACTIVE PROTOCOLS</div>}
                         {trades.map(t => <TradeRow key={t.id} {...t} />)}

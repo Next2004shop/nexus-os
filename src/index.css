@@ -6,52 +6,68 @@
 
 :root {
   font-family: 'Inter', sans-serif;
-  background-color: #000000; /* Force absolute black */
+  background-color: #000000;
   color-scheme: dark;
 }
 
+body {
+  margin: 0;
+  min-height: 100vh;
+  background-color: #000000;
+  overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* --- Responsive Utility --- */
+html {
+  scroll-behavior: smooth;
+  touch-action: manipulation;
+}
+
 /* --- HACKER SCROLLBARS --- */
-/* This makes the scrollbar thin and dark */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
-
 ::-webkit-scrollbar-track {
-  background: #09090b; 
+  background: #09090b;
 }
-
 ::-webkit-scrollbar-thumb {
-  background: #3f3f46; 
+  background: #3f3f46;
   border-radius: 3px;
 }
-
-/* The bar glows Amber when you hover over it */
 ::-webkit-scrollbar-thumb:hover {
-  background: #f59e0b; 
+  background: #f59e0b;
   box-shadow: 0 0 10px #f59e0b;
 }
 
 /* --- NEON TEXT SELECTION --- */
-/* This makes text glow when you highlight it */
 ::selection {
   background: rgba(245, 158, 11, 0.3);
   color: #fcd34d;
   text-shadow: 0 0 8px rgba(245, 158, 11, 0.5);
 }
 
-body {
-  margin: 0;
-  overflow: hidden; /* Stops double scrolling */
-  background-color: #000000;
+/* --- Animations --- */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out forwards;
 }
 
-/* --- ANIMATIONS --- */
-@keyframes fadeIn { 
-  from { opacity: 0; transform: translateY(5px); } 
-  to { opacity: 1; transform: translateY(0); } 
+/* --- Touch-friendly Buttons --- */
+button, .rounded-xl, .rounded-lg {
+  min-width: 44px;
+  min-height: 44px;
+  touch-action: manipulation;
 }
 
-.animate-fadeIn { 
-  animation: fadeIn 0.3s ease-out forwards; 
+/* --- Responsive Grid Fixes --- */
+@media (max-width: 768px) {
+  .md\:grid-cols-12 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+  .md\:col-span-8, .md\:col-span-4 { grid-column: span 1 / span 1; }
+  .md\:p-6 { padding: 1rem; }
+  .md\:gap-6 { gap: 0.5rem; }
 }

@@ -5,8 +5,10 @@
     <!-- DEV ONLY: Allow unsafe-eval for Vite hot-reload -->
     <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-eval';">
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
     <title>NEXUS.OS // GOD MODE</title>
+    <meta name="apple-mobile-web-app-title" content="NEXUS.OS" />
+    <meta name="application-name" content="NEXUS.OS" />
     <meta name="description" content="NEXUS.OS // GOD MODE - Next-gen personal finance, trading, and wallet ecosystem." />
     <meta name="keywords" content="finance, trading, wallet, AI, stocks, crypto, PWA, next-gen, Nexus" />
     <meta name="author" content="NEXUS.OS Team" />
@@ -25,6 +27,8 @@
     <!-- Icons and Manifest -->
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <link rel="manifest" href="/manifest.json" />
+    <meta name="msapplication-TileColor" content="#000000" />
+    <meta name="msapplication-TileImage" content="/icon-192.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
     <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png" />
@@ -58,7 +62,7 @@
     </script>
   </head>
   <body>
-    <div id="root" aria-label="NEXUS.OS Application Root" tabindex="0" role="main"></div>
+    <div id="root" aria-label="NEXUS.OS Application Root" tabindex="0" role="main" style="min-height:100vh;display:flex;flex-direction:column;"></div>
     <noscript>
       <div style="color: #fff; background: #000; text-align: center; padding: 2em; font-family: monospace;">
         NEXUS.OS requires JavaScript to run. Please enable JavaScript in your browser settings.
