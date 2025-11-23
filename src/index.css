@@ -7,57 +7,71 @@
   --color-bg: #050505;
   --color-surface: #0f0f0f;
   --color-surface-hover: #18181b;
-  --color-primary: #f59e0b;
-  /* Amber 500 */
-  --color-success: #10b981;
-  --color-danger: #f43f5e;
-
-  --glass-border: rgba(255, 255, 255, 0.08);
-  --glass-bg: rgba(15, 15, 15, 0.6);
-  --nexus-black: #050505;
-  --nexus-glass: rgba(255, 255, 255, 0.03);
-  --nexus-glass-border: rgba(255, 255, 255, 0.08);
-  --nexus-amber: #f59e0b;
-  --nexus-amber-glow: rgba(245, 158, 11, 0.4);
-  --nexus-blue: #3b82f6;
-  --nexus-blue-glow: rgba(59, 130, 246, 0.4);
-  --nexus-red: #ef4444;
-  --nexus-green: #10b981;
+  /* Gen Z Fintech Palette */
+  --nexus-black: #0b0e11;
+  /* Binance-like dark bg */
+  --nexus-card: #181a20;
+  /* Lighter card bg */
+  --nexus-gold: #fcd535;
+  /* Binance Gold */
+  --nexus-purple: #8b5cf6;
+  /* Gen Z Purple */
+  --nexus-teal: #14b8a6;
+  /* Gen Z Teal */
+  --nexus-gray: #848e9c;
+  /* Subtext */
+  --nexus-border: #2b3139;
 }
 
 body {
   background-color: var(--nexus-black);
-  color: #ffffff;
+  color: #eaecef;
   font-family: 'Inter', sans-serif;
   overflow: hidden;
-  /* Prevent scroll on body, handle in app */
 }
 
-/* --- CYBER-GLASS UTILITIES --- */
+/* --- PREMIUM UTILITIES --- */
 .glass-panel {
-  background: var(--nexus-glass);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--nexus-glass-border);
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+  background: var(--nexus-card);
+  border: 1px solid var(--nexus-border);
+  border-radius: 16px;
+  /* Subtle shadow, not too glowing */
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
 }
 
 .glass-panel-hover:hover {
-  background: rgba(255, 255, 255, 0.07);
-  border-color: rgba(255, 255, 255, 0.15);
-  box-shadow: 0 0 15px var(--nexus-amber-glow);
+  border-color: var(--nexus-gold);
+  transform: translateY(-2px);
+  transition: all 0.2s ease;
 }
 
-.text-glow {
-  text-shadow: 0 0 10px var(--nexus-amber-glow);
+.text-gold {
+  color: var(--nexus-gold);
 }
 
-.text-glow-blue {
-  text-shadow: 0 0 10px var(--nexus-blue-glow);
+.btn-primary {
+  background-color: var(--nexus-gold);
+  color: #000000;
+  font-weight: 700;
+  border-radius: 8px;
+  transition: all 0.2s;
 }
 
-.neon-border {
-  box-shadow: 0 0 5px var(--nexus-amber-glow), inset 0 0 5px var(--nexus-amber-glow);
+.btn-primary:hover {
+  background-color: #ffe252;
+  transform: scale(1.02);
+}
+
+.btn-secondary {
+  background-color: #2b3139;
+  color: #eaecef;
+  font-weight: 600;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.btn-secondary:hover {
+  background-color: #3a404a;
 }
 
 /* Scrollbar */
@@ -71,12 +85,12 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #333;
+  background: #2b3139;
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  transition: all 0.2s ease;
+  background: var(--nexus-gray);
 }
 
 .glass-button:hover {
