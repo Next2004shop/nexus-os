@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { logTradeToCloud } from './firebase';
 
 // Use environment variable or fallback to local IP (change this to your computer's IP)
 const API_URL = import.meta.env.VITE_API_URL || 'http://192.168.43.153:5000';
@@ -53,11 +54,24 @@ export const placeTrade = async (symbol, type, volume, sl = 0, tp = 0) => {
   } catch (error) {
     // Simulate trade execution in Demo Mode
     console.log(`[DEMO] Trade Placed: ${type} ${volume} ${symbol}`);
-    return {
+
+    const tradeResult = {
       status: "EXECUTED",
       ticket: Math.floor(Math.random() * 1000000),
       msg: "Demo Trade Executed"
     };
+
+    // Log to Firebase if available
+    logTradeToCloud({
+      ticket: tradeResult.ticket,
+      symbol,
+      type,
+      volume,
+      price: 0, // Mock price
+      status: 'EXECUTED'
+    });
+
+    return tradeResult;
   }
 };
 

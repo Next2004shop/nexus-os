@@ -16,8 +16,12 @@ export const ChartContainer = ({ data, colors = {} }) => {
 
     useEffect(() => {
         const handleResize = () => {
-            chartRef.current.applyOptions({ width: chartContainerRef.current.clientWidth });
+            if (chartRef.current && chartContainerRef.current) {
+                chartRef.current.applyOptions({ width: chartContainerRef.current.clientWidth });
+            }
         };
+
+        if (!chartContainerRef.current) return;
 
         const chart = createChart(chartContainerRef.current, {
             layout: {
@@ -51,8 +55,6 @@ export const ChartContainer = ({ data, colors = {} }) => {
 
         // Initial Data
         if (data && data.length > 0) {
-            // Format data for lightweight-charts if needed, or assume passed correctly
-            // Expecting { time: '2018-12-22', value: 32.51 }
             newSeries.setData(data);
         }
 
@@ -60,7 +62,7 @@ export const ChartContainer = ({ data, colors = {} }) => {
 
         return () => {
             window.removeEventListener('resize', handleResize);
-            chart.remove();
+            if (chart) chart.remove();
         };
     }, [backgroundColor, lineColor, textColor, areaTopColor, areaBottomColor]);
 
