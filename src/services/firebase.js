@@ -1,44 +1,35 @@
-import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, addDoc, getDocs, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+import { getAuth } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
 
-// TODO: Replace with your actual Firebase config
+// Your web app's Firebase configuration
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "your-app.firebaseapp.com",
-    projectId: "your-app",
-    storageBucket: "your-app.appspot.com",
-    messagingSenderId: "123456789",
-    appId: "1:123456789:web:abcdef"
+    apiKey: "AIzaSyCwFJpSw4L5Xf5HYZH3aKuWbsGvgHeZESU",
+    authDomain: "nexus-d7b05.firebaseapp.com",
+    projectId: "nexus-d7b05",
+    storageBucket: "nexus-d7b05.firebasestorage.app",
+    messagingSenderId: "691725766314",
+    appId: "1:691725766314:web:18e4af3ca4d86eeaa64ad3",
+    measurementId: "G-YD5P4FZD3D"
 };
 
-// Initialize Firebase (wrapped in try-catch to prevent crash if config is missing)
-let db;
-try {
-    const app = initializeApp(firebaseConfig);
-    db = getFirestore(app);
-} catch (error) {
-    console.warn("Firebase not configured. Cloud features will use mock data.");
-}
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+export const auth = getAuth(app);
+export const db = getFirestore(app);
 
-export const logTradeToCloud = async (trade) => {
-    if (!db) return;
+export const logTradeToCloud = async (tradeData) => {
     try {
+        const { collection, addDoc } = await import("firebase/firestore");
         await addDoc(collection(db, "trades"), {
-            ...trade,
+            ...tradeData,
             timestamp: new Date()
         });
+        console.log("Trade logged to cloud:", tradeData.ticket);
     } catch (e) {
         console.error("Error logging trade to cloud:", e);
     }
 };
-
-export const subscribeToCloudTrades = (callback) => {
-    if (!db) return () => { };
-    const q = query(collection(db, "trades"), orderBy("timestamp", "desc"), limit(50));
-    return onSnapshot(q, (snapshot) => {
-        const trades = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        callback(trades);
-    });
-};
-
-export { db };

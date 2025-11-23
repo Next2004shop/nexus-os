@@ -1,51 +1,63 @@
-import React from 'react';
-import { Download, Send, Repeat } from 'lucide-react';
+import React, { useState } from 'react';
+import { Eye, EyeOff, Search, History } from 'lucide-react';
 
-const QuickAction = ({ icon: Icon, label, color, onClick }) => (
-    <button onClick={onClick} className="flex flex-col items-center gap-2 group w-full">
-        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${color} shadow-lg group-hover:scale-105 transition-all border border-white/10`}>
-            <Icon size={24} className="text-white" />
+const AssetRow = ({ symbol, name, amount, value }) => (
+    <div className="flex justify-between items-center py-4 border-b border-nexus-border last:border-0">
+        <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-nexus-yellow flex items-center justify-center text-nexus-black font-bold text-xs">
+                {symbol[0]}
+            </div>
+            <div>
+                <div className="font-bold text-nexus-text">{symbol}</div>
+                <div className="text-xs text-nexus-subtext">{name}</div>
+            </div>
         </div>
-        <span className="text-[10px] text-zinc-400 font-medium group-hover:text-white transition-colors">{label}</span>
-    </button>
+        <div className="text-right">
+            <div className="font-bold text-nexus-text">{amount}</div>
+            <div className="text-xs text-nexus-subtext">≈ ${value}</div>
+        </div>
+    </div>
 );
 
 export const WalletPage = () => {
-    const balance = 24593.42;
+    const [hideBalance, setHideBalance] = useState(false);
+    const [activeTab, setActiveTab] = useState('overview');
 
     return (
-        <div className="max-w-2xl mx-auto space-y-8 animate-fadeIn p-6">
-            <div className="bg-gradient-to-br from-zinc-900 to-black border border-white/10 rounded-[32px] p-8 shadow-2xl relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/10 blur-[80px] rounded-full pointer-events-none"></div>
-                <div className="relative z-10 text-center">
-                    <div className="text-zinc-500 text-xs font-bold uppercase tracking-[0.2em] mb-2">Total Balance</div>
-                    <div className="text-6xl font-mono font-black text-white mb-8 tracking-tighter text-glow">${balance.toLocaleString()}</div>
-                    <div className="flex justify-center gap-6">
-                        <QuickAction icon={Download} label="Deposit" color="bg-emerald-600" onClick={() => { }} />
-                        <QuickAction icon={Send} label="Send" color="bg-blue-600" onClick={() => { }} />
-                        <QuickAction icon={Repeat} label="Swap" color="bg-purple-600" onClick={() => { }} />
+        <div className="bg-nexus-black min-h-screen pb-24">
+            {/* HEADER */}
+            <div className="bg-nexus-card pt-4 pb-6 px-4 rounded-b-3xl shadow-lg">
+                <div className="flex justify-between items-center mb-6">
+                    <div className="flex gap-4">
+                        {['Overview', 'Spot', 'Funding', 'Futures'].map(tab => (
+                            <button
+                                key={tab}
+                                onClick={() => setActiveTab(tab.toLowerCase())}
+                                className={`text-sm font-bold transition-colors ${activeTab === tab.toLowerCase() ? 'text-nexus-text' : 'text-nexus-subtext'}`}
+                            >
+                                {tab}
+                            </button>
+                        ))}
                     </div>
+                    <History size={20} className="text-nexus-subtext" />
                 </div>
-            </div>
 
-            <div className="space-y-3">
-                <h3 className="text-xs font-bold text-zinc-500 uppercase ml-4 mb-2">Assets</h3>
-                {[
-                    { n: 'Bitcoin', s: 'BTC', b: '0.424', v: '$37,500', c: 'text-orange-500' },
-                    { n: 'Tether', s: 'USDT', b: '12,450', v: '$12,450', c: 'text-emerald-500' },
-                    { n: 'M-Pesa', s: 'KES', b: '45,200', v: '$350', c: 'text-green-600' }
-                ].map((a, i) => (
-                    <div key={i} className="flex items-center justify-between p-4 glass-panel rounded-2xl hover:bg-white/5 transition-colors cursor-pointer">
-                        <div className="flex items-center gap-4">
-                            <div className={`w-10 h-10 rounded-full bg-white/5 flex items-center justify-center font-bold ${a.c}`}>{a.s[0]}</div>
-                            <div>
-                                <div className="font-bold text-white text-sm">{a.n}</div>
-                                <div className="text-xs text-zinc-500 font-mono">{a.b} {a.s}</div>
-                            </div>
-                        </div>
-                        <div className="text-right font-mono font-bold text-white text-sm">{a.v}</div>
+                <div className="mb-6">
+                    <div className="flex items-center gap-2 text-nexus-subtext text-sm mb-1">
+                        <span>Total Balance (USD)</span>
+                        <button onClick={() => setHideBalance(!hideBalance)}>
+                            {hideBalance ? <EyeOff size={14} /> : <Eye size={14} />}
+                        </button>
                     </div>
-                ))}
+                    <Search size={18} className="text-nexus-subtext" />
+                </div>
+
+                <div className="space-y-1">
+                    <AssetRow symbol="USDT" name="Tether" amount="12,450.00" value="12,450.00" />
+                    <AssetRow symbol="BTC" name="Bitcoin" amount="0.1542" value="9,850.20" />
+                    <AssetRow symbol="ETH" name="Ethereum" amount="0.54" value="1,863.54" />
+                    <AssetRow symbol="BNB" name="BNB" amount="0.75" value="429.68" />
+                </div>
             </div>
         </div>
     );

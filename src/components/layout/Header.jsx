@@ -1,7 +1,7 @@
 import React from 'react';
 import { Mic, Bell, Settings, Wifi, WifiOff } from 'lucide-react';
 
-export const Header = ({ balance, isListening, onMicClick, connectionStatus }) => {
+export const Header = ({ balance, isListening, onMicClick, connectionStatus, onSettingsClick, onNotificationsClick }) => {
     return (
         <header className="h-16 flex items-center justify-between px-6 bg-black/40 backdrop-blur-md border-b border-white/5 z-20 shrink-0">
             <div className="flex items-center gap-4">
@@ -20,7 +20,7 @@ export const Header = ({ balance, isListening, onMicClick, connectionStatus }) =
                     <div className="text-sm font-mono font-bold text-white">${balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
                 </div>
 
-                <button className="p-2 hover:bg-white/5 rounded-full text-zinc-400 hover:text-white transition-colors">
+                <button onClick={onNotificationsClick} className="p-2 hover:bg-white/5 rounded-full text-zinc-400 hover:text-white transition-colors">
                     <Bell size={18} />
                 </button>
 
@@ -28,7 +28,7 @@ export const Header = ({ balance, isListening, onMicClick, connectionStatus }) =
                     <Mic size={18} />
                 </button>
 
-                <button className="p-2 hover:bg-white/5 rounded-full text-zinc-400 hover:text-white transition-colors">
+                <button onClick={onSettingsClick} className="p-2 hover:bg-white/5 rounded-full text-zinc-400 hover:text-white transition-colors">
                     <Settings size={18} />
                 </button>
             </div>

@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { ChevronDown, MoreHorizontal, ArrowUp, ArrowDown, FileText } from 'lucide-react';
+import { ChevronDown, MoreHorizontal, ArrowUp, ArrowDown, Info } from 'lucide-react';
 
-export const TradePage = ({ ticker = "BTC/USDT" }) => {
+export const FuturesPage = () => {
     const [side, setSide] = useState('buy');
-    const [orderType, setOrderType] = useState('limit');
+    const [leverage, setLeverage] = useState(20);
     const [price, setPrice] = useState('64230.10');
     const [amount, setAmount] = useState('');
 
@@ -13,7 +13,7 @@ export const TradePage = ({ ticker = "BTC/USDT" }) => {
             <div className="flex items-center justify-between px-4 py-2 border-b border-nexus-border">
                 <div className="flex items-center gap-2">
                     <h2 className="text-lg font-bold text-nexus-text flex items-center gap-1">
-                        {ticker} <ChevronDown size={16} className="text-nexus-subtext" />
+                        BTCUSDT <span className="text-xs bg-nexus-border px-1 rounded text-nexus-subtext">Perp</span> <ChevronDown size={16} className="text-nexus-subtext" />
                     </h2>
                     <span className="text-xs text-nexus-green bg-nexus-green/10 px-1.5 py-0.5 rounded">+0.85%</span>
                 </div>
@@ -56,6 +56,11 @@ export const TradePage = ({ ticker = "BTC/USDT" }) => {
 
                 {/* TRADE FORM (RIGHT) */}
                 <div className="flex-1 pl-2">
+                    <div className="flex gap-2 mb-3">
+                        <button className="bg-nexus-border text-nexus-text text-xs px-2 py-1 rounded flex-1">Cross</button>
+                        <button className="bg-nexus-border text-nexus-text text-xs px-2 py-1 rounded flex-1">{leverage}x</button>
+                    </div>
+
                     <div className="flex bg-nexus-border rounded-lg p-0.5 mb-4">
                         <button
                             onClick={() => setSide('buy')}
@@ -90,7 +95,7 @@ export const TradePage = ({ ticker = "BTC/USDT" }) => {
                         <div className="bg-nexus-border rounded px-3 py-2 flex items-center justify-between">
                             <input
                                 type="text"
-                                placeholder="Amount"
+                                placeholder="Size"
                                 value={amount}
                                 onChange={(e) => setAmount(e.target.value)}
                                 className="bg-transparent text-nexus-text text-sm font-bold w-full outline-none text-right"
@@ -98,35 +103,65 @@ export const TradePage = ({ ticker = "BTC/USDT" }) => {
                             <span className="text-xs text-nexus-subtext ml-2">BTC</span>
                         </div>
 
-                        {/* Percentage Slider */}
-                        <div className="flex justify-between px-1">
-                            {[25, 50, 75, 100].map(pct => (
-                                <button key={pct} className="text-[10px] text-nexus-subtext bg-nexus-border px-2 py-0.5 rounded hover:bg-nexus-gray transition-colors">
-                                    {pct}%
-                                </button>
-                            ))}
+                        {/* Leverage Slider */}
+                        <div className="px-1">
+                            <div className="flex justify-between text-[10px] text-nexus-subtext mb-1">
+                                <span>1x</span>
+                                <span>{leverage}x</span>
+                                <span>125x</span>
+                            </div>
+                            <input
+                                type="range"
+                                min="1"
+                                max="125"
+                                value={leverage}
+                                onChange={(e) => setLeverage(e.target.value)}
+                                className="w-full h-1 bg-nexus-border rounded-lg appearance-none cursor-pointer"
+                            />
                         </div>
 
                         <div className="flex justify-between text-xs text-nexus-subtext mt-2">
-                            <span>Avail</span>
-                            <span className="text-nexus-text">1,240.50 USDT</span>
+                            <span>Max Buy</span>
+                            <span className="text-nexus-text">0.42 BTC</span>
                         </div>
 
                         <button className={`w-full py-3 rounded-lg font-bold text-white mt-4 ${side === 'buy' ? 'bg-nexus-green' : 'bg-nexus-red'}`}>
-                            {side === 'buy' ? 'Buy BTC' : 'Sell BTC'}
+                            {side === 'buy' ? 'Buy / Long' : 'Sell / Short'}
                         </button>
                     </div>
                 </div>
             </div>
 
-            {/* OPEN ORDERS */}
+            {/* POSITIONS */}
             <div className="mt-4 px-4">
-                <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-bold text-nexus-text">Open Orders (0)</h3>
-                    <FileText size={16} className="text-nexus-subtext" />
+                <div className="flex items-center gap-4 mb-4 border-b border-nexus-border pb-2">
+                    <h3 className="font-bold text-nexus-text text-sm border-b-2 border-nexus-yellow pb-2 -mb-2.5">Positions (1)</h3>
+                    <h3 className="font-bold text-nexus-subtext text-sm">Orders (0)</h3>
                 </div>
-                <div className="text-center py-8 text-nexus-subtext text-sm bg-nexus-card rounded-lg">
-                    No Open Orders
+
+                <div className="bg-nexus-card p-4 rounded-lg border-l-4 border-nexus-green">
+                    <div className="flex justify-between items-start mb-2">
+                        <div>
+                            <div className="font-bold text-nexus-text text-lg flex items-center gap-2">
+                                BTCUSDT <span className="text-xs bg-nexus-border px-1.5 py-0.5 rounded text-nexus-green">Long</span> <span className="text-xs text-nexus-subtext">20x</span>
+                            </div>
+                        </div>
+                        <div className="text-right">
+                            <div className="text-nexus-green font-bold">+125.40</div>
+                            <div className="text-nexus-green text-xs">+12.5%</div>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-y-2 text-xs">
+                        <div className="text-nexus-subtext">Size (USDT)</div>
+                        <div className="text-right text-nexus-text">12,450.00</div>
+                        <div className="text-nexus-subtext">Entry Price</div>
+                        <div className="text-right text-nexus-text">63,850.20</div>
+                        <div className="text-nexus-subtext">Mark Price</div>
+                        <div className="text-right text-nexus-text">64,230.10</div>
+                        <div className="text-nexus-subtext">Liq. Price</div>
+                        <div className="text-right text-nexus-yellow">61,200.00</div>
+                    </div>
+                    <button className="w-full mt-3 bg-nexus-border text-nexus-text py-2 rounded font-bold text-xs">Close Position</button>
                 </div>
             </div>
         </div>

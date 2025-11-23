@@ -19,8 +19,10 @@ export const BrokersPage = () => {
                         <div>
                             <h3 className="font-bold text-white text-lg capitalize">{b === 'fxpesa' ? 'FxPesa Direct' : 'MetaTrader 5'}</h3>
                             <div className="flex items-center gap-2 mt-1">
-                                <div className={`w-1.5 h-1.5 rounded-full ${brokerStatus[b] ? 'bg-emerald-500' : 'bg-rose-500'}`}></div>
-                                <span className="text-xs text-zinc-500 font-mono">{brokerStatus[b] ? 'CONNECTED' : 'DISCONNECTED'}</span>
+                                <div className={`w-2 h-2 rounded-full ${brokerStatus[b] ? 'bg-green-500 animate-pulse shadow-[0_0_8px_#22c55e]' : 'bg-rose-500'}`}></div>
+                                <span className={`text-xs font-mono font-bold ${brokerStatus[b] ? 'text-green-500' : 'text-zinc-500'}`}>
+                                    {brokerStatus[b] ? 'LIVE CONNECTION • 12ms' : 'DISCONNECTED'}
+                                </span>
                             </div>
                         </div>
                     </div>

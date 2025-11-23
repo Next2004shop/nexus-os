@@ -35,15 +35,15 @@ export const NewsFeed = () => {
                 </span>
             </div>
 
-            {/* Horizontal Scroll for Mobile, Grid for Desktop */}
-            <div className="flex overflow-x-auto gap-4 pb-4 md:grid md:grid-cols-2 lg:grid-cols-3 custom-scrollbar">
+            {/* Vertical Stack for Mobile, Grid for Desktop */}
+            <div className="flex flex-col space-y-4 md:space-y-0 md:grid md:grid-cols-2 lg:grid-cols-3 gap-4 pb-4">
                 {news.map(item => (
                     <a
                         key={item.id}
                         href={item.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="min-w-[280px] md:min-w-0 glass-panel overflow-hidden group hover:border-nexus-gold transition-all duration-300 flex flex-col"
+                        className="w-full glass-panel overflow-hidden group hover:border-nexus-gold transition-all duration-300 flex flex-col"
                     >
                         <div className="h-40 overflow-hidden relative">
                             <img
