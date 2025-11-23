@@ -98,9 +98,42 @@ export const TradePage = ({ ticker, setTicker, marketType, setMarketType }) => {
     };
 
     return (
-        <div className="max-w-[1600px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 p-6 h-[calc(100vh-80px)] overflow-y-auto">
+        <div className="max-w-[1600px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 p-6 h-[calc(100vh-80px)] overflow-y-auto custom-scrollbar">
             {/* LEFT: CHART & ANALYSIS */}
             <div className="lg:col-span-8 flex flex-col gap-6">
+                {/* ASSET SELECTOR */}
+                <div className="flex gap-2 overflow-x-auto pb-2">
+                    {['BTC/USD', 'ETH/USD', 'SOL/USD'].map(t => (
+                        <button
+                            key={t}
+                            onClick={() => { setTicker(t); setMarketType('CRYPTO'); }}
+                            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${ticker === t ? 'bg-nexus-gold text-black' : 'bg-[#2b3139] text-zinc-400 hover:text-white'}`}
+                        >
+                            {t}
+                        </button>
+                    ))}
+                    <div className="w-px bg-zinc-700 mx-2"></div>
+                    {['AAPL', 'TSLA', 'NVDA'].map(t => (
+                        <button
+                            key={t}
+                            onClick={() => { setTicker(t); setMarketType('STOCK'); }}
+                            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${ticker === t ? 'bg-nexus-purple text-white' : 'bg-[#2b3139] text-zinc-400 hover:text-white'}`}
+                        >
+                            {t}
+                        </button>
+                    ))}
+                    <div className="w-px bg-zinc-700 mx-2"></div>
+                    {['GOLD', 'OIL'].map(t => (
+                        <button
+                            key={t}
+                            onClick={() => { setTicker(t); setMarketType('COMMODITY'); }}
+                            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${ticker === t ? 'bg-nexus-teal text-black' : 'bg-[#2b3139] text-zinc-400 hover:text-white'}`}
+                        >
+                            {t}
+                        </button>
+                    ))}
+                </div>
+
                 {/* MAIN CHART CARD */}
                 <div className="h-[500px] glass-panel rounded-3xl p-6 relative overflow-hidden shadow-2xl flex flex-col">
                     <div className="flex justify-between items-start mb-4 z-10">
