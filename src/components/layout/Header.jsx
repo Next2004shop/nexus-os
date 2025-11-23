@@ -7,8 +7,10 @@ export const Header = ({ balance, isListening, onMicClick, connectionStatus }) =
             <div className="flex items-center gap-4">
                 <div className="md:hidden w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center text-black font-bold">N</div>
                 <div className="hidden md:flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/5">
-                    {connectionStatus === 'ONLINE' ? <Wifi size={14} className="text-emerald-500" /> : <WifiOff size={14} className="text-rose-500" />}
-                    <span className="text-[10px] font-mono text-zinc-400">{connectionStatus}</span>
+                    {connectionStatus === 'ONLINE' ? <Wifi size={14} className="text-emerald-500" /> :
+                        connectionStatus === 'DEMO' ? <Wifi size={14} className="text-amber-500" /> :
+                            <WifiOff size={14} className="text-rose-500" />}
+                    <span className={`text-[10px] font-mono ${connectionStatus === 'DEMO' ? 'text-amber-500' : 'text-zinc-400'}`}>{connectionStatus}</span>
                 </div>
             </div>
 

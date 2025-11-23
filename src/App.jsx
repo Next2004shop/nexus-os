@@ -19,7 +19,9 @@ export default function NexusAI() {
    useEffect(() => {
       const check = async () => {
          const status = await checkStatus();
-         setConnectionStatus(status.status === 'ONLINE' ? 'ONLINE' : 'OFFLINE');
+         if (status.status === 'ONLINE') setConnectionStatus('ONLINE');
+         else if (status.status === 'DEMO') setConnectionStatus('DEMO');
+         else setConnectionStatus('OFFLINE');
       };
       check();
       const interval = setInterval(check, 10000);
