@@ -1,10 +1,12 @@
 import React from 'react';
-import { Activity, Wallet, Server, PieChart } from 'lucide-react';
+import { Activity, Wallet, Server, PieChart, Globe, Shield } from 'lucide-react';
 
 export const MobileNav = ({ activeTab, onTabChange }) => {
     const navItems = [
         { id: 'trade', icon: Activity, label: 'Trade' },
         { id: 'wallet', icon: Wallet, label: 'Wallet' },
+        { id: 'hedge', icon: Globe, label: 'Hedge' },
+        { id: 'security', icon: Shield, label: 'Security' },
         { id: 'brokers', icon: Server, label: 'Brokers' },
         { id: 'tax', icon: PieChart, label: 'Tax' }
     ];
