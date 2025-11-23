@@ -46,16 +46,20 @@ export const ChartContainer = ({ data, colors = {} }) => {
 
         chartRef.current = chart;
 
-        const newSeries = chart.addAreaSeries({
-            lineColor,
-            topColor: areaTopColor,
-            bottomColor: areaBottomColor,
-        });
-        seriesRef.current = newSeries;
+        try {
+            const newSeries = chart.addAreaSeries({
+                lineColor,
+                topColor: areaTopColor,
+                bottomColor: areaBottomColor,
+            });
+            seriesRef.current = newSeries;
 
-        // Initial Data
-        if (data && data.length > 0) {
-            newSeries.setData(data);
+            // Initial Data
+            if (data && data.length > 0) {
+                newSeries.setData(data);
+            }
+        } catch (err) {
+            console.error("Failed to add series:", err);
         }
 
         window.addEventListener('resize', handleResize);
