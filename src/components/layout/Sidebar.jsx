@@ -1,16 +1,18 @@
 import React from 'react';
-import { Terminal, Wallet, Server, PieChart } from 'lucide-react';
+import { Terminal, Wallet, Server, PieChart, Globe, Shield } from 'lucide-react';
 
 export const Sidebar = ({ activeTab, onTabChange }) => {
     const navItems = [
         { id: 'trade', icon: Terminal },
         { id: 'wallet', icon: Wallet },
+        { id: 'hedge', icon: Globe }, // New Hedge Fund Tab
+        { id: 'security', icon: Shield }, // New Security Tab
         { id: 'brokers', icon: Server },
         { id: 'tax', icon: PieChart }
     ];
 
     return (
-        <div className="hidden md:flex w-20 border-r border-white/5 flex-col items-center py-8 bg-zinc-950/50 z-50 h-full">
+        <div className="hidden md:flex w-20 border-r border-white/5 flex-col items-center py-8 bg-zinc-950/50 z-50 h-full backdrop-blur-xl">
             <div className="w-10 h-10 bg-amber-500 rounded-xl flex items-center justify-center text-black font-black mb-8 shadow-[0_0_15px_rgba(245,158,11,0.3)]">N</div>
             <div className="space-y-6 flex-1">
                 {navItems.map(item => (

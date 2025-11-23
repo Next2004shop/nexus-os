@@ -7,14 +7,12 @@ import logging
 import time
 
 # --- CONFIGURATION ---
-# If your broker uses a specific server, enter it here (optional)
-# Otherwise, it uses the currently logged-in account in your open MT5 terminal.
 SERVER_PORT = 5000
 DEVIATION = 20
 MAGIC_NUMBER = 234000
 
 app = Flask(__name__)
-CORS(app) # Allows your React App to talk to this script
+CORS(app)
 
 # --- AUTHENTICATION ---
 auth = HTTPBasicAuth()
@@ -34,7 +32,6 @@ logger = logging.getLogger("NexusBridge")
 # --- INITIALIZATION ---
 logger.info("--- NEXUS BRIDGE: INITIALIZING ---")
 
-# 1. Connect to MetaTrader 5
 if not mt5.initialize():
     logger.error("Initialization failed. Error: %s", mt5.last_error())
     quit()
@@ -46,13 +43,12 @@ else:
     else:
         logger.warning("Could not retrieve account info. Ensure MT5 is open and logged in.")
 
-# --- ROUTES (The commands your website sends) ---
+# --- ROUTES ---
 
 @app.route('/status', methods=['GET'])
 @auth.login_required
 def status():
     """Checks if the bridge is alive and gets account balance"""
-    # Re-initialize on every check to ensure connection is alive
     if not mt5.initialize():
         return jsonify({"status": "ERROR", "msg": "MT5 Disconnected"})
         
@@ -71,7 +67,7 @@ def status():
 def place_trade():
     """Executes a BUY or SELL order"""
     data = request.json
-    symbol = data.get('symbol', 'EURUSD') # Default to EURUSD if missing
+    symbol = data.get('symbol', 'EURUSD')
     action_type = data.get('type', 'BUY')
     volume = float(data.get('lots', 0.01))
     stop_loss = float(data.get('sl', 0.0))
@@ -112,8 +108,60 @@ def place_trade():
         logger.error("Trade failed: %s", result.comment)
         return jsonify({"status": "FAILED", "error": result.comment})
     
+    # Log to Ledger
+    try:
+        from nexus_security import ledger
+        ledger.record_transaction("TRADE", 0, f"{action_type} {volume} {symbol} @ {price}")
+    except ImportError:
+        logger.warning("Security module not found, skipping ledger.")
+
     logger.info("%s ORDER EXECUTED: %s @ %s", action_type, symbol, price)
     return jsonify({"status": "EXECUTED", "ticket": result.order})
+
+@app.route('/withdraw', methods=['POST'])
+@auth.login_required
+def withdraw():
+    """Process a secure withdrawal"""
+    try:
+        from nexus_security import vault, ledger
+        data = request.json
+        amount = float(data.get('amount', 0))
+        address = data.get('address', 'Unknown')
+        
+        success, msg = vault.verify_withdrawal(amount, "admin")
+        if not success:
+            return jsonify({"status": "BLOCKED", "error": msg}), 403
+            
+        # Log to Ledger
+        tx_id = ledger.record_transaction("WITHDRAWAL", amount, f"To: {address}")
+        return jsonify({"status": "APPROVED", "tx_id": tx_id, "msg": "Funds released to blockchain"})
+    except ImportError:
+        return jsonify({"status": "ERROR", "msg": "Security module missing"}), 500
+
+# --- AI ENDPOINTS ---
+
+@app.route('/ai/insight', methods=['GET'])
+@auth.login_required
+def get_insight():
+    """Returns a live insight from the AI brain"""
+    try:
+        from nexus_brain import brain
+        return jsonify({"insight": brain.get_ai_insights()})
+    except ImportError:
+        return jsonify({"insight": "AI Module Loading..."})
+
+@app.route('/ai/analyze', methods=['POST'])
+@auth.login_required
+def analyze_symbol():
+    """Triggers AI analysis for a specific symbol"""
+    try:
+        from nexus_brain import brain
+        data = request.json
+        symbol = data.get('symbol', 'EURUSD')
+        result = brain.analyze_market(symbol)
+        return jsonify(result)
+    except ImportError:
+        return jsonify({"error": "AI Module missing"}), 500
 
 @app.route('/positions', methods=['GET'])
 @auth.login_required
@@ -138,7 +186,7 @@ def get_positions():
 @auth.login_required
 def get_history():
     """Fetches trade history for the current account"""
-    start_time = request.args.get('start', int(time.time()) - 86400)  # Default: last 24 hours
+    start_time = request.args.get('start', int(time.time()) - 86400)
     end_time = request.args.get('end', int(time.time()))
 
     history = mt5.history_deals_get(start_time, end_time)
@@ -156,7 +204,6 @@ def get_history():
         })
     return jsonify(history_list)
 
-# --- LAUNCH SERVER ---
 if __name__ == '__main__':
     logger.info("🚀 NEXUS BRIDGE LISTENING ON PORT %d...", SERVER_PORT)
     app.run(host='0.0.0.0', port=SERVER_PORT)
