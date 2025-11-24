@@ -13,7 +13,7 @@ export default defineConfig({
         enabled: true,
       },
       manifest: {
-        name: 'Nexus OS',
+        name: 'NXTradex-OS',
         short_name: 'Nexus',
         description: 'Next-gen personal finance, trading, and wallet ecosystem.',
         theme_color: '#0B0E11',

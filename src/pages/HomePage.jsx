@@ -1,92 +1,110 @@
-import React, { useState } from 'react';
-import { CreditCard, Grid, Gift, Users, FileText, MoreHorizontal, ArrowUpRight, ArrowDownRight, Flame, Download, Zap, Repeat, PieChart } from 'lucide-react';
+import React from 'react';
+import { TrendingUp, Activity, Globe, Zap, ArrowUpRight, ArrowDownRight, CreditCard, RefreshCw } from 'lucide-react';
 
-const QuickAction = ({ icon: Icon, label, action, color = "text-nexus-yellow" }) => (
-    <button onClick={action} className="flex flex-col items-center gap-2 min-w-[70px]">
-        <div className="w-10 h-10 rounded-full bg-nexus-border flex items-center justify-center text-nexus-yellow hover:bg-nexus-gray transition-colors">
-            <Icon size={20} />
+const StatCard = ({ label, value, change, isPositive }) => (
+    <div className="bg-white/5 backdrop-blur-sm border border-white/10 p-4 rounded-2xl hover:bg-white/10 transition-all group">
+        <div className="flex justify-between items-start mb-2">
+            <span className="text-nexus-subtext text-xs font-medium uppercase tracking-wider">{label}</span>
+            <div className={`p-1.5 rounded-lg ${isPositive ? 'bg-nexus-green/10 text-nexus-green' : 'bg-nexus-red/10 text-nexus-red'}`}>
+                {isPositive ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
+            </div>
         </div>
-        <span className="text-[11px] text-nexus-text text-center leading-tight">{label}</span>
-    </button>
-);
-
-const MarketRow = ({ symbol, price, change, isHot }) => (
-    <div className="flex justify-between items-center py-3 border-b border-nexus-border last:border-0 hover:bg-nexus-border/30 px-2 -mx-2 rounded transition-colors cursor-pointer">
-        <div className="flex items-center gap-2">
-            {isHot && <Flame size={12} className="text-nexus-yellow" />}
-            <div className="font-bold text-nexus-text text-sm">{symbol}<span className="text-nexus-subtext text-xs">/USDT</span></div>
-        </div>
-        <div className="text-right">
-            <div className="text-nexus-text font-medium text-sm font-mono-numbers">{price}</div>
-            <div className="text-nexus-subtext text-xs">≈ ${price}</div>
-        </div>
-        <div className={`w-20 py-1.5 rounded text-center text-xs font-bold text-white flex items-center justify-center gap-1 ${parseFloat(change) >= 0 ? 'bg-nexus-green' : 'bg-nexus-red'}`}>
-            {parseFloat(change) >= 0 ? '+' : ''}{change}%
+        <div className="text-2xl font-bold text-white mb-1 group-hover:text-nexus-blue transition-colors">{value}</div>
+        <div className={`text-xs font-medium ${isPositive ? 'text-nexus-green' : 'text-nexus-red'}`}>
+            {change} <span className="text-nexus-subtext ml-1">vs last 24h</span>
         </div>
     </div>
 );
 
-export const HomePage = ({ onNavigate }) => {
-    const [activeList, setActiveList] = useState('hot');
-
+const MarketTicker = ({ symbol, price, change }) => {
+    const isPositive = parseFloat(change) >= 0;
     return (
-        <div className="pb-24 bg-nexus-black min-h-screen">
-            {/* BANNERS */}
-            <div className="mt-2 px-4 overflow-x-auto flex gap-3 pb-2 no-scrollbar">
-                <div className="min-w-[300px] h-36 rounded-xl bg-gradient-to-r from-nexus-yellow to-[#f0b90b] flex items-center p-5 relative overflow-hidden shrink-0">
-                    <div className="relative z-10">
-                        <h3 className="font-bold text-nexus-black text-xl">Join the 500M+</h3>
-                        <p className="text-nexus-black/80 text-xs mt-1 font-medium">Trading Competition Live!</p>
-                        <button className="mt-3 bg-nexus-black text-nexus-yellow px-4 py-1.5 rounded-md text-xs font-bold hover:scale-105 transition-transform">Join Now</button>
-                    </div>
-                    <div className="absolute right-0 bottom-0 opacity-10">
-                        <Grid size={120} color="black" />
-                    </div>
+        <div className="flex items-center justify-between p-3 hover:bg-white/5 rounded-xl transition-colors cursor-pointer border border-transparent hover:border-white/5">
+            <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-800 to-black border border-white/10 flex items-center justify-center font-bold text-xs">
+                    {symbol[0]}
                 </div>
-                <div className="min-w-[300px] h-36 rounded-xl bg-gradient-to-r from-nexus-green to-emerald-600 flex items-center p-5 relative overflow-hidden shrink-0">
-                    <div className="relative z-10">
-                        <h3 className="font-bold text-white text-xl">Zero Fees</h3>
-                        <p className="text-white/90 text-xs mt-1 font-medium">On First Deposit</p>
-                        <button className="mt-3 bg-white text-nexus-green px-4 py-1.5 rounded-md text-xs font-bold hover:scale-105 transition-transform">Deposit</button>
-                    </div>
+                <div>
+                    <div className="font-bold text-sm">{symbol}</div>
+                    <div className="text-xs text-nexus-subtext">USDT</div>
+                </div>
+            </div>
+            <div className="text-right">
+                <div className="font-mono font-medium text-sm">{price}</div>
+                <div className={`text-xs ${isPositive ? 'text-nexus-green' : 'text-nexus-red'}`}>
+                    {isPositive ? '+' : ''}{change}%
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export const HomePage = ({ onNavigate }) => {
+    return (
+        <div className="space-y-6">
+            {/* WELCOME SECTION */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+                <div>
+                    <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-white via-nexus-blue to-purple-500 bg-clip-text text-transparent animate-fadeIn">
+                        Command Center
+                    </h1>
+                    <p className="text-nexus-subtext mt-1">Welcome back, Commander. Market sentiment is <span className="text-nexus-green">Bullish</span>.</p>
+                </div>
+                <div className="flex gap-2">
+                    <button onClick={() => onNavigate('wallet')} className="px-4 py-2 bg-nexus-blue/10 text-nexus-blue border border-nexus-blue/50 rounded-xl font-bold text-sm hover:bg-nexus-blue/20 transition-all shadow-[0_0_10px_rgba(0,240,255,0.2)]">
+                        Deposit Assets
+                    </button>
                 </div>
             </div>
 
-            {/* QUICK ACTIONS */}
-            <div className="grid grid-cols-4 gap-y-6 mt-6 px-4">
-                <QuickAction icon={Download} label="Deposit" action={() => onNavigate('wallet')} />
-                <QuickAction icon={Users} label="Referral" action={() => alert('Referral Program: Share your link to earn 20% commission!')} />
-                <QuickAction icon={Grid} label="Grid Trading" action={() => onNavigate('trade')} />
-                <QuickAction icon={PieChart} label="Earn" action={() => alert('Nexus Earn: Staking APY up to 12%')} />
-                <QuickAction icon={Zap} label="Futures" action={() => onNavigate('futures')} />
-                <QuickAction icon={Repeat} label="P2P" action={() => onNavigate('trade')} />
-                <QuickAction icon={CreditCard} label="Buy Crypto" action={() => onNavigate('markets')} />
-                <QuickAction icon={MoreHorizontal} label="More" action={() => alert('More services coming soon!')} />
+            {/* STATS GRID */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <StatCard label="Portfolio Value" value="$12,450.00" change="+2.5%" isPositive={true} />
+                <StatCard label="24h Profit" value="+$320.50" change="+1.2%" isPositive={true} />
+                <StatCard label="Active Trades" value="3" change="-1" isPositive={false} />
+                <StatCard label="Global Volume" value="$42.5B" change="+5.4%" isPositive={true} />
             </div>
 
-            {/* HOT LIST */}
-            <div className="mt-8">
-                <div className="flex gap-6 px-4 border-b border-nexus-border pb-0">
-                    {['Hot', 'Gainers', 'Losers', 'New'].map(tab => (
-                        <button
-                            key={tab}
-                            onClick={() => setActiveList(tab.toLowerCase())}
-                            className={`text-sm font-bold pb-3 relative transition-colors ${activeList === tab.toLowerCase() ? 'text-nexus-text' : 'text-nexus-subtext'}`}
-                        >
-                            {tab}
-                            {activeList === tab.toLowerCase() && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-nexus-yellow"></div>}
-                        </button>
-                    ))}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* MARKET OVERVIEW */}
+                <div className="lg:col-span-2 bg-nexus-card/50 backdrop-blur-md border border-white/5 rounded-2xl p-6">
+                    <div className="flex justify-between items-center mb-6">
+                        <h3 className="font-bold text-lg flex items-center gap-2">
+                            <Activity className="text-nexus-blue" size={20} />
+                            Live Markets
+                        </h3>
+                        <button className="text-xs text-nexus-blue hover:text-white transition-colors">View All</button>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        <MarketTicker symbol="BTC" price="64,230.10" change="0.85" />
+                        <MarketTicker symbol="ETH" price="3,450.55" change="-0.42" />
+                        <MarketTicker symbol="SOL" price="145.20" change="5.60" />
+                        <MarketTicker symbol="BNB" price="593.20" change="1.24" />
+                        <MarketTicker symbol="XRP" price="0.62" change="0.15" />
+                        <MarketTicker symbol="DOGE" price="0.16" change="2.30" />
+                    </div>
                 </div>
-                <div className="px-4 mt-2">
-                    <MarketRow symbol="BNB" price="593.20" change="1.24" isHot />
-                    <MarketRow symbol="BTC" price="64,230.10" change="0.85" isHot />
-                    <MarketRow symbol="ETH" price="3,450.55" change="-0.42" isHot />
-                    <MarketRow symbol="SOL" price="145.20" change="5.60" isHot />
-                    <MarketRow symbol="XRP" price="0.62" change="0.15" />
-                    <MarketRow symbol="DOGE" price="0.16" change="2.30" />
-                    <MarketRow symbol="PEPE" price="0.0000078" change="-1.20" />
-                    <MarketRow symbol="SHIB" price="0.000024" change="0.50" />
+
+                {/* AI INSIGHTS */}
+                <div className="bg-gradient-to-b from-nexus-blue/5 to-purple-500/5 border border-white/5 rounded-2xl p-6 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-nexus-blue/10 rounded-full blur-3xl"></div>
+                    <h3 className="font-bold text-lg flex items-center gap-2 mb-4 relative z-10">
+                        <Zap className="text-nexus-yellow" size={20} />
+                        AI Insights
+                    </h3>
+                    <div className="space-y-4 relative z-10">
+                        <div className="bg-black/40 p-4 rounded-xl border-l-2 border-nexus-green">
+                            <p className="text-xs text-nexus-subtext mb-1">Bitcoin (BTC)</p>
+                            <p className="text-sm font-medium">Strong buy signal detected on 4H timeframe. RSI divergence suggests upward momentum.</p>
+                        </div>
+                        <div className="bg-black/40 p-4 rounded-xl border-l-2 border-nexus-red">
+                            <p className="text-xs text-nexus-subtext mb-1">Ethereum (ETH)</p>
+                            <p className="text-sm font-medium">Resistance at $3,500. Consider taking profits if volume decreases.</p>
+                        </div>
+                    </div>
+                    <button className="w-full mt-4 py-2 bg-white/5 hover:bg-white/10 rounded-xl text-xs font-bold transition-colors">
+                        Ask Nexus AI
+                    </button>
                 </div>
             </div>
         </div>

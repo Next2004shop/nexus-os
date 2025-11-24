@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: nexus-ai
+    name: NXTradex-os
     env: static
     buildCommand: npm run build
     staticPublishPath: ./dist

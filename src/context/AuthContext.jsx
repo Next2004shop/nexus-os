@@ -11,26 +11,41 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // For now, if config is placeholder, we simulate a user for UI testing
-        if (auth.config.apiKey === "PLACEHOLDER_API_KEY") {
-            setCurrentUser({ email: 'demo@nexus.ai', uid: 'demo_user_123' });
-            setLoading(false);
-            return;
-        }
-
         const unsubscribe = onAuthStateChanged(auth, (user) => {
-            setCurrentUser(user);
+            if (user) {
+                setCurrentUser(user);
+            } else {
+                // Check for local demo session
+                const demoUser = localStorage.getItem('nexus_demo_user');
+                if (demoUser) {
+                    setCurrentUser(JSON.parse(demoUser));
+                } else {
+                    setCurrentUser(null);
+                }
+            }
             setLoading(false);
         });
-
         return unsubscribe;
     }, []);
 
-    const login = (email, password) => {
+    const login = async (email, password) => {
+        if (email === 'demo@nexus.ai' && password === 'demo123') {
+            const demoUser = {
+                uid: 'demo-user-123',
+                email: 'demo@nexus.ai',
+                displayName: 'Demo Commander',
+                photoURL: null,
+                isAnonymous: true
+            };
+            localStorage.setItem('nexus_demo_user', JSON.stringify(demoUser));
+            setCurrentUser(demoUser);
+            return Promise.resolve(demoUser);
+        }
         return signInWithEmailAndPassword(auth, email, password);
     };
 
-    const logout = () => {
+    const logout = async () => {
+        localStorage.removeItem('nexus_demo_user');
         return signOut(auth);
     };
 

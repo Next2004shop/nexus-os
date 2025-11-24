@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Eye, EyeOff, X } from 'lucide-react';
 import { GoogleAuthProvider, signInWithPopup, signInWithRedirect, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { auth } from '../services/firebase';
+import { useAuth } from '../context/AuthContext';
 
 export const AuthPage = ({ onClose }) => {
     const [isLogin, setIsLogin] = useState(true);
@@ -11,6 +12,15 @@ export const AuthPage = ({ onClose }) => {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [loading, setLoading] = useState(false);
+
+    const { currentUser } = useAuth();
+
+    // Auto-close if user is detected (double safety)
+    useEffect(() => {
+        if (currentUser) {
+            onClose();
+        }
+    }, [currentUser, onClose]);
 
     const handleGoogleLogin = async () => {
         try {
@@ -28,10 +38,22 @@ export const AuthPage = ({ onClose }) => {
         } catch (err) {
             console.error("Google Login Error:", err);
             let msg = "Google Sign-In failed.";
-            if (err.code === 'auth/popup-closed-by-user') msg = "Sign-in cancelled.";
-            if (err.code === 'auth/cancelled-popup-request') msg = "Popup cancelled.";
-            if (err.code === 'auth/popup-blocked') msg = "Popup blocked. Please allow popups.";
-            if (err.code === 'auth/unauthorized-domain') msg = "Domain not authorized in Firebase Console.";
+
+            // Check for unauthorized domain specifically
+            if (err.code === 'auth/unauthorized-domain' || err.message.includes('unauthorized domain')) {
+                msg = `Domain not authorized: ${window.location.hostname}. Add this to Firebase Console -> Authentication -> Settings.`;
+            } else if (err.code === 'auth/popup-closed-by-user') {
+                msg = "Sign-in cancelled.";
+            } else if (err.code === 'auth/cancelled-popup-request') {
+                msg = "Popup cancelled.";
+            } else if (err.code === 'auth/popup-blocked') {
+                msg = "Popup blocked. Please allow popups.";
+            } else if (err.code === 'auth/operation-not-allowed') {
+                msg = "Google Sign-In is not enabled in Firebase Console.";
+            } else if (err.code === 'auth/configuration-not-found') {
+                msg = "Google Sign-In provider is disabled in Firebase Console. Please enable it.";
+            }
+
             setError(`${msg} (${err.code || err.message})`);
         } finally {
             setLoading(false);

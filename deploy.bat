@@ -1,6 +1,6 @@
 @echo off
 echo ==========================================
-echo      NEXUS OS - DEPLOYMENT SCRIPT
+echo      NXTradex-OS - DEPLOYMENT SCRIPT
 echo ==========================================
 echo.
 
