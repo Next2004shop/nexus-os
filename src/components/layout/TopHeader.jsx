@@ -1,15 +1,23 @@
 import React from 'react';
 import { User, Search, ScanLine, Headset, Bell } from 'lucide-react';
 
-export function TopHeader({ onProfileClick }) {
+export function TopHeader({ user, onProfileClick }) {
     return (
         <div className="sticky top-0 z-40 bg-nexus-black px-4 py-3 flex items-center justify-between gap-4">
             {/* Profile */}
             <button
                 onClick={onProfileClick}
-                className="w-8 h-8 rounded-full bg-nexus-border flex items-center justify-center text-nexus-subtext hover:bg-nexus-gray transition-colors"
+                className="w-8 h-8 rounded-full bg-nexus-border flex items-center justify-center text-nexus-subtext hover:bg-nexus-gray transition-colors overflow-hidden"
             >
-                <User size={18} />
+                {user ? (
+                    user.photoURL ? (
+                        <img src={user.photoURL} alt="Profile" className="w-full h-full object-cover" />
+                    ) : (
+                        <span className="font-bold text-nexus-text">{user.email[0].toUpperCase()}</span>
+                    )
+                ) : (
+                    <User size={18} />
+                )}
             </button>
 
             {/* Search Bar */}

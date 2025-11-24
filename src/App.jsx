@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { auth } from './services/firebase';
 import { BottomNav } from './components/layout/BottomNav';
 import { TopHeader } from './components/layout/TopHeader';
 import { HomePage } from './pages/HomePage';
@@ -14,6 +15,20 @@ export default function NexusAI() {
    const [activeTab, setActiveTab] = useState('home');
    const [showAuth, setShowAuth] = useState(false);
    const [connectionStatus, setConnectionStatus] = useState('OFFLINE');
+
+   const [user, setUser] = useState(null);
+
+   useEffect(() => {
+      const unsubscribe = auth.onAuthStateChanged((user) => {
+         if (user) {
+            setUser(user);
+            setShowAuth(false);
+         } else {
+            setUser(null);
+         }
+      });
+      return () => unsubscribe();
+   }, []);
 
    useEffect(() => {
       const check = async () => {
@@ -38,7 +53,7 @@ export default function NexusAI() {
 
          {/* Top Header */}
          {(activeTab === 'home' || activeTab === 'markets' || activeTab === 'news') && (
-            <TopHeader onProfileClick={() => setShowAuth(true)} />
+            <TopHeader user={user} onProfileClick={() => setShowAuth(true)} />
          )}
 
          {/* Main Content Area */}

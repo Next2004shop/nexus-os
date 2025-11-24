@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: nexus-ai
+    env: static
+    buildCommand: npm run build
+    staticPublishPath: ./dist

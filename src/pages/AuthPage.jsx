@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, X } from 'lucide-react';
-import { GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup, signInWithRedirect, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { auth } from '../services/firebase';
 
 export const AuthPage = ({ onClose }) => {
@@ -17,11 +17,45 @@ export const AuthPage = ({ onClose }) => {
             setLoading(true);
             setError('');
             const provider = new GoogleAuthProvider();
-            await signInWithPopup(auth, provider);
+            // Try popup first, if it fails (e.g. mobile), try redirect
+            try {
+                await signInWithPopup(auth, provider);
+                onClose();
+            } catch (popupErr) {
+                console.log("Popup failed, trying redirect...", popupErr);
+                await signInWithRedirect(auth, provider);
+            }
+        } catch (err) {
+            console.error("Google Login Error:", err);
+            let msg = "Google Sign-In failed.";
+            if (err.code === 'auth/popup-closed-by-user') msg = "Sign-in cancelled.";
+            if (err.code === 'auth/cancelled-popup-request') msg = "Popup cancelled.";
+            if (err.code === 'auth/popup-blocked') msg = "Popup blocked. Please allow popups.";
+            if (err.code === 'auth/unauthorized-domain') msg = "Domain not authorized in Firebase Console.";
+            setError(`${msg} (${err.code || err.message})`);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDemoLogin = async () => {
+        try {
+            setLoading(true);
+            setError('');
+            await signInWithEmailAndPassword(auth, 'demo@nexus.ai', 'password123');
             onClose();
         } catch (err) {
-            console.error(err);
-            setError('Google Sign-In failed. Please try again.');
+            // If demo user doesn't exist, create it
+            if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
+                try {
+                    await createUserWithEmailAndPassword(auth, 'demo@nexus.ai', 'password123');
+                    onClose();
+                } catch (createErr) {
+                    setError("Failed to create demo account.");
+                }
+            } else {
+                setError("Demo login failed.");
+            }
         } finally {
             setLoading(false);
         }
@@ -155,6 +189,14 @@ export const AuthPage = ({ onClose }) => {
                     >
                         <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-5 h-5" alt="Google" />
                         Continue with Google
+                    </button>
+
+                    <button
+                        onClick={handleDemoLogin}
+                        disabled={loading}
+                        className="w-full mt-3 bg-nexus-card border border-nexus-yellow/50 text-nexus-yellow font-bold py-3 rounded-lg hover:bg-nexus-yellow/10 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                        ⚡ Quick Demo Login (Auto)
                     </button>
 
                     <div className="text-center mt-6">
