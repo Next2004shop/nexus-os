@@ -27,9 +27,9 @@ const MarketRow = ({ coin }) => (
             </div>
         </div>
         <div className="text-right">
-            <div className="font-mono text-white">${coin.current_price.toLocaleString()}</div>
+            <div className="font-mono text-white">${coin.current_price?.toLocaleString() || '0.00'}</div>
             <div className={`text-xs font-medium ${coin.price_change_percentage_24h >= 0 ? 'text-nexus-green' : 'text-nexus-red'}`}>
-                {coin.price_change_percentage_24h.toFixed(2)}%
+                {coin.price_change_percentage_24h ? coin.price_change_percentage_24h.toFixed(2) : '0.00'}%
             </div>
         </div>
     </div>

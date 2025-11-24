@@ -153,59 +153,45 @@ const TradePage = () => {
 
                 {/* TRADE FORM */}
                 <div className="p-4 bg-[#0A0A0A]">
-                    <div className="flex bg-black rounded-lg p-1 mb-4 border border-white/10">
-                        <button
-                            onClick={() => setSide('buy')}
-                            className={`flex-1 py-2 rounded-md text-sm font-bold transition-all ${side === 'buy' ? 'bg-nexus-green text-black shadow-[0_0_15px_rgba(0,255,148,0.3)]' : 'text-nexus-subtext hover:text-white'}`}
-                        >
-                            Buy
-                        </button>
-                        <button
-                            onClick={() => setSide('sell')}
-                            className={`flex-1 py-2 rounded-md text-sm font-bold transition-all ${side === 'sell' ? 'bg-nexus-red text-white shadow-[0_0_15px_rgba(255,59,48,0.3)]' : 'text-nexus-subtext hover:text-white'}`}
-                        >
-                            Sell
-                        </button>
+                </div>
+
+                <div className="space-y-4">
+                    <div className="flex justify-between text-xs text-nexus-subtext">
+                        <span>Avail:</span>
+                        <span className="text-white font-mono">
+                            {side === 'buy'
+                                ? `${wallet?.usdt?.toLocaleString() || '0'} USDT`
+                                : `${wallet?.btc ? wallet.btc.toFixed(6) : '0.000000'} BTC`}
+                        </span>
                     </div>
 
-                    <div className="space-y-4">
-                        <div className="flex justify-between text-xs text-nexus-subtext">
-                            <span>Avail:</span>
-                            <span className="text-white font-mono">
-                                {side === 'buy'
-                                    ? `${wallet?.usdt?.toLocaleString() || 0} USDT`
-                                    : `${wallet?.btc?.toFixed(6) || 0} BTC`}
-                            </span>
-                        </div>
-
-                        <div className="bg-white/5 border border-white/10 rounded-lg p-3 focus-within:border-nexus-blue/50 transition-colors">
-                            <label className="text-[10px] text-nexus-subtext uppercase font-bold block mb-1">Amount (BTC)</label>
-                            <input
-                                type="number"
-                                value={amount}
-                                onChange={(e) => setAmount(e.target.value)}
-                                className="w-full bg-transparent text-white font-mono outline-none"
-                                placeholder="0.00"
-                            />
-                        </div>
-
-                        <div className="grid grid-cols-4 gap-2">
-                            {[25, 50, 75, 100].map(pct => (
-                                <button key={pct} onClick={() => setAmount((0.1542 * (pct / 100)).toFixed(4))} className="bg-white/5 hover:bg-white/10 text-xs text-nexus-subtext py-1 rounded-lg transition-colors">{pct}%</button>
-                            ))}
-                        </div>
-
-                        <button
-                            onClick={handleTrade}
-                            disabled={loading}
-                            className={`w-full py-3.5 rounded-xl font-bold text-sm transition-all active:scale-[0.98] ${side === 'buy'
-                                    ? 'bg-nexus-green text-black hover:bg-[#00DD80] shadow-[0_0_20px_rgba(0,255,148,0.2)]'
-                                    : 'bg-nexus-red text-white hover:bg-[#E03020] shadow-[0_0_20px_rgba(255,59,48,0.2)]'
-                                }`}
-                        >
-                            {loading ? 'Processing...' : (side === 'buy' ? 'Buy BTC' : 'Sell BTC')}
-                        </button>
+                    <div className="bg-white/5 border border-white/10 rounded-lg p-3 focus-within:border-nexus-blue/50 transition-colors">
+                        <label className="text-[10px] text-nexus-subtext uppercase font-bold block mb-1">Amount (BTC)</label>
+                        <input
+                            type="number"
+                            value={amount}
+                            onChange={(e) => setAmount(e.target.value)}
+                            className="w-full bg-transparent text-white font-mono outline-none"
+                            placeholder="0.00"
+                        />
                     </div>
+
+                    <div className="grid grid-cols-4 gap-2">
+                        {[25, 50, 75, 100].map(pct => (
+                            <button key={pct} onClick={() => setAmount((0.1542 * (pct / 100)).toFixed(4))} className="bg-white/5 hover:bg-white/10 text-xs text-nexus-subtext py-1 rounded-lg transition-colors">{pct}%</button>
+                        ))}
+                    </div>
+
+                    <button
+                        onClick={handleTrade}
+                        disabled={loading}
+                        className={`w-full py-3.5 rounded-xl font-bold text-sm transition-all active:scale-[0.98] ${side === 'buy'
+                            ? 'bg-nexus-green text-black hover:bg-[#00DD80] shadow-[0_0_20px_rgba(0,255,148,0.2)]'
+                            : 'bg-nexus-red text-white hover:bg-[#E03020] shadow-[0_0_20px_rgba(255,59,48,0.2)]'
+                            }`}
+                    >
+                        {loading ? 'Processing...' : (side === 'buy' ? 'Buy BTC' : 'Sell BTC')}
+                    </button>
                 </div>
             </div>
         </div>
