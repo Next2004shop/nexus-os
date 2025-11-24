@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { auth } from '../services/firebase';
-import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { onAuthStateChanged, signInWithEmailAndPassword, signOut, setPersistence, browserLocalPersistence } from 'firebase/auth';
 
 const AuthContext = createContext();
 
@@ -11,21 +11,29 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, (user) => {
-            if (user) {
-                setCurrentUser(user);
-            } else {
-                // Check for local demo session
-                const demoUser = localStorage.getItem('nexus_demo_user');
-                if (demoUser) {
-                    setCurrentUser(JSON.parse(demoUser));
-                } else {
-                    setCurrentUser(null);
-                }
-            }
-            setLoading(false);
-        });
-        return unsubscribe;
+        // Ensure persistence is set to LOCAL
+        setPersistence(auth, browserLocalPersistence)
+            .then(() => {
+                const unsubscribe = onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        setCurrentUser(user);
+                    } else {
+                        // Check for local demo session
+                        const demoUser = localStorage.getItem('nexus_demo_user');
+                        if (demoUser) {
+                            setCurrentUser(JSON.parse(demoUser));
+                        } else {
+                            setCurrentUser(null);
+                        }
+                    }
+                    setLoading(false);
+                });
+                return unsubscribe;
+            })
+            .catch((error) => {
+                console.error("Persistence error:", error);
+                setLoading(false);
+            });
     }, []);
 
     const login = async (email, password) => {
