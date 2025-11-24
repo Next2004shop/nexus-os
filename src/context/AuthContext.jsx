@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { auth } from '../services/firebase';
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut, setPersistence, browserLocalPersistence } from 'firebase/auth';
+import { userRepository } from '../services/userRepository';
 
 const AuthContext = createContext();
 
@@ -11,16 +12,29 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // Ensure persistence is set to LOCAL
-        setPersistence(auth, browserLocalPersistence)
-            .then(() => {
-                const unsubscribe = onAuthStateChanged(auth, (user) => {
+        let unsubscribe;
+
+        const initAuth = async () => {
+            try {
+                // 1. Set Persistence FIRST
+                await setPersistence(auth, browserLocalPersistence);
+
+                // 2. Listen for Auth Changes
+                unsubscribe = onAuthStateChanged(auth, async (user) => {
                     if (user) {
+                        console.log("Auth State: User Detected", user.uid);
                         setCurrentUser(user);
+
+                        // Initialize Firestore (Non-blocking)
+                        userRepository.initializeUser(user).catch(err =>
+                            console.error("User Repo Init Failed:", err)
+                        );
                     } else {
-                        // Check for local demo session
+                        console.log("Auth State: No User");
+                        // Check for local demo session as fallback
                         const demoUser = localStorage.getItem('nexus_demo_user');
                         if (demoUser) {
+                            console.log("Restoring Demo User");
                             setCurrentUser(JSON.parse(demoUser));
                         } else {
                             setCurrentUser(null);
@@ -28,12 +42,17 @@ export const AuthProvider = ({ children }) => {
                     }
                     setLoading(false);
                 });
-                return unsubscribe;
-            })
-            .catch((error) => {
-                console.error("Persistence error:", error);
+            } catch (error) {
+                console.error("Auth Init Error:", error);
                 setLoading(false);
-            });
+            }
+        };
+
+        initAuth();
+
+        return () => {
+            if (unsubscribe) unsubscribe();
+        };
     }, []);
 
     const login = async (email, password) => {

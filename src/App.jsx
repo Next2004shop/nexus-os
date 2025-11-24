@@ -1,13 +1,16 @@
 import React, { useState } from 'react';
 import { ModernLayout } from './components/layout/ModernLayout';
-import { HomePage } from './pages/HomePage';
-import { TradePage } from './pages/TradePage';
+import HomePage from './pages/HomePage';
+import TradePage from './pages/TradePage';
 import { WalletPage } from './pages/WalletPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { AuthPage } from './pages/AuthPage';
+import BankingPage from './pages/BankingPage';
+import InvestmentsPage from './pages/InvestmentsPage';
 import { useAuth } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
 import ErrorBoundary from './components/ErrorBoundary';
+
 
 export default function NexusAI() {
    const [activeTab, setActiveTab] = useState('home');
@@ -26,6 +29,8 @@ export default function NexusAI() {
          case 'home': return <HomePage onNavigate={setActiveTab} />;
          case 'trade': return <TradePage />;
          case 'wallet': return <WalletPage />;
+         case 'banking': return <BankingPage />;
+         case 'investments': return <InvestmentsPage />;
          case 'profile': return <ProfilePage />;
          default: return <HomePage onNavigate={setActiveTab} />;
       }

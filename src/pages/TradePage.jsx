@@ -1,156 +1,215 @@
-import React, { useState } from 'react';
-import { ChevronDown, ArrowUp, ArrowDown, Settings, Maximize2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ArrowUp, ArrowDown, Activity, Wallet, History } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
+import { marketData } from '../services/marketData';
+import { userRepository } from '../services/userRepository';
+import { useAuth } from '../context/AuthContext';
 
-export const TradePage = ({ ticker = "BTC/USDT" }) => {
+const OrderBookRow = ({ price, amount, total, type }) => (
+    <div className="grid grid-cols-3 text-xs py-1 hover:bg-white/5 cursor-pointer font-mono">
+        <span className={type === 'buy' ? 'text-nexus-green' : 'text-nexus-red'}>{price}</span>
+        <span className="text-right text-nexus-subtext">{amount}</span>
+        <span className="text-right text-white">{total}</span>
+    </div>
+);
+
+const TradePage = () => {
     const [side, setSide] = useState('buy');
-    const [price, setPrice] = useState('64230.10');
     const [amount, setAmount] = useState('');
-    const { addToast } = useToast();
+    const [price, setPrice] = useState(null); // Real price
+    const [loading, setLoading] = useState(true);
+    const [wallet, setWallet] = useState(null);
 
-    const handleTrade = () => {
-        if (!amount) {
-            addToast("Please enter an amount", "error");
+    const { showToast } = useToast();
+    const { currentUser } = useAuth();
+
+    // Fetch Data & Wallet
+    useEffect(() => {
+        const init = async () => {
+            try {
+                // 1. Get BTC Price
+                const btcData = await marketData.getCryptoDetails('bitcoin');
+                if (btcData) {
+                    setPrice(btcData.market_data.current_price.usd);
+                }
+
+                // 2. Get Wallet
+                if (currentUser) {
+                    const userWallet = await userRepository.getWallet(currentUser.uid);
+                    setWallet(userWallet);
+                }
+            } catch (err) {
+                console.error("Trade Init Error:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        init();
+        const interval = setInterval(init, 10000); // Update every 10s
+        return () => clearInterval(interval);
+    }, [currentUser]);
+
+    const handleTrade = async () => {
+        if (!amount || isNaN(amount) || parseFloat(amount) <= 0) {
+            showToast('Please enter a valid amount', 'error');
             return;
         }
-        addToast(`${side === 'buy' ? 'Buy' : 'Sell'} Order Placed Successfully!`, "success");
-        setAmount('');
+        if (!price) {
+            showToast('Waiting for market data...', 'info');
+            return;
+        }
+
+        try {
+            setLoading(true);
+            await userRepository.executeTrade(
+                currentUser.uid,
+                side,
+                'btc',
+                parseFloat(amount),
+                price
+            );
+
+            showToast(`${side === 'buy' ? 'Buy' : 'Sell'} Order Placed Successfully!`, 'success');
+            setAmount('');
+
+            // Refresh Wallet
+            const updatedWallet = await userRepository.getWallet(currentUser.uid);
+            setWallet(updatedWallet);
+
+        } catch (err) {
+            showToast(err.message, 'error');
+        } finally {
+            setLoading(false);
+        }
     };
 
-    return (
-        <div className="flex flex-col lg:flex-row h-[calc(100vh-100px)] gap-4">
-            {/* LEFT COLUMN: CHART & ORDERS */}
-            <div className="flex-1 flex flex-col gap-4 min-h-[500px]">
-                {/* CHART CONTAINER */}
-                <div className="flex-1 bg-nexus-card/50 backdrop-blur-sm border border-white/5 rounded-2xl p-4 relative overflow-hidden group">
-                    <div className="flex justify-between items-center mb-4">
-                        <div className="flex items-center gap-3">
-                            <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                                {ticker} <ChevronDown size={16} className="text-nexus-subtext" />
-                            </h2>
-                            <span className="text-nexus-green font-mono font-bold">$64,230.10</span>
-                        </div>
-                        <div className="flex gap-2">
-                            {['15m', '1h', '4h', '1D'].map(tf => (
-                                <button key={tf} className="px-2 py-1 text-xs font-bold text-nexus-subtext hover:text-white hover:bg-white/10 rounded transition-colors">{tf}</button>
-                            ))}
-                            <button className="p-1 hover:bg-white/10 rounded"><Settings size={16} className="text-nexus-subtext" /></button>
-                        </div>
-                    </div>
+    if (!price && loading) return <div className="p-8 text-nexus-blue animate-pulse">Connecting to Exchange...</div>;
 
-                    {/* MOCK CHART VISUAL */}
-                    <div className="absolute inset-0 top-16 bottom-0 left-0 right-0 opacity-20 pointer-events-none">
-                        <svg width="100%" height="100%" viewBox="0 0 1000 400" preserveAspectRatio="none">
-                            <path d="M0,300 Q100,250 200,320 T400,280 T600,200 T800,250 T1000,150" fill="none" stroke="#00FF94" strokeWidth="2" />
-                            <path d="M0,300 L1000,300" stroke="#333" strokeWidth="1" strokeDasharray="5,5" />
-                        </svg>
-                    </div>
-                    <div className="absolute inset-0 flex items-center justify-center text-nexus-subtext/20 font-bold text-4xl pointer-events-none">
-                        TRADINGVIEW CHART
+    // Generate Mock Order Book based on Real Price
+    const generateOrderBook = (basePrice) => {
+        const rows = [];
+        for (let i = 1; i <= 5; i++) {
+            rows.push({ price: (basePrice + i * 50).toFixed(2), amount: (Math.random() * 2).toFixed(4), total: ((basePrice + i * 50) * 0.5).toFixed(2) });
+        }
+        return rows.reverse();
+    };
+    const asks = generateOrderBook(price || 40000);
+    const bids = generateOrderBook(price ? price - 250 : 39750);
+
+    return (
+        <div className="h-[calc(100vh-80px)] flex flex-col lg:flex-row overflow-hidden animate-fadeIn">
+
+            {/* LEFT: CHART (Mocked for now, but could use TradingView widget) */}
+            <div className="flex-1 bg-[#050505] border-r border-nexus-border flex flex-col">
+                <div className="h-16 border-b border-nexus-border flex items-center px-6 justify-between bg-nexus-card/50 backdrop-blur-sm">
+                    <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                            <img src="https://assets.coingecko.com/coins/images/1/large/bitcoin.png" className="w-8 h-8" alt="BTC" />
+                            <div>
+                                <h2 className="text-white font-bold text-lg leading-none">BTC/USDT</h2>
+                                <span className="text-nexus-subtext text-xs">Bitcoin</span>
+                            </div>
+                        </div>
+                        <div className="h-8 w-[1px] bg-white/10 mx-2"></div>
+                        <div>
+                            <div className={`text-lg font-mono font-bold ${price ? 'text-nexus-green' : 'text-white'}`}>
+                                ${price?.toLocaleString() || '---'}
+                            </div>
+                            <span className="text-xs text-nexus-subtext">Mark Price</span>
+                        </div>
                     </div>
                 </div>
 
-                {/* ORDER BOOK (Simplified for Pro Look) */}
-                <div className="h-64 bg-nexus-card/50 backdrop-blur-sm border border-white/5 rounded-2xl p-4 flex gap-4">
-                    <div className="flex-1">
-                        <h3 className="text-xs font-bold text-nexus-subtext mb-2">Order Book</h3>
-                        <div className="space-y-1 font-mono text-xs">
-                            {[1, 2, 3, 4, 5].map(i => (
-                                <div key={i} className="flex justify-between text-nexus-red hover:bg-nexus-red/5 px-1 rounded cursor-pointer">
-                                    <span>64,23{i}.00</span>
-                                    <span>0.4{i}2</span>
-                                </div>
-                            ))}
-                            <div className="text-center py-2 font-bold text-white text-sm">64,230.10</div>
-                            {[1, 2, 3, 4, 5].map(i => (
-                                <div key={i} className="flex justify-between text-nexus-green hover:bg-nexus-green/5 px-1 rounded cursor-pointer">
-                                    <span>64,22{9 - i}.00</span>
-                                    <span>0.8{i}1</span>
-                                </div>
-                            ))}
-                        </div>
+                {/* Chart Placeholder */}
+                <div className="flex-1 relative group overflow-hidden">
+                    <div className="absolute inset-0 flex items-center justify-center text-nexus-subtext/20 text-4xl font-bold select-none">
+                        TRADING VIEW CHART
                     </div>
-                    <div className="flex-1 border-l border-white/5 pl-4">
-                        <h3 className="text-xs font-bold text-nexus-subtext mb-2">Recent Trades</h3>
-                        <div className="space-y-1 font-mono text-xs opacity-70">
-                            <div className="flex justify-between text-nexus-green"><span>64,230.10</span><span>0.002</span></div>
-                            <div className="flex justify-between text-nexus-red"><span>64,230.05</span><span>0.150</span></div>
-                            <div className="flex justify-between text-nexus-green"><span>64,230.10</span><span>0.050</span></div>
-                        </div>
-                    </div>
+                    {/* Grid Lines for effect */}
+                    <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px]"></div>
                 </div>
             </div>
 
-            {/* RIGHT COLUMN: TRADE FORM */}
-            <div className="w-full lg:w-80 bg-nexus-card/80 backdrop-blur-xl border border-white/10 rounded-2xl p-6 flex flex-col shadow-2xl">
-                <div className="flex bg-black/40 rounded-xl p-1 mb-6">
-                    <button
-                        onClick={() => setSide('buy')}
-                        className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${side === 'buy' ? 'bg-nexus-green text-black shadow-[0_0_10px_rgba(0,255,148,0.4)]' : 'text-nexus-subtext hover:text-white'}`}
-                    >
-                        Buy
-                    </button>
-                    <button
-                        onClick={() => setSide('sell')}
-                        className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${side === 'sell' ? 'bg-nexus-red text-white shadow-[0_0_10px_rgba(255,46,84,0.4)]' : 'text-nexus-subtext hover:text-white'}`}
-                    >
-                        Sell
-                    </button>
+            {/* RIGHT: ORDER BOOK & TRADE FORM */}
+            <div className="w-full lg:w-[350px] bg-nexus-card flex flex-col border-l border-nexus-border">
+
+                {/* ORDER BOOK */}
+                <div className="flex-1 p-4 overflow-y-auto border-b border-nexus-border">
+                    <div className="flex justify-between text-xs text-nexus-subtext font-bold mb-2 uppercase">
+                        <span>Price (USDT)</span>
+                        <span>Amount (BTC)</span>
+                        <span>Total</span>
+                    </div>
+                    <div className="space-y-0.5">
+                        {asks.map((row, i) => <OrderBookRow key={`ask-${i}`} {...row} type="sell" />)}
+                    </div>
+                    <div className="py-3 text-center font-mono text-lg font-bold text-white border-y border-white/5 my-2 bg-white/5">
+                        ${price?.toLocaleString()}
+                    </div>
+                    <div className="space-y-0.5">
+                        {bids.map((row, i) => <OrderBookRow key={`bid-${i}`} {...row} type="buy" />)}
+                    </div>
                 </div>
 
-                <div className="space-y-4 flex-1">
-                    <div>
-                        <label className="text-xs text-nexus-subtext mb-1 block">Price (USDT)</label>
-                        <div className="bg-black/40 border border-white/10 rounded-xl px-4 py-3 flex justify-between items-center focus-within:border-nexus-blue/50 transition-colors">
-                            <input
-                                type="text"
-                                value={price}
-                                onChange={(e) => setPrice(e.target.value)}
-                                className="bg-transparent text-white font-mono font-bold w-full outline-none"
-                            />
-                            <span className="text-xs text-nexus-subtext">USDT</span>
-                        </div>
+                {/* TRADE FORM */}
+                <div className="p-4 bg-[#0A0A0A]">
+                    <div className="flex bg-black rounded-lg p-1 mb-4 border border-white/10">
+                        <button
+                            onClick={() => setSide('buy')}
+                            className={`flex-1 py-2 rounded-md text-sm font-bold transition-all ${side === 'buy' ? 'bg-nexus-green text-black shadow-[0_0_15px_rgba(0,255,148,0.3)]' : 'text-nexus-subtext hover:text-white'}`}
+                        >
+                            Buy
+                        </button>
+                        <button
+                            onClick={() => setSide('sell')}
+                            className={`flex-1 py-2 rounded-md text-sm font-bold transition-all ${side === 'sell' ? 'bg-nexus-red text-white shadow-[0_0_15px_rgba(255,59,48,0.3)]' : 'text-nexus-subtext hover:text-white'}`}
+                        >
+                            Sell
+                        </button>
                     </div>
 
-                    <div>
-                        <label className="text-xs text-nexus-subtext mb-1 block">Amount (BTC)</label>
-                        <div className="bg-black/40 border border-white/10 rounded-xl px-4 py-3 flex justify-between items-center focus-within:border-nexus-blue/50 transition-colors">
+                    <div className="space-y-4">
+                        <div className="flex justify-between text-xs text-nexus-subtext">
+                            <span>Avail:</span>
+                            <span className="text-white font-mono">
+                                {side === 'buy'
+                                    ? `${wallet?.usdt?.toLocaleString() || 0} USDT`
+                                    : `${wallet?.btc?.toFixed(6) || 0} BTC`}
+                            </span>
+                        </div>
+
+                        <div className="bg-white/5 border border-white/10 rounded-lg p-3 focus-within:border-nexus-blue/50 transition-colors">
+                            <label className="text-[10px] text-nexus-subtext uppercase font-bold block mb-1">Amount (BTC)</label>
                             <input
-                                type="text"
+                                type="number"
                                 value={amount}
                                 onChange={(e) => setAmount(e.target.value)}
+                                className="w-full bg-transparent text-white font-mono outline-none"
                                 placeholder="0.00"
-                                className="bg-transparent text-white font-mono font-bold w-full outline-none"
                             />
-                            <span className="text-xs text-nexus-subtext">BTC</span>
                         </div>
-                    </div>
 
-                    <div className="grid grid-cols-4 gap-2">
-                        {[25, 50, 75, 100].map(pct => (
-                            <button key={pct} onClick={() => setAmount((0.1542 * (pct / 100)).toFixed(4))} className="bg-white/5 hover:bg-white/10 text-xs text-nexus-subtext py-1 rounded-lg transition-colors">{pct}%</button>
-                        ))}
-                    </div>
+                        <div className="grid grid-cols-4 gap-2">
+                            {[25, 50, 75, 100].map(pct => (
+                                <button key={pct} onClick={() => setAmount((0.1542 * (pct / 100)).toFixed(4))} className="bg-white/5 hover:bg-white/10 text-xs text-nexus-subtext py-1 rounded-lg transition-colors">{pct}%</button>
+                            ))}
+                        </div>
 
-                    <div className="pt-4 border-t border-white/5">
-                        <div className="flex justify-between text-sm mb-2">
-                            <span className="text-nexus-subtext">Total</span>
-                            <span className="font-bold text-white">{(parseFloat(price) * (parseFloat(amount) || 0)).toFixed(2)} USDT</span>
-                        </div>
-                        <div className="flex justify-between text-xs text-nexus-subtext">
-                            <span>Available</span>
-                            <span>12,450.00 USDT</span>
-                        </div>
+                        <button
+                            onClick={handleTrade}
+                            disabled={loading}
+                            className={`w-full py-3.5 rounded-xl font-bold text-sm transition-all active:scale-[0.98] ${side === 'buy'
+                                    ? 'bg-nexus-green text-black hover:bg-[#00DD80] shadow-[0_0_20px_rgba(0,255,148,0.2)]'
+                                    : 'bg-nexus-red text-white hover:bg-[#E03020] shadow-[0_0_20px_rgba(255,59,48,0.2)]'
+                                }`}
+                        >
+                            {loading ? 'Processing...' : (side === 'buy' ? 'Buy BTC' : 'Sell BTC')}
+                        </button>
                     </div>
                 </div>
-
-                <button
-                    onClick={handleTrade}
-                    className={`w-full py-4 rounded-xl font-bold text-lg mt-6 shadow-lg transition-transform active:scale-95 ${side === 'buy' ? 'bg-nexus-green text-black shadow-nexus-green/20' : 'bg-nexus-red text-white shadow-nexus-red/20'}`}
-                >
-                    {side === 'buy' ? 'Buy BTC' : 'Sell BTC'}
-                </button>
             </div>
         </div>
     );
 };
+
+export default TradePage;

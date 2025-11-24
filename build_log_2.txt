@@ -1,0 +1,30 @@
+
+> nexus-ai@0.0.0 build
+> vite build
+
+[36mvite v7.2.2 [32mbuilding client environment for production...[36m[39m
+transforming...
+[32m✓[39m 1766 modules transformed.
+[31m✗[39m Build failed in 5.80s
+[31merror during build:
+[31m[vite-plugin-pwa:build] There was an error during the build:
+  src/App.jsx (5:7): "default" is not exported by "src/pages/WalletPage.jsx", imported by "src/App.jsx".
+Additionally, handling the error in the 'buildEnd' hook caused the following error:
+  src/App.jsx (5:7): "default" is not exported by "src/pages/WalletPage.jsx", imported by "src/App.jsx".[31m
+file: [36mC:/Users/Danteh/nexus-ai/src/App.jsx:5:7[31m
+[33m
+3: import HomePage from './pages/HomePage';
+4: import TradePage from './pages/TradePage';
+5: import WalletPage from './pages/WalletPage';
+          ^
+6: import ProfilePage from './pages/ProfilePage';
+7: import AuthPage from './pages/AuthPage';
+[31m
+    at getRollupError (file:///C:/Users/Danteh/nexus-ai/node_modules/rollup/dist/es/shared/parseAst.js:401:41)
+    at file:///C:/Users/Danteh/nexus-ai/node_modules/rollup/dist/es/shared/node-entry.js:23333:39
+    at async catchUnfinishedHookActions (file:///C:/Users/Danteh/nexus-ai/node_modules/rollup/dist/es/shared/node-entry.js:22791:16)
+    at async rollupInternal (file:///C:/Users/Danteh/nexus-ai/node_modules/rollup/dist/es/shared/node-entry.js:23316:5)
+    at async buildEnvironment (file:///C:/Users/Danteh/nexus-ai/node_modules/vite/dist/node/chunks/config.js:34160:12)
+    at async Object.build (file:///C:/Users/Danteh/nexus-ai/node_modules/vite/dist/node/chunks/config.js:34519:19)
+    at async Object.buildApp (file:///C:/Users/Danteh/nexus-ai/node_modules/vite/dist/node/chunks/config.js:34516:153)
+    at async CAC.<anonymous> (file:///C:/Users/Danteh/nexus-ai/node_modules/vite/dist/node/cli.js:629:3)[39m

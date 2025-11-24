@@ -1,5 +1,4 @@
-import React from 'react';
-import { Home, BarChart2, Wallet, User, Settings, Bell, Search, Menu } from 'lucide-react';
+import { Home, BarChart2, Wallet, User, Settings, Bell, Search, Menu, Building, TrendingUp } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 export const ModernLayout = ({ children, activeTab, onNavigate }) => {
@@ -38,6 +37,8 @@ export const ModernLayout = ({ children, activeTab, onNavigate }) => {
                     <NavItem icon={Home} label="Dashboard" id="home" />
                     <NavItem icon={BarChart2} label="Trade" id="trade" />
                     <NavItem icon={Wallet} label="Wallet" id="wallet" />
+                    <NavItem icon={Building} label="Banking" id="banking" />
+                    <NavItem icon={TrendingUp} label="Investments" id="investments" />
                     <NavItem icon={User} label="Profile" id="profile" />
                 </nav>
 

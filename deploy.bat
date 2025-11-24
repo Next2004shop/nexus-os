@@ -1,10 +1,6 @@
 @echo off
-echo ==========================================
-echo      NXTradex-OS - DEPLOYMENT SCRIPT
-echo ==========================================
-echo.
-
 echo [1/3] Building Application...
+set NODE_OPTIONS=--max_old_space_size=4096
 call npm run build
 if %errorlevel% neq 0 (
     echo Build failed!
@@ -29,6 +25,16 @@ if %errorlevel% neq 0 (
     echo Deployment failed!
     pause
     exit /b %errorlevel%
+)
+
+echo.
+echo [4/4] Pushing to GitHub (Triggers Render/Vercel/Netlify)...
+git add .
+git commit -m "Deploy: Real-World Upgrade & Login Fixes"
+git push origin main
+if %errorlevel% neq 0 (
+    echo Git Push failed! (You might need to set up git remote)
+    echo Continuing...
 )
 
 echo.

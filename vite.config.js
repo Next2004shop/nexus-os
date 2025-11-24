@@ -52,6 +52,6 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    sourcemap: true, // Generate source maps for debugging
+    sourcemap: false, // Disabled to save memory during build
   },
 });
