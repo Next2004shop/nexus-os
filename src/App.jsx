@@ -6,7 +6,8 @@ import { WalletPage } from './pages/WalletPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { AuthPage } from './pages/AuthPage';
 import BankingPage from './pages/BankingPage';
-import InvestmentsPage from './pages/InvestmentsPage';
+import { HedgeFundPage } from './pages/HedgeFundPage';
+import { AIBotPage } from './pages/AIBotPage';
 import { useAuth } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -30,7 +31,8 @@ export default function NexusAI() {
          case 'trade': return <TradePage />;
          case 'wallet': return <WalletPage />;
          case 'banking': return <BankingPage />;
-         case 'investments': return <InvestmentsPage />;
+         case 'investments': return <HedgeFundPage />;
+         case 'aibot': return <AIBotPage />;
          case 'profile': return <ProfilePage />;
          default: return <HomePage onNavigate={setActiveTab} />;
       }

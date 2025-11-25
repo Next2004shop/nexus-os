@@ -1,4 +1,4 @@
-import { Home, BarChart2, Wallet, User, Settings, Bell, Search, Menu, Building, TrendingUp } from 'lucide-react';
+import { Home, BarChart2, Wallet, User, Settings, Bell, Search, Menu, Building, TrendingUp, Bot } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 export const ModernLayout = ({ children, activeTab, onNavigate }) => {
@@ -39,6 +39,7 @@ export const ModernLayout = ({ children, activeTab, onNavigate }) => {
                     <NavItem icon={Wallet} label="Wallet" id="wallet" />
                     <NavItem icon={Building} label="Banking" id="banking" />
                     <NavItem icon={TrendingUp} label="Investments" id="investments" />
+                    <NavItem icon={Bot} label="AI Bot" id="aibot" />
                     <NavItem icon={User} label="Profile" id="profile" />
                 </nav>
 
@@ -56,6 +57,7 @@ export const ModernLayout = ({ children, activeTab, onNavigate }) => {
                 <NavItem icon={BarChart2} label="Trade" id="trade" />
                 <div className="w-12"></div> {/* Spacer for FAB */}
                 <NavItem icon={Wallet} label="Wallet" id="wallet" />
+                <NavItem icon={Bot} label="AI Bot" id="aibot" />
                 <NavItem icon={User} label="Profile" id="profile" />
 
                 {/* Floating Action Button (FAB) */}

@@ -59,14 +59,27 @@ export const marketData = {
         }
     },
 
-    // Mock Stock Data (Real API requires Key)
+    // Mock Stock Data
     getStocks: () => {
         return [
-            { symbol: 'AAPL', name: 'Apple Inc.', price: 185.92, change: 1.25 },
-            { symbol: 'TSLA', name: 'Tesla, Inc.', price: 242.50, change: -0.85 },
-            { symbol: 'NVDA', name: 'NVIDIA Corp.', price: 485.09, change: 2.10 },
-            { symbol: 'MSFT', name: 'Microsoft', price: 375.20, change: 0.55 },
-            { symbol: 'GOOGL', name: 'Alphabet Inc.', price: 138.40, change: 0.90 },
+            { id: 'aapl', symbol: 'AAPL', name: 'Apple Inc.', price: 185.92, change: 1.25, type: 'stock' },
+            { id: 'tsla', symbol: 'TSLA', name: 'Tesla, Inc.', price: 242.50, change: -0.85, type: 'stock' },
+            { id: 'nvda', symbol: 'NVDA', name: 'NVIDIA Corp.', price: 485.09, change: 2.10, type: 'stock' },
+            { id: 'msft', symbol: 'MSFT', name: 'Microsoft', price: 375.20, change: 0.55, type: 'stock' },
+            { id: 'googl', symbol: 'GOOGL', name: 'Alphabet Inc.', price: 138.40, change: 0.90, type: 'stock' },
+            { id: 'amzn', symbol: 'AMZN', name: 'Amazon.com', price: 145.20, change: 0.45, type: 'stock' },
+            { id: 'meta', symbol: 'META', name: 'Meta Platforms', price: 334.20, change: 1.10, type: 'stock' },
+        ];
+    },
+
+    // Mock Commodities Data
+    getCommodities: () => {
+        return [
+            { id: 'xau', symbol: 'XAU/USD', name: 'Gold Spot', price: 2045.50, change: 0.45, type: 'commodity' },
+            { id: 'xag', symbol: 'XAG/USD', name: 'Silver Spot', price: 24.20, change: -0.15, type: 'commodity' },
+            { id: 'wti', symbol: 'WTI', name: 'Crude Oil', price: 74.50, change: -1.20, type: 'commodity' },
+            { id: 'brent', symbol: 'BRENT', name: 'Brent Oil', price: 79.80, change: -1.10, type: 'commodity' },
+            { id: 'ng', symbol: 'NG', name: 'Natural Gas', price: 2.85, change: 2.40, type: 'commodity' },
         ];
     }
 };

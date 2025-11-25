@@ -5,12 +5,29 @@ export const HedgeFundPage = () => {
     const [aum, setAum] = useState(1250000.00); // 1.25M Initial AUM
     const [performanceFee, setPerformanceFee] = useState(20); // 20% Standard
     const [reinvest, setReinvest] = useState(true);
+    const [showAddInvestor, setShowAddInvestor] = useState(false);
+    const [cashOutFrequency, setCashOutFrequency] = useState('weekly'); // weekly, monthly, manual
 
-    const clients = [
+    const [clients, setClients] = useState([
         { id: 1, name: "Alpha Syndicate", invested: 500000, profit: 125000, status: "Active" },
         { id: 2, name: "Venture Group A", invested: 250000, profit: 45000, status: "Active" },
         { id: 3, name: "Private Equity X", invested: 500000, profit: 89000, status: "Active" },
-    ];
+    ]);
+
+    const handleAddInvestor = (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const newClient = {
+            id: clients.length + 1,
+            name: formData.get('name'),
+            invested: parseFloat(formData.get('amount')),
+            profit: 0,
+            status: "Pending"
+        };
+        setClients([...clients, newClient]);
+        setAum(aum + newClient.invested);
+        setShowAddInvestor(false);
+    };
 
     return (
         <div className="p-6 space-y-6 max-w-7xl mx-auto animate-fade-in">
@@ -70,10 +87,44 @@ export const HedgeFundPage = () => {
                         <Users size={20} className="text-zinc-400" />
                         Client Ledger
                     </h3>
-                    <button className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 px-4 py-2 rounded-lg text-sm font-bold transition-colors">
+                    <button
+                        onClick={() => setShowAddInvestor(true)}
+                        className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 px-4 py-2 rounded-lg text-sm font-bold transition-colors"
+                    >
                         + Add Investor
                     </button>
                 </div>
+
+                {/* ADD INVESTOR MODAL */}
+                {showAddInvestor && (
+                    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                        <div className="bg-nexus-card border border-nexus-border p-6 rounded-2xl w-full max-w-md animate-fadeIn">
+                            <h3 className="text-xl font-bold text-white mb-4">Connect New Investor</h3>
+                            <form onSubmit={handleAddInvestor} className="space-y-4">
+                                <div>
+                                    <label className="text-xs text-nexus-subtext font-bold uppercase mb-1 block">Investor Name / Alias</label>
+                                    <input name="name" type="text" required className="w-full bg-nexus-black border border-nexus-border rounded-xl p-3 text-white focus:border-nexus-blue outline-none" placeholder="e.g. John's Account" />
+                                </div>
+                                <div>
+                                    <label className="text-xs text-nexus-subtext font-bold uppercase mb-1 block">Initial Capital ($)</label>
+                                    <input name="amount" type="number" required className="w-full bg-nexus-black border border-nexus-border rounded-xl p-3 text-white focus:border-nexus-blue outline-none" placeholder="50000" />
+                                </div>
+                                <div>
+                                    <label className="text-xs text-nexus-subtext font-bold uppercase mb-1 block">Broker Connection</label>
+                                    <select className="w-full bg-nexus-black border border-nexus-border rounded-xl p-3 text-white focus:border-nexus-blue outline-none">
+                                        <option>MetaTrader 5 (Shared Access)</option>
+                                        <option>FXPesa (Managed)</option>
+                                        <option>Manual Entry</option>
+                                    </select>
+                                </div>
+                                <div className="flex gap-3 mt-6">
+                                    <button type="button" onClick={() => setShowAddInvestor(false)} className="flex-1 py-3 bg-white/5 text-white font-bold rounded-xl hover:bg-white/10">CANCEL</button>
+                                    <button type="submit" className="flex-1 py-3 bg-amber-500 text-black font-bold rounded-xl hover:bg-amber-400">CONNECT</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
                 <div className="overflow-x-auto">
                     <table className="w-full text-left">
                         <thead className="bg-white/5 text-zinc-400 text-xs uppercase tracking-wider">
@@ -152,6 +203,22 @@ export const HedgeFundPage = () => {
                         >
                             <div className={`w-6 h-6 bg-white rounded-full shadow-lg transform transition-transform ${reinvest ? 'translate-x-6' : 'translate-x-0'}`}></div>
                         </button>
+                    </div>
+
+                    <div className="flex items-center justify-between mb-6">
+                        <div>
+                            <h3 className="text-lg font-bold">Cash Out Schedule</h3>
+                            <p className="text-xs text-zinc-500">Automated withdrawals</p>
+                        </div>
+                        <select
+                            value={cashOutFrequency}
+                            onChange={(e) => setCashOutFrequency(e.target.value)}
+                            className="bg-nexus-black border border-nexus-border rounded-lg px-3 py-1.5 text-xs text-white outline-none"
+                        >
+                            <option value="weekly">Weekly (Friday)</option>
+                            <option value="monthly">Monthly (1st)</option>
+                            <option value="manual">Manual Only</option>
+                        </select>
                     </div>
                     <button className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 font-bold text-black hover:shadow-[0_0_20px_rgba(245,158,11,0.4)] transition-all">
                         GENERATE REPORT

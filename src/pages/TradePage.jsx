@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowUp, ArrowDown, Activity, Wallet, History } from 'lucide-react';
+import { ArrowUp, ArrowDown, Activity, Wallet, History, ChevronLeft, Search } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { marketData } from '../services/marketData';
 import { userRepository } from '../services/userRepository';
 import { useAuth } from '../context/AuthContext';
+import { MarketSelector } from '../components/trading/MarketSelector';
+import { ChartContainer } from '../components/trading/ChartContainer';
 
 const OrderBookRow = ({ price, amount, total, type }) => (
     <div className="grid grid-cols-3 text-xs py-1 hover:bg-white/5 cursor-pointer font-mono">
@@ -14,40 +16,37 @@ const OrderBookRow = ({ price, amount, total, type }) => (
 );
 
 const TradePage = () => {
+    // STATE
+    const [selectedAsset, setSelectedAsset] = useState(null); // If null, show MarketSelector
     const [side, setSide] = useState('buy');
+    const [orderType, setOrderType] = useState('market'); // market, limit
     const [amount, setAmount] = useState('');
+    const [limitPrice, setLimitPrice] = useState('');
     const [price, setPrice] = useState(null); // Real price
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [wallet, setWallet] = useState(null);
 
     const { showToast } = useToast();
     const { currentUser } = useAuth();
 
-    // Fetch Data & Wallet
+    // Fetch Wallet on Mount
     useEffect(() => {
-        const init = async () => {
-            try {
-                // 1. Get BTC Price
-                const btcData = await marketData.getCryptoDetails('bitcoin');
-                if (btcData) {
-                    setPrice(btcData.market_data.current_price.usd);
-                }
-
-                // 2. Get Wallet
-                if (currentUser) {
-                    const userWallet = await userRepository.getWallet(currentUser.uid);
-                    setWallet(userWallet);
-                }
-            } catch (err) {
-                console.error("Trade Init Error:", err);
-            } finally {
-                setLoading(false);
+        const initWallet = async () => {
+            if (currentUser) {
+                const userWallet = await userRepository.getWallet(currentUser.uid);
+                setWallet(userWallet);
             }
         };
-        init();
-        const interval = setInterval(init, 10000); // Update every 10s
-        return () => clearInterval(interval);
+        initWallet();
     }, [currentUser]);
+
+    // Update Price when Asset Changes
+    useEffect(() => {
+        if (selectedAsset) {
+            setPrice(selectedAsset.price);
+            // In a real app, you'd subscribe to a websocket here for live updates
+        }
+    }, [selectedAsset]);
 
     const handleTrade = async () => {
         if (!amount || isNaN(amount) || parseFloat(amount) <= 0) {
@@ -61,20 +60,37 @@ const TradePage = () => {
 
         try {
             setLoading(true);
-            await userRepository.executeTrade(
-                currentUser.uid,
-                side,
-                'btc',
-                parseFloat(amount),
-                price
-            );
 
-            showToast(`${side === 'buy' ? 'Buy' : 'Sell'} Order Placed Successfully!`, 'success');
+            if (orderType === 'limit') {
+                if (!limitPrice || parseFloat(limitPrice) <= 0) {
+                    throw new Error("Invalid Limit Price");
+                }
+                await userRepository.placeLimitOrder(
+                    currentUser.uid,
+                    side,
+                    selectedAsset.symbol.toLowerCase(),
+                    parseFloat(amount),
+                    parseFloat(limitPrice)
+                );
+                showToast(`Limit ${side === 'buy' ? 'Buy' : 'Sell'} Order Placed at $${limitPrice}`, 'success');
+            } else {
+                // Market Order
+                await userRepository.executeTrade(
+                    currentUser.uid,
+                    side,
+                    selectedAsset.symbol.toLowerCase(),
+                    parseFloat(amount),
+                    price
+                );
+                showToast(`${side === 'buy' ? 'Buy' : 'Sell'} Order Placed Successfully!`, 'success');
+
+                // Refresh Wallet only on Market Order execution
+                const updatedWallet = await userRepository.getWallet(currentUser.uid);
+                setWallet(updatedWallet);
+            }
+
             setAmount('');
-
-            // Refresh Wallet
-            const updatedWallet = await userRepository.getWallet(currentUser.uid);
-            setWallet(updatedWallet);
+            setLimitPrice('');
 
         } catch (err) {
             showToast(err.message, 'error');
@@ -83,50 +99,108 @@ const TradePage = () => {
         }
     };
 
-    if (!price && loading) return <div className="p-8 text-nexus-blue animate-pulse">Connecting to Exchange...</div>;
-
     // Generate Mock Order Book based on Real Price
     const generateOrderBook = (basePrice) => {
         const rows = [];
         for (let i = 1; i <= 5; i++) {
-            rows.push({ price: (basePrice + i * 50).toFixed(2), amount: (Math.random() * 2).toFixed(4), total: ((basePrice + i * 50) * 0.5).toFixed(2) });
+            rows.push({ price: (basePrice + i * (basePrice * 0.001)).toFixed(2), amount: (Math.random() * 2).toFixed(4), total: ((basePrice + i * 50) * 0.5).toFixed(2) });
         }
         return rows.reverse();
     };
     const asks = generateOrderBook(price || 40000);
-    const bids = generateOrderBook(price ? price - 250 : 39750);
+    const bids = generateOrderBook(price ? price * 0.999 : 39750);
 
+    // Generate Chart Data
+    const [chartData, setChartData] = useState([]);
+
+    useEffect(() => {
+        if (!selectedAsset) return;
+
+        let data = [];
+        const now = Math.floor(Date.now() / 1000);
+
+        // If we have sparkline data (from CoinGecko)
+        if (selectedAsset.sparkline_in_7d && selectedAsset.sparkline_in_7d.price) {
+            const prices = selectedAsset.sparkline_in_7d.price;
+            // Create hourly timestamps backwards from now
+            data = prices.map((p, i) => ({
+                time: now - (prices.length - i) * 3600,
+                value: p
+            }));
+        } else {
+            // Generate Mock Data for Stocks/Commodities
+            let currentPrice = selectedAsset.price || 100;
+            for (let i = 0; i < 100; i++) {
+                const time = now - (100 - i) * 3600;
+                const change = (Math.random() - 0.5) * (currentPrice * 0.02);
+                currentPrice += change;
+                data.push({ time, value: currentPrice });
+            }
+            // Ensure the last point matches current price
+            if (selectedAsset.price) {
+                data[data.length - 1].value = selectedAsset.price;
+            }
+        }
+        setChartData(data);
+    }, [selectedAsset]);
+
+    // RENDER: MARKET SELECTOR (If no asset selected)
+    if (!selectedAsset) {
+        return <MarketSelector onSelect={setSelectedAsset} />;
+    }
+
+    // RENDER: TRADING VIEW
     return (
-        <div className="h-[calc(100vh-80px)] flex flex-col lg:flex-row overflow-hidden animate-fadeIn">
+        <div className="min-h-screen lg:h-[calc(100vh-80px)] flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden animate-fadeIn pb-20 lg:pb-0">
 
-            {/* LEFT: CHART (Mocked for now, but could use TradingView widget) */}
+            {/* LEFT: CHART */}
             <div className="flex-1 bg-[#050505] border-r border-nexus-border flex flex-col">
-                <div className="h-16 border-b border-nexus-border flex items-center px-6 justify-between bg-nexus-card/50 backdrop-blur-sm">
+                {/* HEADER */}
+                <div className="h-16 border-b border-nexus-border flex items-center px-4 justify-between bg-nexus-card/50 backdrop-blur-sm">
                     <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-2">
-                            <img src="https://assets.coingecko.com/coins/images/1/large/bitcoin.png" className="w-8 h-8" alt="BTC" />
+                        <button
+                            onClick={() => setSelectedAsset(null)}
+                            className="p-2 hover:bg-white/10 rounded-lg text-nexus-subtext hover:text-white transition-colors"
+                        >
+                            <ChevronLeft size={20} />
+                        </button>
+                        <div className="flex items-center gap-3">
+                            {selectedAsset.image ? (
+                                <img src={selectedAsset.image} className="w-8 h-8" alt={selectedAsset.symbol} />
+                            ) : (
+                                <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center font-bold text-white text-xs">
+                                    {selectedAsset.symbol[0]}
+                                </div>
+                            )}
                             <div>
-                                <h2 className="text-white font-bold text-lg leading-none">BTC/USDT</h2>
-                                <span className="text-nexus-subtext text-xs">Bitcoin</span>
+                                <h2 className="text-white font-bold text-lg leading-none">{selectedAsset.symbol.toUpperCase()}</h2>
+                                <span className="text-nexus-subtext text-xs">{selectedAsset.name}</span>
                             </div>
                         </div>
                         <div className="h-8 w-[1px] bg-white/10 mx-2"></div>
                         <div>
-                            <div className={`text-lg font-mono font-bold ${price ? 'text-nexus-green' : 'text-white'}`}>
+                            <div className={`text-lg font-mono font-bold ${selectedAsset.change >= 0 ? 'text-nexus-green' : 'text-nexus-red'}`}>
                                 ${price?.toLocaleString() || '---'}
                             </div>
-                            <span className="text-xs text-nexus-subtext">Mark Price</span>
+                            <span className="text-xs text-nexus-subtext">Mark Price (v2)</span>
                         </div>
                     </div>
+
+                    <button onClick={() => setSelectedAsset(null)} className="hidden md:flex items-center gap-2 text-xs font-bold bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg text-nexus-subtext transition-colors">
+                        <Search size={14} /> Change Asset
+                    </button>
                 </div>
 
-                {/* Chart Placeholder */}
-                <div className="flex-1 relative group overflow-hidden">
-                    <div className="absolute inset-0 flex items-center justify-center text-nexus-subtext/20 text-4xl font-bold select-none">
-                        TRADING VIEW CHART
-                    </div>
-                    {/* Grid Lines for effect */}
-                    <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px]"></div>
+                {/* Chart Area */}
+                <div className="flex-1 relative group overflow-hidden bg-[#050505]">
+                    <ChartContainer
+                        data={chartData}
+                        colors={{
+                            lineColor: selectedAsset.change >= 0 ? '#00DD80' : '#FF3B30',
+                            areaTopColor: selectedAsset.change >= 0 ? 'rgba(0, 221, 128, 0.5)' : 'rgba(255, 59, 48, 0.5)',
+                            areaBottomColor: selectedAsset.change >= 0 ? 'rgba(0, 221, 128, 0.0)' : 'rgba(255, 59, 48, 0.0)',
+                        }}
+                    />
                 </div>
             </div>
 
@@ -136,8 +210,8 @@ const TradePage = () => {
                 {/* ORDER BOOK */}
                 <div className="flex-1 p-4 overflow-y-auto border-b border-nexus-border">
                     <div className="flex justify-between text-xs text-nexus-subtext font-bold mb-2 uppercase">
-                        <span>Price (USDT)</span>
-                        <span>Amount (BTC)</span>
+                        <span>Price (USD)</span>
+                        <span>Amount</span>
                         <span>Total</span>
                     </div>
                     <div className="space-y-0.5">
@@ -153,45 +227,88 @@ const TradePage = () => {
 
                 {/* TRADE FORM */}
                 <div className="p-4 bg-[#0A0A0A]">
-                </div>
-
-                <div className="space-y-4">
-                    <div className="flex justify-between text-xs text-nexus-subtext">
-                        <span>Avail:</span>
-                        <span className="text-white font-mono">
-                            {side === 'buy'
-                                ? `${wallet?.usdt?.toLocaleString() || '0'} USDT`
-                                : `${wallet?.btc ? wallet.btc.toFixed(6) : '0.000000'} BTC`}
-                        </span>
+                    <div className="flex bg-nexus-black p-1 rounded-xl mb-4 border border-white/5">
+                        <button
+                            onClick={() => setSide('buy')}
+                            className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${side === 'buy' ? 'bg-nexus-green text-black shadow-lg' : 'text-nexus-subtext hover:text-white'}`}
+                        >
+                            Buy
+                        </button>
+                        <button
+                            onClick={() => setSide('sell')}
+                            className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${side === 'sell' ? 'bg-nexus-red text-white shadow-lg' : 'text-nexus-subtext hover:text-white'}`}
+                        >
+                            Sell
+                        </button>
                     </div>
 
-                    <div className="bg-white/5 border border-white/10 rounded-lg p-3 focus-within:border-nexus-blue/50 transition-colors">
-                        <label className="text-[10px] text-nexus-subtext uppercase font-bold block mb-1">Amount (BTC)</label>
-                        <input
-                            type="number"
-                            value={amount}
-                            onChange={(e) => setAmount(e.target.value)}
-                            className="w-full bg-transparent text-white font-mono outline-none"
-                            placeholder="0.00"
-                        />
+                    {/* ORDER TYPE TOGGLE */}
+                    <div className="flex bg-white/5 p-0.5 rounded-lg mb-4">
+                        <button
+                            onClick={() => setOrderType('market')}
+                            className={`flex-1 py-1.5 rounded-md text-[10px] font-bold transition-all ${orderType === 'market' ? 'bg-nexus-card text-white shadow-sm' : 'text-nexus-subtext'}`}
+                        >
+                            Market
+                        </button>
+                        <button
+                            onClick={() => setOrderType('limit')}
+                            className={`flex-1 py-1.5 rounded-md text-[10px] font-bold transition-all ${orderType === 'limit' ? 'bg-nexus-card text-white shadow-sm' : 'text-nexus-subtext'}`}
+                        >
+                            Limit
+                        </button>
                     </div>
 
-                    <div className="grid grid-cols-4 gap-2">
-                        {[25, 50, 75, 100].map(pct => (
-                            <button key={pct} onClick={() => setAmount((0.1542 * (pct / 100)).toFixed(4))} className="bg-white/5 hover:bg-white/10 text-xs text-nexus-subtext py-1 rounded-lg transition-colors">{pct}%</button>
-                        ))}
-                    </div>
+                    <div className="space-y-4">
+                        <div className="flex justify-between text-xs text-nexus-subtext">
+                            <span>Avail:</span>
+                            <span className="text-white font-mono">
+                                {side === 'buy'
+                                    ? `${wallet?.usdt?.toLocaleString() || '0'} USDT`
+                                    : `${wallet?.btc ? wallet.btc.toFixed(6) : '0.000000'} ${selectedAsset.symbol}`}
+                            </span>
+                        </div>
 
-                    <button
-                        onClick={handleTrade}
-                        disabled={loading}
-                        className={`w-full py-3.5 rounded-xl font-bold text-sm transition-all active:scale-[0.98] ${side === 'buy'
-                            ? 'bg-nexus-green text-black hover:bg-[#00DD80] shadow-[0_0_20px_rgba(0,255,148,0.2)]'
-                            : 'bg-nexus-red text-white hover:bg-[#E03020] shadow-[0_0_20px_rgba(255,59,48,0.2)]'
-                            }`}
-                    >
-                        {loading ? 'Processing...' : (side === 'buy' ? 'Buy BTC' : 'Sell BTC')}
-                    </button>
+                        <div className="bg-white/5 border border-white/10 rounded-lg p-3 focus-within:border-nexus-blue/50 transition-colors">
+                            <label className="text-[10px] text-nexus-subtext uppercase font-bold block mb-1">Amount</label>
+                            <input
+                                type="number"
+                                value={amount}
+                                onChange={(e) => setAmount(e.target.value)}
+                                className="w-full bg-transparent text-white font-mono outline-none"
+                                placeholder="0.00"
+                            />
+                        </div>
+
+                        {orderType === 'limit' && (
+                            <div className="bg-white/5 border border-white/10 rounded-lg p-3 focus-within:border-nexus-blue/50 transition-colors animate-fadeIn">
+                                <label className="text-[10px] text-nexus-subtext uppercase font-bold block mb-1">Limit Price</label>
+                                <input
+                                    type="number"
+                                    value={limitPrice}
+                                    onChange={(e) => setLimitPrice(e.target.value)}
+                                    className="w-full bg-transparent text-white font-mono outline-none"
+                                    placeholder={price?.toFixed(2)}
+                                />
+                            </div>
+                        )}
+
+                        <div className="grid grid-cols-4 gap-2">
+                            {[25, 50, 75, 100].map(pct => (
+                                <button key={pct} onClick={() => setAmount((0.1542 * (pct / 100)).toFixed(4))} className="bg-white/5 hover:bg-white/10 text-xs text-nexus-subtext py-1 rounded-lg transition-colors">{pct}%</button>
+                            ))}
+                        </div>
+
+                        <button
+                            onClick={handleTrade}
+                            disabled={loading}
+                            className={`w-full py-3.5 rounded-xl font-bold text-sm transition-all active:scale-[0.98] ${side === 'buy'
+                                ? 'bg-nexus-green text-black hover:bg-[#00DD80] shadow-[0_0_20px_rgba(0,255,148,0.2)]'
+                                : 'bg-nexus-red text-white hover:bg-[#E03020] shadow-[0_0_20px_rgba(255,59,48,0.2)]'
+                                }`}
+                        >
+                            {loading ? 'Processing...' : (side === 'buy' ? `Buy ${selectedAsset.symbol}` : `Sell ${selectedAsset.symbol}`)}
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

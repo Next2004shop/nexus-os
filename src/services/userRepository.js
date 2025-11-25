@@ -72,6 +72,19 @@ export const userRepository = {
         });
     },
 
+    // Place Limit Order
+    placeLimitOrder: async (userId, type, asset, amount, price) => {
+        await addDoc(collection(db, 'limit_orders'), {
+            userId,
+            type,
+            asset,
+            amount,
+            price,
+            status: 'open',
+            timestamp: serverTimestamp()
+        });
+    },
+
     // Add Offshore Bank Account
     addBankAccount: async (userId, accountDetails) => {
         const userRef = doc(db, 'users', userId);
