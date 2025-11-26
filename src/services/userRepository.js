@@ -15,7 +15,7 @@ export const userRepository = {
                 displayName: user.displayName,
                 createdAt: serverTimestamp(),
                 wallet: {
-                    usdt: 100000, // $100k Virtual Funding
+                    usdt: 0, // Real Mode: Start with 0
                     btc: 0,
                     eth: 0,
                     sol: 0

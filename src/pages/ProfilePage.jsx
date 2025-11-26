@@ -167,8 +167,8 @@ export const ProfilePage = () => {
                     <div>
                         <h3 className="text-xs font-bold text-nexus-subtext uppercase tracking-wider mb-3 px-2">Support</h3>
                         <div className="bg-nexus-card border border-nexus-border rounded-2xl overflow-hidden">
-                            <ProfileItem icon={HelpCircle} label="Help Center" onClick={() => alert("Opening Help Center...")} />
-                            <ProfileItem icon={MessageSquare} label="Live Chat" value="Online" onClick={() => alert("Connecting to Live Agent...")} />
+                            <ProfileItem icon={HelpCircle} label="Help Center" onClick={() => onNavigate('help')} />
+                            <ProfileItem icon={MessageSquare} label="Live Chat" value="Online" onClick={() => onNavigate('help')} />
                         </div>
                     </div>
 

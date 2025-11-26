@@ -1,5 +1,9 @@
 {
   "appId": "com.danteh.nexusai",
   "appName": "nexus-ai",
-  "webDir": "dist"
+  "webDir": "dist",
+  "server": {
+    "url": "https://nexus-d7b05-378ec.web.app",
+    "cleartext": true
+  }
 }

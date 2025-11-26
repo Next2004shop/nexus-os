@@ -50,6 +50,26 @@ const TradePage = () => {
         if (selectedAsset) {
             setPrice(selectedAsset.price);
         }
+
+        // Live Polling
+        const interval = setInterval(async () => {
+            if (!selectedAsset) return;
+
+            const newPrice = await marketData.getLatestPrice(selectedAsset);
+            if (newPrice && newPrice !== price) {
+                setPrice(newPrice);
+
+                // Update Chart
+                setChartData(prev => {
+                    const newPoint = { time: Math.floor(Date.now() / 1000), value: newPrice };
+                    const newData = [...prev, newPoint];
+                    if (newData.length > 100) newData.shift(); // Keep last 100 points
+                    return newData;
+                });
+            }
+        }, 3000); // 3s Interval
+
+        return () => clearInterval(interval);
     }, [selectedAsset]);
 
     const handleAnalyze = () => {

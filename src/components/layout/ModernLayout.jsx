@@ -1,6 +1,8 @@
 import { Home, BarChart2, Wallet, User, Settings, Bell, Search, Menu, Building, TrendingUp, Bot } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
+import { HelpCenterPage } from '../../pages/HelpCenterPage';
+
 export const ModernLayout = ({ children, activeTab, onNavigate }) => {
     const { currentUser } = useAuth();
 
@@ -111,7 +113,7 @@ export const ModernLayout = ({ children, activeTab, onNavigate }) => {
 
                 {/* CONTENT */}
                 <div className="p-4 md:p-8 animate-fadeIn">
-                    {children}
+                    {activeTab === 'help' ? <HelpCenterPage /> : children}
                 </div>
             </main>
         </div>
