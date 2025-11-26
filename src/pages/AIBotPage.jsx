@@ -1,18 +1,29 @@
 import React, { useState } from 'react';
-import { Bot, Zap, Link, Shield, Activity, TrendingUp, Server, CheckCircle, AlertCircle } from 'lucide-react';
+import { Bot, Zap, Link, Shield, Activity, TrendingUp, Server, CheckCircle, AlertCircle, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 
 export const AIBotPage = () => {
     const [connected, setConnected] = useState(false);
-    const [broker, setBroker] = useState('');
-    const [apiKey, setApiKey] = useState('');
-    const [isLearning, setIsLearning] = useState(true);
+    const [server, setServer] = useState('');
+    const [login, setLogin] = useState('');
+    const [password, setPassword] = useState('');
+    const [connectionLog, setConnectionLog] = useState([]);
 
     const handleConnect = (e) => {
         e.preventDefault();
-        // Mock connection
+        setConnectionLog(prev => [...prev, "> Initializing handshake with MT5 Gateway..."]);
+
         setTimeout(() => {
+            setConnectionLog(prev => [...prev, `> Connecting to ${server}...`]);
+        }, 500);
+
+        setTimeout(() => {
+            setConnectionLog(prev => [...prev, "> Authenticating user credentials..."]);
+        }, 1000);
+
+        setTimeout(() => {
+            setConnectionLog(prev => [...prev, "> Connection Established."]);
             setConnected(true);
-        }, 1500);
+        }, 2000);
     };
 
     return (
@@ -38,41 +49,56 @@ export const AIBotPage = () => {
                     <div className="bg-nexus-card border border-nexus-border p-6 rounded-2xl">
                         <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
                             <Link size={20} className="text-nexus-yellow" />
-                            Broker Connection
+                            MetaTrader 5 Bridge
                         </h2>
 
                         {!connected ? (
                             <form onSubmit={handleConnect} className="space-y-4">
                                 <div>
-                                    <label className="text-xs text-nexus-subtext font-bold uppercase mb-1 block">Platform</label>
-                                    <select
-                                        className="w-full bg-nexus-black border border-nexus-border rounded-xl p-3 text-white focus:border-nexus-blue outline-none"
-                                        value={broker}
-                                        onChange={(e) => setBroker(e.target.value)}
-                                    >
-                                        <option value="">Select Platform</option>
-                                        <option value="mt5">MetaTrader 5</option>
-                                        <option value="mt4">MetaTrader 4</option>
-                                        <option value="fxpesa">FXPesa</option>
-                                        <option value="binance">Binance</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="text-xs text-nexus-subtext font-bold uppercase mb-1 block">API Key / Login ID</label>
+                                    <label className="text-xs text-nexus-subtext font-bold uppercase mb-1 block">Broker Server</label>
                                     <input
                                         type="text"
-                                        className="w-full bg-nexus-black border border-nexus-border rounded-xl p-3 text-white focus:border-nexus-blue outline-none"
-                                        placeholder="Enter ID"
-                                        value={apiKey}
-                                        onChange={(e) => setApiKey(e.target.value)}
+                                        className="w-full bg-nexus-black border border-nexus-border rounded-xl p-3 text-white focus:border-nexus-blue outline-none font-mono text-sm"
+                                        placeholder="e.g. Exness-Real5"
+                                        value={server}
+                                        onChange={(e) => setServer(e.target.value)}
                                     />
                                 </div>
+                                <div>
+                                    <label className="text-xs text-nexus-subtext font-bold uppercase mb-1 block">Login ID</label>
+                                    <input
+                                        type="number"
+                                        className="w-full bg-nexus-black border border-nexus-border rounded-xl p-3 text-white focus:border-nexus-blue outline-none font-mono text-sm"
+                                        placeholder="Account Number"
+                                        value={login}
+                                        onChange={(e) => setLogin(e.target.value)}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-xs text-nexus-subtext font-bold uppercase mb-1 block">Password</label>
+                                    <input
+                                        type="password"
+                                        className="w-full bg-nexus-black border border-nexus-border rounded-xl p-3 text-white focus:border-nexus-blue outline-none font-mono text-sm"
+                                        placeholder="••••••••"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                    />
+                                </div>
+
+                                {connectionLog.length > 0 && (
+                                    <div className="bg-black/50 p-3 rounded-lg border border-white/5 font-mono text-[10px] text-green-400 h-24 overflow-y-auto">
+                                        {connectionLog.map((log, i) => (
+                                            <div key={i}>{log}</div>
+                                        ))}
+                                    </div>
+                                )}
+
                                 <button
                                     type="submit"
-                                    disabled={!broker || !apiKey}
+                                    disabled={!server || !login || !password}
                                     className="w-full py-3 bg-nexus-blue text-black font-bold rounded-xl hover:bg-nexus-blue/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                    ESTABLISH LINK
+                                    CONNECT TERMINAL
                                 </button>
                             </form>
                         ) : (
@@ -80,22 +106,31 @@ export const AIBotPage = () => {
                                 <div className="bg-nexus-green/10 border border-nexus-green/20 p-4 rounded-xl flex items-center gap-3">
                                     <CheckCircle className="text-nexus-green" size={24} />
                                     <div>
-                                        <div className="text-white font-bold">Connected to {broker.toUpperCase()}</div>
-                                        <div className="text-xs text-nexus-green">Latency: 12ms</div>
+                                        <div className="text-white font-bold">MT5 Connected</div>
+                                        <div className="text-xs text-nexus-green">{server} • {login}</div>
                                     </div>
                                 </div>
-                                <div className="space-y-2">
+                                <div className="space-y-2 bg-white/5 p-4 rounded-xl border border-white/5">
                                     <div className="flex justify-between text-xs text-nexus-subtext">
-                                        <span>Account Balance</span>
-                                        <span className="text-white font-mono">$12,450.00</span>
+                                        <span>Equity</span>
+                                        <span className="text-white font-mono font-bold">$12,450.00</span>
                                     </div>
                                     <div className="flex justify-between text-xs text-nexus-subtext">
-                                        <span>Active Positions</span>
-                                        <span className="text-white font-mono">3</span>
+                                        <span>Margin</span>
+                                        <span className="text-white font-mono">$1,240.00</span>
+                                    </div>
+                                    <div className="flex justify-between text-xs text-nexus-subtext">
+                                        <span>Free Margin</span>
+                                        <span className="text-nexus-green font-mono font-bold">$11,210.00</span>
+                                    </div>
+                                    <div className="h-px bg-white/10 my-2"></div>
+                                    <div className="flex justify-between text-xs text-nexus-subtext">
+                                        <span>Margin Level</span>
+                                        <span className="text-nexus-blue font-mono">1004%</span>
                                     </div>
                                 </div>
                                 <button
-                                    onClick={() => setConnected(false)}
+                                    onClick={() => { setConnected(false); setConnectionLog([]); }}
                                     className="w-full py-2 border border-nexus-red/50 text-nexus-red text-xs font-bold rounded-lg hover:bg-nexus-red/10 transition-colors"
                                 >
                                     DISCONNECT

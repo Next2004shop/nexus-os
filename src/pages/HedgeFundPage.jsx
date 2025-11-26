@@ -113,7 +113,6 @@ export const HedgeFundPage = () => {
                                     <label className="text-xs text-nexus-subtext font-bold uppercase mb-1 block">Broker Connection</label>
                                     <select className="w-full bg-nexus-black border border-nexus-border rounded-xl p-3 text-white focus:border-nexus-blue outline-none">
                                         <option>MetaTrader 5 (Shared Access)</option>
-                                        <option>FXPesa (Managed)</option>
                                         <option>Manual Entry</option>
                                     </select>
                                 </div>
