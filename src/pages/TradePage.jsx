@@ -174,32 +174,45 @@ const TradePage = () => {
     useEffect(() => {
         if (!selectedAsset) return;
 
-        let data = [];
-        const now = Math.floor(Date.now() / 1000);
+        const loadData = async () => {
+            // Fetch Real Candles
+            const candles = await marketData.getCandles(selectedAsset.id, '1'); // 1 Day (approx 30m candles)
+            if (candles && candles.length > 0) {
+                setChartData(candles);
+                setPrice(candles[candles.length - 1].close);
+            }
+        };
+        loadData();
 
-        // If we have sparkline data (from CoinGecko)
-        if (selectedAsset.sparkline_in_7d && selectedAsset.sparkline_in_7d.price) {
-            const prices = selectedAsset.sparkline_in_7d.price;
-            // Create hourly timestamps backwards from now
-            data = prices.map((p, i) => ({
-                time: now - (prices.length - i) * 3600,
-                value: p
-            }));
-        } else {
-            // Generate Mock Data for Stocks/Commodities
-            let currentPrice = selectedAsset.price || 100;
-            for (let i = 0; i < 100; i++) {
-                const time = now - (100 - i) * 3600;
-                const change = (Math.random() - 0.5) * (currentPrice * 0.02);
-                currentPrice += change;
-                data.push({ time, value: currentPrice });
+        // Live Polling (Update Current Candle)
+        const interval = setInterval(async () => {
+            if (!selectedAsset) return;
+
+            const newPrice = await marketData.getLatestPrice(selectedAsset);
+            if (newPrice) {
+                setPrice(newPrice);
+
+                setChartData(prev => {
+                    if (prev.length === 0) return prev;
+
+                    const lastCandle = prev[prev.length - 1];
+                    const now = Math.floor(Date.now() / 1000);
+
+                    // If last candle is "stale" (> 30 mins), start a new one (simplified logic)
+                    // For now, we just update the Close/High/Low of the current candle to simulate live movement
+                    const updatedCandle = {
+                        ...lastCandle,
+                        close: newPrice,
+                        high: Math.max(lastCandle.high, newPrice),
+                        low: Math.min(lastCandle.low, newPrice)
+                    };
+
+                    return [...prev.slice(0, -1), updatedCandle];
+                });
             }
-            // Ensure the last point matches current price
-            if (selectedAsset.price) {
-                data[data.length - 1].value = selectedAsset.price;
-            }
-        }
-        setChartData(data);
+        }, 3000); // 3s Interval
+
+        return () => clearInterval(interval);
     }, [selectedAsset]);
 
     // RENDER: MARKET SELECTOR (If no asset selected)

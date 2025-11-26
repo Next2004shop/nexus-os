@@ -1,22 +1,26 @@
-import React, { useState } from 'react';
-import { Search, Star } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, Star, Loader } from 'lucide-react';
+import { marketData } from '../services/marketData';
+import { useNavigate } from 'react-router-dom';
 
-const MarketItem = ({ symbol, price, change }) => (
-    <div className="flex justify-between items-center py-4 border-b border-nexus-border last:border-0">
+const MarketItem = ({ item, onClick }) => (
+    <div onClick={() => onClick(item)} className="flex justify-between items-center py-4 border-b border-nexus-border last:border-0 cursor-pointer hover:bg-white/5 transition-colors px-2">
         <div className="flex items-center gap-3">
-            <Star size={16} className="text-nexus-subtext" />
+            <Star size={16} className="text-nexus-subtext hover:text-nexus-yellow transition-colors" />
             <div>
-                <div className="font-bold text-nexus-text text-sm">{symbol}<span className="text-nexus-subtext text-xs">/USDT</span></div>
-                <div className="text-xs text-nexus-subtext">Vol $1.2B</div>
+                <div className="font-bold text-nexus-text text-sm">{item.symbol}<span className="text-nexus-subtext text-xs">/{item.type === 'crypto' ? 'USDT' : 'USD'}</span></div>
+                <div className="text-xs text-nexus-subtext">{item.name}</div>
             </div>
         </div>
         <div className="text-right flex items-center gap-4">
             <div className="text-right">
-                <div className="text-nexus-text font-medium text-sm font-mono-numbers">{price}</div>
-                <div className="text-nexus-subtext text-xs">≈ ${price}</div>
+                <div className="text-nexus-text font-medium text-sm font-mono-numbers">
+                    {item.price < 1 ? item.price.toFixed(4) : item.price.toFixed(2)}
+                </div>
+                <div className="text-nexus-subtext text-xs">≈ ${item.price.toFixed(2)}</div>
             </div>
-            <div className={`w-20 py-2 rounded text-center text-xs font-bold text-white ${parseFloat(change) >= 0 ? 'bg-nexus-green' : 'bg-nexus-red'}`}>
-                {parseFloat(change) >= 0 ? '+' : ''}{change}%
+            <div className={`w-20 py-2 rounded text-center text-xs font-bold text-white ${item.change >= 0 ? 'bg-nexus-green' : 'bg-nexus-red'}`}>
+                {item.change >= 0 ? '+' : ''}{item.change?.toFixed(2)}%
             </div>
         </div>
     </div>
@@ -24,6 +28,54 @@ const MarketItem = ({ symbol, price, change }) => (
 
 export const MarketsPage = () => {
     const [activeTab, setActiveTab] = useState('crypto');
+    const [data, setData] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [search, setSearch] = useState('');
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        const fetchData = async () => {
+            setLoading(true);
+            let result = [];
+
+            try {
+                if (activeTab === 'crypto') {
+                    const cryptos = await marketData.getTopCryptos();
+                    result = cryptos.map(c => ({
+                        id: c.id,
+                        symbol: c.symbol.toUpperCase(),
+                        name: c.name,
+                        price: c.current_price,
+                        change: c.price_change_percentage_24h,
+                        type: 'crypto'
+                    }));
+                } else if (activeTab === 'stocks') {
+                    result = await marketData.getStocks();
+                } else if (activeTab === 'commodities') {
+                    result = await marketData.getCommodities();
+                }
+            } catch (error) {
+                console.error("Failed to fetch market data", error);
+            }
+
+            setData(result);
+            setLoading(false);
+        };
+
+        fetchData();
+        const interval = setInterval(fetchData, 10000); // Refresh every 10s
+        return () => clearInterval(interval);
+    }, [activeTab]);
+
+    const filteredData = data.filter(item =>
+        item.symbol.toLowerCase().includes(search.toLowerCase()) ||
+        item.name.toLowerCase().includes(search.toLowerCase())
+    );
+
+    const handleItemClick = (item) => {
+        // Navigate to trade page with selected asset
+        navigate('/trade', { state: { asset: item } });
+    };
 
     return (
         <div className="bg-nexus-black min-h-screen pb-24">
@@ -33,7 +85,9 @@ export const MarketsPage = () => {
                     <Search size={16} className="text-nexus-subtext" />
                     <input
                         type="text"
-                        placeholder="Search Coin Pairs"
+                        placeholder="Search Markets"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
                         className="bg-transparent text-sm text-nexus-text outline-none w-full placeholder-nexus-subtext"
                     />
                 </div>
@@ -41,7 +95,7 @@ export const MarketsPage = () => {
 
             {/* TABS */}
             <div className="flex gap-6 px-4 border-b border-nexus-border mt-2 overflow-x-auto no-scrollbar">
-                {['Favorites', 'Crypto', 'Spot', 'Futures', 'New'].map(tab => (
+                {['Crypto', 'Stocks', 'Commodities'].map(tab => (
                     <button
                         key={tab}
                         onClick={() => setActiveTab(tab.toLowerCase())}
@@ -61,16 +115,15 @@ export const MarketsPage = () => {
                     <span>24h Chg%</span>
                 </div>
 
-                <MarketItem symbol="BTC" price="64,230.10" change="0.85" />
-                <MarketItem symbol="ETH" price="3,450.55" change="-0.42" />
-                <MarketItem symbol="BNB" price="593.20" change="1.24" />
-                <MarketItem symbol="SOL" price="145.20" change="5.60" />
-                <MarketItem symbol="XRP" price="0.62" change="0.15" />
-                <MarketItem symbol="ADA" price="0.45" change="-1.20" />
-                <MarketItem symbol="DOGE" price="0.16" change="2.30" />
-                <MarketItem symbol="AVAX" price="35.40" change="4.10" />
-                <MarketItem symbol="DOT" price="7.20" change="-0.50" />
-                <MarketItem symbol="LINK" price="14.50" change="1.80" />
+                {loading ? (
+                    <div className="flex justify-center py-10">
+                        <Loader className="animate-spin text-nexus-yellow" />
+                    </div>
+                ) : (
+                    filteredData.map((item, index) => (
+                        <MarketItem key={index} item={item} onClick={handleItemClick} />
+                    ))
+                )}
             </div>
         </div>
     );

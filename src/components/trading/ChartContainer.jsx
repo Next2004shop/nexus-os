@@ -43,10 +43,13 @@ export const ChartContainer = ({ data, colors = {} }) => {
         chartRef.current = chart;
 
         try {
-            const newSeries = chart.addAreaSeries({
-                lineColor,
-                topColor: areaTopColor,
-                bottomColor: areaBottomColor,
+            // Switch to Candlestick Series
+            const newSeries = chart.addCandlestickSeries({
+                upColor: '#00DD80', // Nexus Green
+                downColor: '#FF3B30', // Nexus Red
+                borderVisible: false,
+                wickUpColor: '#00DD80',
+                wickDownColor: '#FF3B30',
             });
             seriesRef.current = newSeries;
 
