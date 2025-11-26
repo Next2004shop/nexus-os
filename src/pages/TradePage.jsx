@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowUp, ArrowDown, Activity, Wallet, History, ChevronLeft, Search } from 'lucide-react';
+import { ArrowUp, ArrowDown, Activity, Wallet, History, ChevronLeft, Search, Bot, Zap } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { marketData } from '../services/marketData';
 import { userRepository } from '../services/userRepository';
@@ -26,6 +26,11 @@ const TradePage = () => {
     const [loading, setLoading] = useState(false);
     const [wallet, setWallet] = useState(null);
 
+    // AI STRATEGY STATE
+    const [strategyMode, setStrategyMode] = useState('manual'); // manual, ai
+    const [analyzing, setAnalyzing] = useState(false);
+    const [aiSignal, setAiSignal] = useState(null);
+
     const { showToast } = useToast();
     const { currentUser } = useAuth();
 
@@ -44,9 +49,42 @@ const TradePage = () => {
     useEffect(() => {
         if (selectedAsset) {
             setPrice(selectedAsset.price);
-            // In a real app, you'd subscribe to a websocket here for live updates
         }
     }, [selectedAsset]);
+
+    const handleAnalyze = () => {
+        setAnalyzing(true);
+        setAiSignal(null);
+
+        // Mock AI Analysis
+        setTimeout(() => {
+            const isBullish = Math.random() > 0.4; // Slightly bullish bias
+            const currentPrice = price || selectedAsset.price;
+
+            setAiSignal({
+                direction: isBullish ? 'LONG' : 'SHORT',
+                confidence: Math.floor(Math.random() * (98 - 75) + 75),
+                reasoning: isBullish
+                    ? "Bullish divergence on RSI (14) coupled with strong support bounce at key fib level."
+                    : "Bearish engulfing candle on 4H timeframe indicating potential reversal.",
+                entry: currentPrice,
+                tp: isBullish ? currentPrice * 1.04 : currentPrice * 0.96,
+                sl: isBullish ? currentPrice * 0.98 : currentPrice * 1.02
+            });
+            setAnalyzing(false);
+        }, 2000);
+    };
+
+    const applyStrategy = () => {
+        if (!aiSignal) return;
+        setSide(aiSignal.direction === 'LONG' ? 'buy' : 'sell');
+        setOrderType('limit');
+        setLimitPrice(aiSignal.entry.toFixed(2));
+        // Auto-allocate 10% of wallet for safety
+        const safeAmount = wallet?.usdt ? (wallet.usdt * 0.10) / aiSignal.entry : 0;
+        setAmount(safeAmount.toFixed(4));
+        showToast("AI Strategy Applied to Order Form", "success");
+    };
 
     const handleTrade = async () => {
         if (!amount || isNaN(amount) || parseFloat(amount) <= 0) {
@@ -154,9 +192,9 @@ const TradePage = () => {
         <div className="min-h-screen lg:h-[calc(100vh-80px)] flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden animate-fadeIn pb-20 lg:pb-0">
 
             {/* LEFT: CHART */}
-            <div className="flex-1 bg-[#050505] border-r border-nexus-border flex flex-col">
+            <div className="w-full lg:flex-1 bg-[#050505] border-r border-nexus-border flex flex-col h-[50vh] lg:h-auto shrink-0">
                 {/* HEADER */}
-                <div className="h-16 border-b border-nexus-border flex items-center px-4 justify-between bg-nexus-card/50 backdrop-blur-sm">
+                <div className="h-16 border-b border-nexus-border flex items-center px-4 justify-between bg-nexus-card/50 backdrop-blur-sm shrink-0">
                     <div className="flex items-center gap-4">
                         <button
                             onClick={() => setSelectedAsset(null)}
@@ -205,10 +243,10 @@ const TradePage = () => {
             </div>
 
             {/* RIGHT: ORDER BOOK & TRADE FORM */}
-            <div className="w-full lg:w-[350px] bg-nexus-card flex flex-col border-l border-nexus-border">
+            <div className="w-full lg:w-[350px] bg-nexus-card flex flex-col border-l border-nexus-border shrink-0">
 
-                {/* ORDER BOOK */}
-                <div className="flex-1 p-4 overflow-y-auto border-b border-nexus-border">
+                {/* ORDER BOOK (Hidden on small mobile to save space, or reduced) */}
+                <div className="p-4 overflow-y-auto border-b border-nexus-border max-h-64 lg:max-h-none lg:flex-1">
                     <div className="flex justify-between text-xs text-nexus-subtext font-bold mb-2 uppercase">
                         <span>Price (USD)</span>
                         <span>Amount</span>
@@ -227,6 +265,64 @@ const TradePage = () => {
 
                 {/* TRADE FORM */}
                 <div className="p-4 bg-[#0A0A0A]">
+                    {/* MODE TOGGLE */}
+                    <div className="flex bg-white/5 p-1 rounded-xl mb-4 border border-white/5">
+                        <button
+                            onClick={() => setStrategyMode('manual')}
+                            className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${strategyMode === 'manual' ? 'bg-nexus-card text-white shadow-sm' : 'text-nexus-subtext'}`}
+                        >
+                            Manual
+                        </button>
+                        <button
+                            onClick={() => setStrategyMode('ai')}
+                            className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1 ${strategyMode === 'ai' ? 'bg-nexus-blue/20 text-nexus-blue shadow-sm' : 'text-nexus-subtext'}`}
+                        >
+                            <Bot size={12} /> AI Auto
+                        </button>
+                    </div>
+
+                    {strategyMode === 'ai' && (
+                        <div className="mb-4 bg-nexus-blue/5 border border-nexus-blue/20 rounded-xl p-3">
+                            {!aiSignal ? (
+                                <div className="text-center py-2">
+                                    <p className="text-xs text-nexus-subtext mb-3">Let Nexus AI analyze market structure and suggest the best entry.</p>
+                                    <button
+                                        onClick={handleAnalyze}
+                                        disabled={analyzing}
+                                        className="w-full py-2 bg-nexus-blue text-black font-bold text-xs rounded-lg hover:bg-nexus-blue/90 transition-colors flex items-center justify-center gap-2"
+                                    >
+                                        {analyzing ? <Activity size={14} className="animate-spin" /> : <Zap size={14} />}
+                                        {analyzing ? 'SCANNING MARKET...' : 'SCAN MARKET STRUCTURE'}
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="space-y-2 animate-fadeIn">
+                                    <div className="flex justify-between items-center">
+                                        <span className={`text-sm font-black ${aiSignal.direction === 'LONG' ? 'text-nexus-green' : 'text-nexus-red'}`}>{aiSignal.direction} SIGNAL</span>
+                                        <span className="text-xs font-bold text-nexus-blue">{aiSignal.confidence}% Conf.</span>
+                                    </div>
+                                    <p className="text-[10px] text-nexus-subtext leading-tight">{aiSignal.reasoning}</p>
+                                    <div className="grid grid-cols-2 gap-2 mt-2">
+                                        <div className="bg-black/40 p-1.5 rounded border border-white/5">
+                                            <div className="text-[8px] text-nexus-subtext uppercase">Entry</div>
+                                            <div className="text-xs font-mono text-white">${aiSignal.entry.toFixed(2)}</div>
+                                        </div>
+                                        <div className="bg-black/40 p-1.5 rounded border border-white/5">
+                                            <div className="text-[8px] text-nexus-subtext uppercase">Take Profit</div>
+                                            <div className="text-xs font-mono text-nexus-green">${aiSignal.tp.toFixed(2)}</div>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={applyStrategy}
+                                        className="w-full mt-2 py-2 bg-white/10 text-white font-bold text-xs rounded-lg hover:bg-white/20 transition-colors border border-white/10"
+                                    >
+                                        APPLY STRATEGY
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     <div className="flex bg-nexus-black p-1 rounded-xl mb-4 border border-white/5">
                         <button
                             onClick={() => setSide('buy')}
