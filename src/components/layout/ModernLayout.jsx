@@ -87,19 +87,25 @@ export const ModernLayout = ({ children, activeTab, onNavigate }) => {
                     </div>
 
                     <div className="flex items-center gap-4">
-                        <button className="relative p-2 hover:bg-white/5 rounded-lg transition-colors">
+                        <button
+                            onClick={() => alert("Notifications feature coming soon!")}
+                            className="relative p-2 hover:bg-white/5 rounded-lg transition-colors"
+                        >
                             <Bell size={20} className="text-nexus-subtext hover:text-white" />
                             <span className="absolute top-2 right-2 w-2 h-2 bg-nexus-red rounded-full shadow-[0_0_5px_#FF2E54]"></span>
                         </button>
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-r from-nexus-blue to-purple-500 p-[1px]">
+                        <button
+                            onClick={() => onNavigate('profile')}
+                            className="w-8 h-8 rounded-full bg-gradient-to-r from-nexus-blue to-purple-500 p-[1px] cursor-pointer hover:scale-105 transition-transform"
+                        >
                             <div className="w-full h-full rounded-full bg-nexus-black flex items-center justify-center overflow-hidden">
                                 {currentUser?.photoURL ? (
                                     <img src={currentUser.photoURL} alt="User" className="w-full h-full object-cover" />
                                 ) : (
-                                    <span className="font-bold text-xs">{currentUser?.email?.[0].toUpperCase() || 'U'}</span>
+                                    <span className="font-bold text-xs text-white">{currentUser?.email?.[0].toUpperCase() || 'U'}</span>
                                 )}
                             </div>
-                        </div>
+                        </button>
                     </div>
                 </header>
 

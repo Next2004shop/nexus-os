@@ -15,11 +15,7 @@ export const ChartContainer = ({ data, colors = {} }) => {
     } = colors;
 
     useEffect(() => {
-        const handleResize = () => {
-            if (chartRef.current && chartContainerRef.current) {
-                chartRef.current.applyOptions({ width: chartContainerRef.current.clientWidth });
-            }
-        };
+
 
         if (!chartContainerRef.current) return;
 
@@ -29,7 +25,7 @@ export const ChartContainer = ({ data, colors = {} }) => {
                 textColor,
             },
             width: chartContainerRef.current.clientWidth,
-            height: 400,
+            height: chartContainerRef.current.clientHeight || 400, // Use container height or fallback
             grid: {
                 vertLines: { color: 'rgba(255, 255, 255, 0.05)' },
                 horzLines: { color: 'rgba(255, 255, 255, 0.05)' },
@@ -62,10 +58,17 @@ export const ChartContainer = ({ data, colors = {} }) => {
             console.error("Failed to add series:", err);
         }
 
-        window.addEventListener('resize', handleResize);
+        // Resize Observer
+        const resizeObserver = new ResizeObserver(entries => {
+            if (entries.length === 0 || !entries[0].target) return;
+            const newRect = entries[0].contentRect;
+            chart.applyOptions({ width: newRect.width, height: newRect.height });
+        });
+
+        resizeObserver.observe(chartContainerRef.current);
 
         return () => {
-            window.removeEventListener('resize', handleResize);
+            resizeObserver.disconnect();
             if (chart) chart.remove();
         };
     }, [backgroundColor, lineColor, textColor, areaTopColor, areaBottomColor]);

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bot, Zap, Link, Shield, Activity, TrendingUp, Server, CheckCircle, AlertCircle, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { Bot, Zap, Link, Shield, Activity, TrendingUp, Server, CheckCircle, AlertCircle, ArrowUpRight, ArrowDownRight, MessageSquare, User, Send } from 'lucide-react';
 
 export const AIBotPage = () => {
     const [connected, setConnected] = useState(false);
@@ -212,32 +212,60 @@ export const AIBotPage = () => {
                         </div>
                     </div>
 
-                    {/* RECENT AI TRADES */}
-                    <div className="bg-nexus-card border border-nexus-border rounded-2xl overflow-hidden">
-                        <div className="p-4 border-b border-nexus-border flex justify-between items-center">
-                            <h3 className="font-bold text-white">Recent AI Executions</h3>
-                            <button className="text-xs text-nexus-blue font-bold">View All</button>
+                    {/* AI CHAT INTERFACE */}
+                    <div className="bg-nexus-card border border-nexus-border rounded-2xl overflow-hidden flex flex-col h-[500px]">
+                        <div className="p-4 border-b border-nexus-border flex justify-between items-center bg-nexus-black/50">
+                            <h3 className="font-bold text-white flex items-center gap-2">
+                                <MessageSquare size={18} className="text-nexus-blue" />
+                                Command Center
+                            </h3>
+                            <div className="flex items-center gap-2">
+                                <span className="w-2 h-2 bg-nexus-green rounded-full animate-pulse"></span>
+                                <span className="text-xs text-nexus-subtext">Online</span>
+                            </div>
                         </div>
-                        <div className="divide-y divide-white/5">
-                            {[1, 2, 3].map((i) => (
-                                <div key={i} className="p-4 flex items-center justify-between hover:bg-white/5 transition-colors">
-                                    <div className="flex items-center gap-3">
-                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${i === 2 ? 'bg-nexus-red/10 text-nexus-red' : 'bg-nexus-green/10 text-nexus-green'}`}>
-                                            {i === 2 ? <ArrowDownRight size={16} /> : <ArrowUpRight size={16} />}
-                                        </div>
-                                        <div>
-                                            <div className="font-bold text-white text-sm">BTC/USDT</div>
-                                            <div className="text-xs text-nexus-subtext">Scalp Strategy • 5m</div>
-                                        </div>
-                                    </div>
-                                    <div className="text-right">
-                                        <div className={`font-mono font-bold ${i === 2 ? 'text-nexus-red' : 'text-nexus-green'}`}>
-                                            {i === 2 ? '-$45.20' : '+$128.50'}
-                                        </div>
-                                        <div className="text-[10px] text-nexus-subtext">12:3{i} PM</div>
-                                    </div>
+
+                        {/* Chat Messages */}
+                        <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-black/20">
+                            <div className="flex gap-3">
+                                <div className="w-8 h-8 rounded-full bg-nexus-blue/10 flex items-center justify-center shrink-0">
+                                    <Bot size={16} className="text-nexus-blue" />
                                 </div>
-                            ))}
+                                <div className="bg-nexus-blue/10 border border-nexus-blue/20 rounded-2xl rounded-tl-none p-3 max-w-[80%]">
+                                    <p className="text-sm text-white">Hello! I am Nexus AI. I'm analyzing the market 24/7. You can give me instructions or ask about market conditions.</p>
+                                </div>
+                            </div>
+                            {/* User Message Example */}
+                            <div className="flex gap-3 flex-row-reverse">
+                                <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center shrink-0">
+                                    <User size={16} className="text-white" />
+                                </div>
+                                <div className="bg-white/10 border border-white/20 rounded-2xl rounded-tr-none p-3 max-w-[80%]">
+                                    <p className="text-sm text-white">Scan for bullish divergence on BTC/USDT 15m timeframe.</p>
+                                </div>
+                            </div>
+                            <div className="flex gap-3">
+                                <div className="w-8 h-8 rounded-full bg-nexus-blue/10 flex items-center justify-center shrink-0">
+                                    <Bot size={16} className="text-nexus-blue" />
+                                </div>
+                                <div className="bg-nexus-blue/10 border border-nexus-blue/20 rounded-2xl rounded-tl-none p-3 max-w-[80%]">
+                                    <p className="text-sm text-white">Scanning... Found potential bullish divergence on RSI. Confidence: 78%. Executing detailed analysis.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Input Area */}
+                        <div className="p-4 border-t border-nexus-border bg-nexus-black/50">
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    placeholder="Type your instruction..."
+                                    className="w-full bg-nexus-black border border-nexus-border rounded-xl py-3 pl-4 pr-12 text-sm text-white focus:border-nexus-blue outline-none transition-colors"
+                                />
+                                <button className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-nexus-blue text-black rounded-lg hover:bg-nexus-blue/90 transition-colors">
+                                    <Send size={16} />
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

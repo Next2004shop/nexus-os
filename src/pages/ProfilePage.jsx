@@ -149,26 +149,26 @@ export const ProfilePage = () => {
                     <div>
                         <h3 className="text-xs font-bold text-nexus-subtext uppercase tracking-wider mb-3 px-2">Account Settings</h3>
                         <div className="bg-nexus-card border border-nexus-border rounded-2xl overflow-hidden">
-                            <ProfileItem icon={User} label="Personal Information" value="KYC Level 2" />
-                            <ProfileItem icon={CreditCard} label="Payment Methods" value="2 Linked" />
-                            <ProfileItem icon={Globe} label="Language" value="English (US)" />
-                            <ProfileItem icon={Moon} label="Dark Mode" hasToggle />
+                            <ProfileItem icon={User} label="Personal Information" value="KYC Level 2" onClick={() => alert("Personal Info: Edit feature coming soon")} />
+                            <ProfileItem icon={CreditCard} label="Payment Methods" value="2 Linked" onClick={() => alert("Payment Methods: Manage cards feature coming soon")} />
+                            <ProfileItem icon={Globe} label="Language" value="English (US)" onClick={() => alert("Language settings coming soon")} />
+                            <ProfileItem icon={Moon} label="Dark Mode" hasToggle onClick={() => alert("Dark Mode is already active!")} />
                         </div>
                     </div>
 
                     <div>
                         <h3 className="text-xs font-bold text-nexus-subtext uppercase tracking-wider mb-3 px-2">Notifications</h3>
                         <div className="bg-nexus-card border border-nexus-border rounded-2xl overflow-hidden">
-                            <ProfileItem icon={Bell} label="Push Notifications" hasToggle />
-                            <ProfileItem icon={Mail} label="Email Alerts" hasToggle />
+                            <ProfileItem icon={Bell} label="Push Notifications" hasToggle onClick={() => alert("Push Notifications toggled")} />
+                            <ProfileItem icon={Mail} label="Email Alerts" hasToggle onClick={() => alert("Email Alerts toggled")} />
                         </div>
                     </div>
 
                     <div>
                         <h3 className="text-xs font-bold text-nexus-subtext uppercase tracking-wider mb-3 px-2">Support</h3>
                         <div className="bg-nexus-card border border-nexus-border rounded-2xl overflow-hidden">
-                            <ProfileItem icon={HelpCircle} label="Help Center" />
-                            <ProfileItem icon={MessageSquare} label="Live Chat" value="Online" />
+                            <ProfileItem icon={HelpCircle} label="Help Center" onClick={() => alert("Opening Help Center...")} />
+                            <ProfileItem icon={MessageSquare} label="Live Chat" value="Online" onClick={() => alert("Connecting to Live Agent...")} />
                         </div>
                     </div>
 
