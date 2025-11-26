@@ -78,7 +78,9 @@ export const AuthPage = ({ onClose }) => {
             }
             onClose();
         } catch (err) {
-            setError(err.message.replace('Firebase: ', ''));
+            console.error("Auth Error:", err);
+            // Show full detailed error for debugging
+            setError(`Error: ${err.code} - ${err.message}`);
         } finally {
             setLoading(false);
         }
