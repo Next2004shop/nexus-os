@@ -2,7 +2,7 @@ import axios from 'axios';
 import { logTradeToCloud } from './firebase';
 
 // Use environment variable or fallback to local IP (change this to your computer's IP)
-const API_URL = import.meta.env.VITE_API_URL || 'http://192.168.43.153:5000';
+const API_URL = import.meta.env.VITE_API_URL || ''; // Empty default forces Demo Mode on mobile
 const AUTH_USERNAME = 'admin';
 const AUTH_PASSWORD = 'securepassword';
 

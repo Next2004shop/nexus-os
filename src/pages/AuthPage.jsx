@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Eye, EyeOff, X, Zap, Shield, Globe } from 'lucide-react';
-import { GoogleAuthProvider, signInWithPopup, signInWithRedirect, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
+import { Capacitor } from '@capacitor/core';
 import { auth } from '../services/firebase';
 import { useAuth } from '../context/AuthContext';
 
@@ -22,23 +23,28 @@ export const AuthPage = ({ onClose }) => {
     }, [currentUser, onClose]);
 
     const handleGoogleLogin = async () => {
+        // Check if running on native mobile (Android/iOS)
+        const isNative = window.Capacitor?.isNativePlatform();
+
+        if (isNative) {
+            setError("Google Sign-In requires advanced configuration. Please use Email/Password for this build.");
+            return;
+        }
+
         try {
             setLoading(true);
             setError('');
             const provider = new GoogleAuthProvider();
-            try {
-                await signInWithPopup(auth, provider);
-            } catch (popupErr) {
-                console.log("Popup failed, trying redirect...", popupErr);
-                await signInWithRedirect(auth, provider);
-            }
+            await signInWithPopup(auth, provider);
         } catch (err) {
             console.error("Google Login Error:", err);
             let msg = "Google Sign-In failed.";
             if (err.code === 'auth/unauthorized-domain' || err.message.includes('unauthorized domain')) {
                 msg = `Domain not authorized: ${window.location.hostname}. Add this to Firebase Console.`;
+            } else if (err.code === 'auth/popup-closed-by-user') {
+                msg = "Sign-in cancelled.";
             }
-            setError(`${msg} (${err.code || err.message})`);
+            setError(`${msg}`);
         } finally {
             setLoading(false);
         }
