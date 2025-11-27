@@ -171,7 +171,7 @@ export const marketData = {
                 }
             });
 
-            const data = response.data;
+            const data = Array.isArray(response.data) ? response.data : [];
             const gold = data.find(c => c.id === 'pax-gold') || { current_price: 2045.50, price_change_percentage_24h: 0.45 };
             const silver = data.find(c => c.id === 'kinesis-silver') || { current_price: 24.20, price_change_percentage_24h: -0.15 };
 

@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { Bot, Zap, Link, Shield, Activity, TrendingUp, Server, CheckCircle, AlertCircle, ArrowUpRight, ArrowDownRight, MessageSquare, User, Send } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Bot, Zap, Link, Shield, Activity, TrendingUp, Server, CheckCircle, AlertCircle, ArrowUpRight, ArrowDownRight, MessageSquare, User, Send, Loader } from 'lucide-react';
+import { aiService } from '../services/aiService';
 
 export const AIBotPage = () => {
     const [connected, setConnected] = useState(false);
@@ -7,6 +8,22 @@ export const AIBotPage = () => {
     const [login, setLogin] = useState('');
     const [password, setPassword] = useState('');
     const [connectionLog, setConnectionLog] = useState([]);
+
+    // AI Chat State
+    const [messages, setMessages] = useState([
+        { role: 'model', text: "Hello! I am Nexus AI. I'm analyzing the market 24/7. You can give me instructions or ask about market conditions." }
+    ]);
+    const [input, setInput] = useState('');
+    const [isTyping, setIsTyping] = useState(false);
+    const messagesEndRef = useRef(null);
+
+    const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    };
+
+    useEffect(() => {
+        scrollToBottom();
+    }, [messages]);
 
     const handleConnect = (e) => {
         e.preventDefault();
@@ -24,6 +41,27 @@ export const AIBotPage = () => {
             setConnectionLog(prev => [...prev, "> Connection Established."]);
             setConnected(true);
         }, 2000);
+    };
+
+    const handleSendMessage = async (e) => {
+        e.preventDefault();
+        if (!input.trim() || isTyping) return;
+
+        const userMessage = input;
+        setInput('');
+        setMessages(prev => [...prev, { role: 'user', text: userMessage }]);
+        setIsTyping(true);
+
+        try {
+            // Convert internal message format to history format expected by service if needed
+            // For now, we pass the raw text and let the service handle context if implemented
+            const response = await aiService.sendMessage(userMessage, messages);
+            setMessages(prev => [...prev, { role: 'model', text: response }]);
+        } catch (error) {
+            setMessages(prev => [...prev, { role: 'model', text: "Error: Unable to reach neural network." }]);
+        } finally {
+            setIsTyping(false);
+        }
     };
 
     return (
@@ -227,45 +265,51 @@ export const AIBotPage = () => {
 
                         {/* Chat Messages */}
                         <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-black/20">
-                            <div className="flex gap-3">
-                                <div className="w-8 h-8 rounded-full bg-nexus-blue/10 flex items-center justify-center shrink-0">
-                                    <Bot size={16} className="text-nexus-blue" />
+                            {messages.map((msg, index) => (
+                                <div key={index} className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
+                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${msg.role === 'user' ? 'bg-white/10' : 'bg-nexus-blue/10'}`}>
+                                        {msg.role === 'user' ? <User size={16} className="text-white" /> : <Bot size={16} className="text-nexus-blue" />}
+                                    </div>
+                                    <div className={`border rounded-2xl p-3 max-w-[80%] ${msg.role === 'user'
+                                            ? 'bg-white/10 border-white/20 rounded-tr-none'
+                                            : 'bg-nexus-blue/10 border-nexus-blue/20 rounded-tl-none'
+                                        }`}>
+                                        <p className="text-sm text-white whitespace-pre-wrap">{msg.text}</p>
+                                    </div>
                                 </div>
-                                <div className="bg-nexus-blue/10 border border-nexus-blue/20 rounded-2xl rounded-tl-none p-3 max-w-[80%]">
-                                    <p className="text-sm text-white">Hello! I am Nexus AI. I'm analyzing the market 24/7. You can give me instructions or ask about market conditions.</p>
+                            ))}
+                            {isTyping && (
+                                <div className="flex gap-3">
+                                    <div className="w-8 h-8 rounded-full bg-nexus-blue/10 flex items-center justify-center shrink-0">
+                                        <Bot size={16} className="text-nexus-blue" />
+                                    </div>
+                                    <div className="bg-nexus-blue/10 border border-nexus-blue/20 rounded-2xl rounded-tl-none p-3">
+                                        <Loader size={16} className="text-nexus-blue animate-spin" />
+                                    </div>
                                 </div>
-                            </div>
-                            {/* User Message Example */}
-                            <div className="flex gap-3 flex-row-reverse">
-                                <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center shrink-0">
-                                    <User size={16} className="text-white" />
-                                </div>
-                                <div className="bg-white/10 border border-white/20 rounded-2xl rounded-tr-none p-3 max-w-[80%]">
-                                    <p className="text-sm text-white">Scan for bullish divergence on BTC/USDT 15m timeframe.</p>
-                                </div>
-                            </div>
-                            <div className="flex gap-3">
-                                <div className="w-8 h-8 rounded-full bg-nexus-blue/10 flex items-center justify-center shrink-0">
-                                    <Bot size={16} className="text-nexus-blue" />
-                                </div>
-                                <div className="bg-nexus-blue/10 border border-nexus-blue/20 rounded-2xl rounded-tl-none p-3 max-w-[80%]">
-                                    <p className="text-sm text-white">Scanning... Found potential bullish divergence on RSI. Confidence: 78%. Executing detailed analysis.</p>
-                                </div>
-                            </div>
+                            )}
+                            <div ref={messagesEndRef} />
                         </div>
 
                         {/* Input Area */}
                         <div className="p-4 border-t border-nexus-border bg-nexus-black/50">
-                            <div className="relative">
+                            <form onSubmit={handleSendMessage} className="relative">
                                 <input
                                     type="text"
+                                    value={input}
+                                    onChange={(e) => setInput(e.target.value)}
                                     placeholder="Type your instruction..."
                                     className="w-full bg-nexus-black border border-nexus-border rounded-xl py-3 pl-4 pr-12 text-sm text-white focus:border-nexus-blue outline-none transition-colors"
+                                    disabled={isTyping}
                                 />
-                                <button className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-nexus-blue text-black rounded-lg hover:bg-nexus-blue/90 transition-colors">
+                                <button
+                                    type="submit"
+                                    disabled={!input.trim() || isTyping}
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-nexus-blue text-black rounded-lg hover:bg-nexus-blue/90 transition-colors disabled:opacity-50"
+                                >
                                     <Send size={16} />
                                 </button>
-                            </div>
+                            </form>
                         </div>
                     </div>
                 </div>

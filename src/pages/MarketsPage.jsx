@@ -3,28 +3,32 @@ import { Search, Star, Loader } from 'lucide-react';
 import { marketData } from '../services/marketData';
 import { useNavigate } from 'react-router-dom';
 
-const MarketItem = ({ item, onClick }) => (
-    <div onClick={() => onClick(item)} className="flex justify-between items-center py-4 border-b border-nexus-border last:border-0 cursor-pointer hover:bg-white/5 transition-colors px-2">
-        <div className="flex items-center gap-3">
-            <Star size={16} className="text-nexus-subtext hover:text-nexus-yellow transition-colors" />
-            <div>
-                <div className="font-bold text-nexus-text text-sm">{item.symbol}<span className="text-nexus-subtext text-xs">/{item.type === 'crypto' ? 'USDT' : 'USD'}</span></div>
-                <div className="text-xs text-nexus-subtext">{item.name}</div>
-            </div>
-        </div>
-        <div className="text-right flex items-center gap-4">
-            <div className="text-right">
-                <div className="text-nexus-text font-medium text-sm font-mono-numbers">
-                    {item.price < 1 ? item.price.toFixed(4) : item.price.toFixed(2)}
+const MarketItem = ({ item, onClick }) => {
+    if (!item || typeof item.price !== 'number') return null;
+
+    return (
+        <div onClick={() => onClick(item)} className="flex justify-between items-center py-4 border-b border-nexus-border last:border-0 cursor-pointer hover:bg-white/5 transition-colors px-2">
+            <div className="flex items-center gap-3">
+                <Star size={16} className="text-nexus-subtext hover:text-nexus-yellow transition-colors" />
+                <div>
+                    <div className="font-bold text-nexus-text text-sm">{item.symbol}<span className="text-nexus-subtext text-xs">/{item.type === 'crypto' ? 'USDT' : 'USD'}</span></div>
+                    <div className="text-xs text-nexus-subtext">{item.name}</div>
                 </div>
-                <div className="text-nexus-subtext text-xs">≈ ${item.price.toFixed(2)}</div>
             </div>
-            <div className={`w-20 py-2 rounded text-center text-xs font-bold text-white ${item.change >= 0 ? 'bg-nexus-green' : 'bg-nexus-red'}`}>
-                {item.change >= 0 ? '+' : ''}{item.change?.toFixed(2)}%
+            <div className="text-right flex items-center gap-4">
+                <div className="text-right">
+                    <div className="text-nexus-text font-medium text-sm font-mono-numbers">
+                        {item.price < 1 ? item.price.toFixed(4) : item.price.toFixed(2)}
+                    </div>
+                    <div className="text-nexus-subtext text-xs">≈ ${item.price.toFixed(2)}</div>
+                </div>
+                <div className={`w-20 py-2 rounded text-center text-xs font-bold text-white ${item.change >= 0 ? 'bg-nexus-green' : 'bg-nexus-red'}`}>
+                    {item.change >= 0 ? '+' : ''}{item.change?.toFixed(2)}%
+                </div>
             </div>
         </div>
-    </div>
-);
+    );
+};
 
 export const MarketsPage = () => {
     const [activeTab, setActiveTab] = useState('crypto');
