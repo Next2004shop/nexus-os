@@ -209,6 +209,31 @@ export const AIBotPage = () => {
 
                 {/* CENTER/RIGHT: AI DASHBOARD */}
                 <div className="lg:col-span-2 space-y-6">
+                    {/* SERVER AGENT STATUS */}
+                    <div className="bg-nexus-card border border-nexus-border p-6 rounded-2xl relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-4 opacity-10">
+                            <Server size={100} className="text-nexus-purple" />
+                        </div>
+                        <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                            <Server size={20} className="text-nexus-purple" />
+                            Nexus Host Agent
+                        </h2>
+                        <div className="grid grid-cols-3 gap-4">
+                            <div className="bg-nexus-black/50 p-3 rounded-xl border border-white/5">
+                                <div className="text-xs text-nexus-subtext uppercase font-bold">Host Status</div>
+                                <div className="text-xl font-mono font-bold text-nexus-green">ONLINE</div>
+                            </div>
+                            <div className="bg-nexus-black/50 p-3 rounded-xl border border-white/5">
+                                <div className="text-xs text-nexus-subtext uppercase font-bold">Memory Load</div>
+                                <div className="text-xl font-mono font-bold text-nexus-blue">OPTIMAL</div>
+                            </div>
+                            <div className="bg-nexus-black/50 p-3 rounded-xl border border-white/5">
+                                <div className="text-xs text-nexus-subtext uppercase font-bold">Uptime</div>
+                                <div className="text-xl font-mono font-bold text-white">99.9%</div>
+                            </div>
+                        </div>
+                    </div>
+
                     {/* ENGINEERING AGENT STATUS */}
                     <SystemStatus />
 
