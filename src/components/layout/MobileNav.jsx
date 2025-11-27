@@ -1,12 +1,12 @@
 import React from 'react';
-import { Home, Terminal, Wallet, Globe, Shield, Layers } from 'lucide-react';
+import { Home, Terminal, Wallet, Globe, Shield, Layers, Bot } from 'lucide-react';
 
 export const MobileNav = ({ activeTab, onTabChange }) => {
     const navItems = [
         { id: 'home', icon: Home, label: 'Home' },
         { id: 'stocks', icon: Globe, label: 'Stocks' },
+        { id: 'ai-bot', icon: Bot, label: 'AI Core' }, // New Central AI Button
         { id: 'trade', icon: Terminal, label: 'Trade' },
-        { id: 'commodities', icon: Layers, label: 'Gold/Oil' },
         { id: 'wallet', icon: Wallet, label: 'Wallet' }
     ];
 

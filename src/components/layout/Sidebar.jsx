@@ -1,10 +1,11 @@
 import React from 'react';
-import { Terminal, Wallet, Server, PieChart, Globe, Shield, Home } from 'lucide-react';
+import { Terminal, Wallet, Server, PieChart, Globe, Shield, Home, Bot } from 'lucide-react';
 import logo from '../../assets/logo.png';
 
 export const Sidebar = ({ activeTab, onTabChange }) => {
     const navItems = [
         { id: 'home', icon: Home },
+        { id: 'ai-bot', icon: Bot }, // AI Core
         { id: 'trade', icon: Terminal },
         { id: 'wallet', icon: Wallet },
         { id: 'hedge', icon: Globe },

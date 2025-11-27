@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Bot, Zap, Link, Shield, Activity, TrendingUp, Server, CheckCircle, AlertCircle, ArrowUpRight, ArrowDownRight, MessageSquare, User, Send, Loader } from 'lucide-react';
 import { aiService } from '../services/aiService';
+import { SystemStatus } from '../components/ai/SystemStatus';
 
 export const AIBotPage = () => {
     const [connected, setConnected] = useState(false);
@@ -208,6 +209,9 @@ export const AIBotPage = () => {
 
                 {/* CENTER/RIGHT: AI DASHBOARD */}
                 <div className="lg:col-span-2 space-y-6">
+                    {/* ENGINEERING AGENT STATUS */}
+                    <SystemStatus />
+
                     {/* LEARNING VISUALIZATION */}
                     <div className="bg-nexus-card border border-nexus-border p-6 rounded-2xl relative overflow-hidden">
                         <div className="absolute top-0 right-0 p-4">
@@ -215,7 +219,7 @@ export const AIBotPage = () => {
                         </div>
                         <h2 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
                             <Zap size={20} className="text-nexus-yellow" />
-                            Neural Network Status
+                            Master Agent (The Commander)
                         </h2>
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">

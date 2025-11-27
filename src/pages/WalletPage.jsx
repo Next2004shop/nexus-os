@@ -58,6 +58,23 @@ export const WalletPage = () => {
                             <Send size={16} /> Withdraw
                         </button>
                     </div>
+
+                    {/* FINANCE AGENT: SMART REINVEST */}
+                    <div className="mt-4 bg-black/20 p-3 rounded-xl border border-white/10 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-full bg-nexus-gold/20 flex items-center justify-center text-nexus-gold">
+                                <RefreshCw size={14} className="animate-spin-slow" />
+                            </div>
+                            <div>
+                                <div className="text-white font-bold text-xs">Finance Agent</div>
+                                <div className="text-[10px] text-nexus-subtext">Smart Reinvest (> $500/wk)</div>
+                            </div>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" className="sr-only peer" defaultChecked />
+                            <div className="w-9 h-5 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-nexus-gold"></div>
+                        </label>
+                    </div>
                 </div>
             </div>
 
