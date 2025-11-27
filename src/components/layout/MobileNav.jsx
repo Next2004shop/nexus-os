@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Terminal, Wallet, Globe, Shield, Layers, Bot } from 'lucide-react';
+import { Home, Terminal, Wallet, Globe, Shield, Layers, Bot, Download } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 export const MobileNav = () => {
@@ -11,6 +11,7 @@ export const MobileNav = () => {
         { id: 'stocks', path: '/stocks', icon: Globe, label: 'Stocks' },
         { id: 'ai-bot', path: '/ai-bot', icon: Bot, label: 'AI Core' },
         { id: 'wallet', path: '/wallet', icon: Wallet, label: 'Wallet' },
+        { id: 'downloads', path: '/downloads', icon: Download, label: 'Get App' },
         { id: 'profile', path: '/profile', icon: Layers, label: 'Menu' }
     ];
 

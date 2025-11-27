@@ -18,6 +18,8 @@ import { SecurityPage } from './pages/SecurityPage';
 import { InvestmentsPage } from './pages/InvestmentsPage';
 import { TaxPage } from './pages/TaxPage';
 
+import { NesaAgent } from './components/agents/NesaAgent';
+
 // MAINTENANCE SCREEN COMPONENT
 const MaintenanceScreen = () => (
    <div className="fixed inset-0 z-[9999] bg-nexus-black flex flex-col items-center justify-center p-6 text-center animate-fadeIn">
@@ -67,6 +69,7 @@ export default function App() {
    return (
       <AuthProvider>
          <ToastProvider>
+            <NesaAgent />
             <Router>
                <div className="flex h-screen bg-nexus-black text-white overflow-hidden font-sans selection:bg-nexus-green/30">
                   {/* DESKTOP SIDEBAR (Hidden on Mobile) */}
@@ -90,6 +93,7 @@ export default function App() {
                            <Route path="/security" element={<SecurityPage />} />
                            <Route path="/investments" element={<InvestmentsPage />} />
                            <Route path="/tax" element={<TaxPage />} />
+                           <Route path="/downloads" element={<DownloadPage />} />
                         </Routes>
                      </div>
 

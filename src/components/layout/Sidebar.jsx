@@ -1,5 +1,5 @@
 import React from 'react';
-import { Terminal, Wallet, Server, PieChart, Globe, Shield, Home, Bot } from 'lucide-react';
+import { Terminal, Wallet, Server, PieChart, Globe, Shield, Home, Bot, Download } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import logo from '../../assets/logo.png';
 
@@ -16,7 +16,8 @@ export const Sidebar = () => {
         { id: 'banking', path: '/banking', icon: Server }, // Using Server icon for Banking for now
         { id: 'security', path: '/security', icon: Shield },
         { id: 'investments', path: '/investments', icon: PieChart },
-        { id: 'tax', path: '/tax', icon: Server } // Reuse icon or find better
+        { id: 'tax', path: '/tax', icon: Server },
+        { id: 'downloads', path: '/downloads', icon: Download }
     ];
 
     return (
