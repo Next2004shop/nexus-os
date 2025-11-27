@@ -1,31 +1,22 @@
-
-import React, { useState } from 'react';
-import { ModernLayout } from './components/layout/ModernLayout';
-import HomePage from './pages/HomePage';
-import TradePage from './pages/TradePage';
-import { WalletPage } from './pages/WalletPage';
-import { ProfilePage } from './pages/ProfilePage';
-import { AuthPage } from './pages/AuthPage';
-import BankingPage from './pages/BankingPage';
-import { HedgeFundPage } from './pages/HedgeFundPage';
-import { AIBotPage } from './pages/AIBotPage';
-import { NotificationsPage } from './pages/NotificationsPage';
-import { useAuth } from './context/AuthContext';
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Zap } from 'lucide-react';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
+import Sidebar from './components/layout/Sidebar';
+import MobileNav from './components/layout/MobileNav';
+import { AuthPage } from './pages/AuthPage';
+import TradePage from './pages/TradePage';
 import { StocksPage } from './pages/StocksPage';
 import { CommoditiesPage } from './pages/CommoditiesPage';
-import { NewsFeed } from './components/home/NewsFeed';
+import AIBotPage from './pages/AIBotPage';
+import { WalletPage } from './pages/WalletPage';
+import BankingPage from './pages/BankingPage';
+import { NotificationsPage } from './pages/NotificationsPage';
+import { ProfilePage } from './pages/ProfilePage';
 import { SecurityPage } from './pages/SecurityPage';
-import { BrokersPage } from './pages/BrokersPage';
-import { HelpCenterPage } from './pages/HelpCenterPage';
-import ErrorBoundary from './components/ErrorBoundary';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'; // Added for routing
-import { Zap } from 'lucide-react'; // Assuming lucide-react for Zap icon
-import Sidebar from './components/layout/Sidebar'; // Assuming these components exist
-import MobileNav from './components/layout/MobileNav'; // Assuming these components exist
-import { InvestmentsPage } from './pages/InvestmentsPage'; // Assuming these pages exist
-import { TaxPage } from './pages/TaxPage'; // Assuming these pages exist
-
+import { InvestmentsPage } from './pages/InvestmentsPage';
+import { TaxPage } from './pages/TaxPage';
 
 // MAINTENANCE SCREEN COMPONENT
 const MaintenanceScreen = () => (
@@ -45,7 +36,7 @@ const MaintenanceScreen = () => (
    </div>
 );
 
-export default function App() { // Renamed NexusAI to App
+export default function App() {
    const [maintenance, setMaintenance] = useState(false);
 
    // POLL SERVER STATUS (5s Updates)
@@ -63,4 +54,53 @@ export default function App() { // Renamed NexusAI to App
             // If server is down/restarting, assume maintenance or offline
             console.log("Server unreachable, potential update...");
          }
-      }
+      };
+
+      const interval = setInterval(checkStatus, 5000);
+      return () => clearInterval(interval);
+   }, []);
+
+   if (maintenance) {
+      return <MaintenanceScreen />;
+   }
+
+   return (
+      <AuthProvider>
+         <ToastProvider>
+            <Router>
+               <div className="flex h-screen bg-nexus-black text-white overflow-hidden font-sans selection:bg-nexus-green/30">
+                  {/* DESKTOP SIDEBAR (Hidden on Mobile) */}
+                  <div className="hidden md:block w-64 flex-shrink-0 border-r border-white/5">
+                     <Sidebar />
+                  </div>
+
+                  {/* MAIN CONTENT AREA */}
+                  <div className="flex-1 flex flex-col h-full relative overflow-hidden">
+                     <div className="flex-1 overflow-y-auto scrollbar-hide pb-20 md:pb-0">
+                        <Routes>
+                           <Route path="/" element={<Navigate to="/trade" replace />} />
+                           <Route path="/trade" element={<TradePage />} />
+                           <Route path="/stocks" element={<StocksPage />} />
+                           <Route path="/commodities" element={<CommoditiesPage />} />
+                           <Route path="/ai-bot" element={<AIBotPage />} />
+                           <Route path="/wallet" element={<WalletPage />} />
+                           <Route path="/banking" element={<BankingPage />} />
+                           <Route path="/notifications" element={<NotificationsPage />} />
+                           <Route path="/profile" element={<ProfilePage />} />
+                           <Route path="/security" element={<SecurityPage />} />
+                           <Route path="/investments" element={<InvestmentsPage />} />
+                           <Route path="/tax" element={<TaxPage />} />
+                        </Routes>
+                     </div>
+
+                     {/* MOBILE NAVIGATION (Hidden on Desktop) */}
+                     <div className="md:hidden absolute bottom-0 left-0 right-0 z-50">
+                        <MobileNav />
+                     </div>
+                  </div>
+               </div>
+            </Router>
+         </ToastProvider>
+      </AuthProvider>
+   );
+}
