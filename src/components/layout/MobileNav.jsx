@@ -1,13 +1,13 @@
 import React from 'react';
-import { Home, Terminal, Wallet, Globe, Shield } from 'lucide-react';
+import { Home, Terminal, Wallet, Globe, Shield, Layers } from 'lucide-react';
 
 export const MobileNav = ({ activeTab, onTabChange }) => {
     const navItems = [
         { id: 'home', icon: Home, label: 'Home' },
+        { id: 'stocks', icon: Globe, label: 'Stocks' },
         { id: 'trade', icon: Terminal, label: 'Trade' },
-        { id: 'wallet', icon: Wallet, label: 'Wallet' },
-        { id: 'hedge', icon: Globe, label: 'Hedge' },
-        { id: 'security', icon: Shield, label: 'Security' }
+        { id: 'commodities', icon: Layers, label: 'Gold/Oil' },
+        { id: 'wallet', icon: Wallet, label: 'Wallet' }
     ];
 
     return (
@@ -18,8 +18,8 @@ export const MobileNav = ({ activeTab, onTabChange }) => {
                         key={item.id}
                         onClick={() => onTabChange(item.id)}
                         className={`flex flex-col items-center gap-1 p-2 rounded-lg transition-colors ${activeTab === item.id
-                                ? 'text-nexus-gold'
-                                : 'text-zinc-500 hover:text-zinc-300'
+                            ? 'text-nexus-gold'
+                            : 'text-zinc-500 hover:text-zinc-300'
                             }`}
                     >
                         <item.icon size={20} />

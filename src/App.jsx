@@ -29,15 +29,20 @@ export default function NexusAI() {
 
    const renderContent = () => {
       switch (activeTab) {
-         case 'home': return <HomePage onNavigate={setActiveTab} />;
+         case 'home': return <HomePage />;
          case 'trade': return <TradePage />;
+         case 'stocks': return <StocksPage />;
+         case 'commodities': return <CommoditiesPage />;
          case 'wallet': return <WalletPage />;
-         case 'banking': return <BankingPage />;
-         case 'investments': return <HedgeFundPage />;
-         case 'aibot': return <AIBotPage />;
+         case 'hedge': return <HedgeFundPage />;
+         case 'news': return <NewsFeed />;
+         case 'ai-bot': return <AIBotPage />;
          case 'notifications': return <NotificationsPage />;
          case 'profile': return <ProfilePage />;
-         default: return <HomePage onNavigate={setActiveTab} />;
+         case 'security': return <SecurityPage />;
+         case 'brokers': return <BrokersPage />;
+         case 'help': return <HelpCenter />;
+         default: return <HomePage />;
       }
    };
 
