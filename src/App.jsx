@@ -3,8 +3,8 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { Zap } from 'lucide-react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
-import Sidebar from './components/layout/Sidebar';
-import MobileNav from './components/layout/MobileNav';
+import { Sidebar } from './components/layout/Sidebar';
+import { MobileNav } from './components/layout/MobileNav';
 import { AuthPage } from './pages/AuthPage';
 import TradePage from './pages/TradePage';
 import { StocksPage } from './pages/StocksPage';

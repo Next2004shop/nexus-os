@@ -1,13 +1,17 @@
 import React from 'react';
 import { Home, Terminal, Wallet, Globe, Shield, Layers, Bot } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
 
-export const MobileNav = ({ activeTab, onTabChange }) => {
+export const MobileNav = () => {
+    const location = useLocation();
+    const navigate = useNavigate();
+
     const navItems = [
-        { id: 'home', icon: Home, label: 'Home' },
-        { id: 'stocks', icon: Globe, label: 'Stocks' },
-        { id: 'ai-bot', icon: Bot, label: 'AI Core' }, // New Central AI Button
-        { id: 'trade', icon: Terminal, label: 'Trade' },
-        { id: 'wallet', icon: Wallet, label: 'Wallet' }
+        { id: 'trade', path: '/trade', icon: Terminal, label: 'Trade' },
+        { id: 'stocks', path: '/stocks', icon: Globe, label: 'Stocks' },
+        { id: 'ai-bot', path: '/ai-bot', icon: Bot, label: 'AI Core' },
+        { id: 'wallet', path: '/wallet', icon: Wallet, label: 'Wallet' },
+        { id: 'profile', path: '/profile', icon: Layers, label: 'Menu' }
     ];
 
     return (
@@ -16,8 +20,8 @@ export const MobileNav = ({ activeTab, onTabChange }) => {
                 {navItems.map(item => (
                     <button
                         key={item.id}
-                        onClick={() => onTabChange(item.id)}
-                        className={`flex flex-col items-center gap-1 p-2 rounded-lg transition-colors ${activeTab === item.id
+                        onClick={() => navigate(item.path)}
+                        className={`flex flex-col items-center gap-1 p-2 rounded-lg transition-colors ${location.pathname === item.path
                             ? 'text-nexus-gold'
                             : 'text-zinc-500 hover:text-zinc-300'
                             }`}
@@ -26,7 +30,7 @@ export const MobileNav = ({ activeTab, onTabChange }) => {
                         <span className="text-[10px] font-medium uppercase tracking-wide">
                             {item.label}
                         </span>
-                        {activeTab === item.id && (
+                        {location.pathname === item.path && (
                             <div className="absolute bottom-0 w-8 h-0.5 bg-nexus-gold rounded-t-full shadow-[0_0_8px_rgba(252,213,53,0.5)]"></div>
                         )}
                     </button>

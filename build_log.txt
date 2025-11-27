@@ -4,19 +4,30 @@
 
 [36mvite v7.2.2 [32mbuilding client environment for production...[36m[39m
 transforming...
-[32mΓ£ô[39m 2 modules transformed.
-Γ£ù Build failed in 2.27s
+[plugin vite:esbuild] src/pages/WalletPage.jsx: The character ">" is not valid inside a JSX element
+68 |                              <div>
+69 |                                  <div className="text-white font-bold text-xs">Finance Agent</div>
+70 |                                  <div className="text-[10px] text-nexus-subtext">Smart Reinvest (> $500/wk)</div>
+   |                                                                                                  ^
+71 |                              </div>
+72 |                          </div>
+
+[32mΓ£ô[39m 1797 modules transformed.
+Γ£ù Build failed in 10.15s
 error during build:
-[vite-plugin-pwa:build] [plugin vite-plugin-pwa:build] There was an error during the build:
-  [vite]: Rollup failed to resolve import "react-router-dom" from "C:/Users/Danteh/nexus-ai/src/main.jsx".
-This is most likely unintended because it can break your application at runtime.
-If you do want to externalize this module explicitly add it to
-`build.rollupOptions.external`
+[vite-plugin-pwa:build] There was an error during the build:
+  src/App.jsx (6:7): "default" is not exported by "src/components/layout/Sidebar.jsx", imported by "src/App.jsx".
 Additionally, handling the error in the 'buildEnd' hook caused the following error:
-  [vite]: Rollup failed to resolve import "react-router-dom" from "C:/Users/Danteh/nexus-ai/src/main.jsx".
-This is most likely unintended because it can break your application at runtime.
-If you do want to externalize this module explicitly add it to
-`build.rollupOptions.external`
+  src/App.jsx (6:7): "default" is not exported by "src/components/layout/Sidebar.jsx", imported by "src/App.jsx".
+file: C:/Users/Danteh/nexus-ai/src/App.jsx:6:7
+
+4: import { AuthProvider, useAuth } from './context/AuthContext';
+5: import { ToastProvider } from './context/ToastContext';
+6: import Sidebar from './components/layout/Sidebar';
+          ^
+7: import MobileNav from './components/layout/MobileNav';
+8: import { AuthPage } from './pages/AuthPage';
+
     at getRollupError (file:///C:/Users/Danteh/nexus-ai/node_modules/rollup/dist/es/shared/parseAst.js:401:41)
     at file:///C:/Users/Danteh/nexus-ai/node_modules/rollup/dist/es/shared/node-entry.js:23333:39
     at async catchUnfinishedHookActions (file:///C:/Users/Danteh/nexus-ai/node_modules/rollup/dist/es/shared/node-entry.js:22791:16)
