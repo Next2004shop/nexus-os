@@ -1,0 +1,5 @@
+MetaTrader5
+flask
+flask-cors
+flask-httpauth
+werkzeug

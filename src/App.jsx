@@ -12,6 +12,12 @@ import { AIBotPage } from './pages/AIBotPage';
 import { NotificationsPage } from './pages/NotificationsPage';
 import { useAuth } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
+import { StocksPage } from './pages/StocksPage';
+import { CommoditiesPage } from './pages/CommoditiesPage';
+import { NewsFeed } from './components/home/NewsFeed';
+import { SecurityPage } from './pages/SecurityPage';
+import { BrokersPage } from './pages/BrokersPage';
+import { HelpCenterPage } from './pages/HelpCenterPage';
 import ErrorBoundary from './components/ErrorBoundary';
 
 
@@ -42,7 +48,7 @@ export default function NexusAI() {
          case 'profile': return <ProfilePage />;
          case 'security': return <SecurityPage />;
          case 'brokers': return <BrokersPage />;
-         case 'help': return <HelpCenter />;
+         case 'help': return <HelpCenterPage />;
          default: return <HomePage />;
       }
    };
