@@ -6,6 +6,7 @@ import { userRepository } from '../services/userRepository';
 import { useAuth } from '../context/AuthContext';
 import { MarketSelector } from '../components/trading/MarketSelector';
 import { ChartContainer } from '../components/trading/ChartContainer';
+import { bridgeService } from '../services/bridgeService';
 
 const OrderBookRow = ({ price, amount, total, type }) => (
     <div className="grid grid-cols-3 text-xs py-1 hover:bg-white/5 cursor-pointer font-mono">
@@ -106,6 +107,27 @@ const TradePage = () => {
         showToast("AI Strategy Applied to Order Form", "success");
     };
 
+    const [isLiveMode, setIsLiveMode] = useState(false); // Toggle for Simulation vs Real Trading
+    const [bridgeStatus, setBridgeStatus] = useState('OFFLINE');
+
+    // Check Bridge Status periodically if in Live Mode
+    useEffect(() => {
+        let interval;
+        if (isLiveMode) {
+            const checkStatus = async () => {
+                const status = await bridgeService.getStatus();
+                setBridgeStatus(status.status);
+                if (status.status === 'ONLINE') {
+                    // Update Wallet from MT5
+                    setWallet(prev => ({ ...prev, usdt: status.balance, equity: status.equity }));
+                }
+            };
+            checkStatus();
+            interval = setInterval(checkStatus, 5000);
+        }
+        return () => clearInterval(interval);
+    }, [isLiveMode]);
+
     const handleTrade = async () => {
         if (!amount || isNaN(amount) || parseFloat(amount) <= 0) {
             showToast('Please enter a valid amount', 'error');
@@ -119,32 +141,53 @@ const TradePage = () => {
         try {
             setLoading(true);
 
-            if (orderType === 'limit') {
-                if (!limitPrice || parseFloat(limitPrice) <= 0) {
-                    throw new Error("Invalid Limit Price");
+            if (isLiveMode) {
+                // REAL TRADING VIA BRIDGE
+                if (bridgeStatus !== 'ONLINE') {
+                    throw new Error("Bridge Disconnected. Please run nexus_bridge.py");
                 }
-                await userRepository.placeLimitOrder(
-                    currentUser.uid,
-                    side,
-                    selectedAsset.symbol.toLowerCase(),
-                    parseFloat(amount),
-                    parseFloat(limitPrice)
-                );
-                showToast(`Limit ${side === 'buy' ? 'Buy' : 'Sell'} Order Placed at $${limitPrice}`, 'success');
-            } else {
-                // Market Order
-                await userRepository.executeTrade(
-                    currentUser.uid,
-                    side,
-                    selectedAsset.symbol.toLowerCase(),
-                    parseFloat(amount),
-                    price
-                );
-                showToast(`${side === 'buy' ? 'Buy' : 'Sell'} Order Placed Successfully!`, 'success');
 
-                // Refresh Wallet only on Market Order execution
-                const updatedWallet = await userRepository.getWallet(currentUser.uid);
-                setWallet(updatedWallet);
+                const result = await bridgeService.executeTrade(
+                    selectedAsset.symbol,
+                    side,
+                    parseFloat(amount) // In MT5, amount is Lots
+                );
+
+                if (result.status === 'EXECUTED') {
+                    showToast(`LIVE ORDER EXECUTED: #${result.ticket}`, 'success');
+                } else {
+                    throw new Error(result.error || "Trade Failed");
+                }
+
+            } else {
+                // SIMULATION MODE
+                if (orderType === 'limit') {
+                    if (!limitPrice || parseFloat(limitPrice) <= 0) {
+                        throw new Error("Invalid Limit Price");
+                    }
+                    await userRepository.placeLimitOrder(
+                        currentUser.uid,
+                        side,
+                        selectedAsset.symbol.toLowerCase(),
+                        parseFloat(amount),
+                        parseFloat(limitPrice)
+                    );
+                    showToast(`Limit ${side === 'buy' ? 'Buy' : 'Sell'} Order Placed at $${limitPrice}`, 'success');
+                } else {
+                    // Market Order
+                    await userRepository.executeTrade(
+                        currentUser.uid,
+                        side,
+                        selectedAsset.symbol.toLowerCase(),
+                        parseFloat(amount),
+                        price
+                    );
+                    showToast(`${side === 'buy' ? 'Buy' : 'Sell'} Order Placed Successfully!`, 'success');
+
+                    // Refresh Wallet only on Market Order execution
+                    const updatedWallet = await userRepository.getWallet(currentUser.uid);
+                    setWallet(updatedWallet);
+                }
             }
 
             setAmount('');
@@ -311,6 +354,24 @@ const TradePage = () => {
                             className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1 ${strategyMode === 'ai' ? 'bg-nexus-blue/20 text-nexus-blue shadow-sm' : 'text-nexus-subtext'}`}
                         >
                             <Bot size={12} /> AI Auto
+                        </button>
+                    </div>
+
+                    {/* LIVE MODE TOGGLE */}
+                    <div className="flex items-center justify-between mb-4 px-1">
+                        <span className="text-xs font-bold text-nexus-subtext">Execution Mode</span>
+                        <button
+                            onClick={() => setIsLiveMode(!isLiveMode)}
+                            className={`flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-bold border transition-all ${isLiveMode ? 'bg-nexus-green/10 text-nexus-green border-nexus-green' : 'bg-nexus-card text-nexus-subtext border-nexus-border'}`}
+                        >
+                            {isLiveMode ? (
+                                <>
+                                    <span className="w-1.5 h-1.5 rounded-full bg-nexus-green animate-pulse"></span>
+                                    LIVE MT5 ({bridgeStatus})
+                                </>
+                            ) : (
+                                'SIMULATION'
+                            )}
                         </button>
                     </div>
 

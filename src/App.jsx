@@ -34,6 +34,7 @@ export default function NexusAI() {
          case 'stocks': return <StocksPage />;
          case 'commodities': return <CommoditiesPage />;
          case 'wallet': return <WalletPage />;
+         case 'banking': return <BankingPage />;
          case 'hedge': return <HedgeFundPage />;
          case 'news': return <NewsFeed />;
          case 'ai-bot': return <AIBotPage />;

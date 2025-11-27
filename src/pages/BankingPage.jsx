@@ -65,27 +65,43 @@ const BankingPage = () => {
 
                 {/* ACTIONS */}
                 <div className="space-y-4">
-                    <div className="bg-nexus-card border border-nexus-border p-6 rounded-xl hover:border-nexus-blue/50 transition-all cursor-pointer group">
+                    {/* MPESA */}
+                    <div className="bg-nexus-card border border-nexus-border p-6 rounded-xl hover:border-nexus-green/50 transition-all cursor-pointer group" onClick={() => showToast("MPESA Paybill: 247247 (Enter Account No)", "info")}>
                         <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-nexus-blue/10 rounded-full flex items-center justify-center text-nexus-blue group-hover:scale-110 transition-transform">
-                                <ArrowRight size={24} className="-rotate-45" />
+                            <div className="w-12 h-12 bg-green-500/10 rounded-full flex items-center justify-center text-green-500 group-hover:scale-110 transition-transform">
+                                <Building size={24} />
                             </div>
                             <div className="flex-1">
-                                <h3 className="text-white font-bold">Wire Transfer</h3>
-                                <p className="text-nexus-subtext text-xs">Send funds via SWIFT/SEPA</p>
+                                <h3 className="text-white font-bold">MPESA Mobile Money</h3>
+                                <p className="text-nexus-subtext text-xs">Instant Deposit via Paybill 247247</p>
                             </div>
                             <ArrowRight size={20} className="text-nexus-subtext group-hover:text-white group-hover:translate-x-1 transition-all" />
                         </div>
                     </div>
 
-                    <div className="bg-nexus-card border border-nexus-border p-6 rounded-xl hover:border-nexus-green/50 transition-all cursor-pointer group">
+                    {/* PAYPAL */}
+                    <div className="bg-nexus-card border border-nexus-border p-6 rounded-xl hover:border-blue-500/50 transition-all cursor-pointer group" onClick={() => showToast("Redirecting to PayPal Secure Gateway...", "info")}>
                         <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-nexus-green/10 rounded-full flex items-center justify-center text-nexus-green group-hover:scale-110 transition-transform">
-                                <Building size={24} />
+                            <div className="w-12 h-12 bg-blue-500/10 rounded-full flex items-center justify-center text-blue-500 group-hover:scale-110 transition-transform">
+                                <Globe size={24} />
                             </div>
                             <div className="flex-1">
-                                <h3 className="text-white font-bold">Open Sub-Account</h3>
-                                <p className="text-nexus-subtext text-xs">Create new currency holdings (EUR, GBP, JPY)</p>
+                                <h3 className="text-white font-bold">PayPal</h3>
+                                <p className="text-nexus-subtext text-xs">Link account for international transfers</p>
+                            </div>
+                            <ArrowRight size={20} className="text-nexus-subtext group-hover:text-white group-hover:translate-x-1 transition-all" />
+                        </div>
+                    </div>
+
+                    {/* BINANCE / CRYPTO */}
+                    <div className="bg-nexus-card border border-nexus-border p-6 rounded-xl hover:border-yellow-500/50 transition-all cursor-pointer group" onClick={() => showToast("Binance Connect: Address Copied", "success")}>
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 bg-yellow-500/10 rounded-full flex items-center justify-center text-yellow-500 group-hover:scale-110 transition-transform">
+                                <CreditCard size={24} />
+                            </div>
+                            <div className="flex-1">
+                                <h3 className="text-white font-bold">Binance / Crypto</h3>
+                                <p className="text-nexus-subtext text-xs">Deposit USDT, BTC, ETH (TRC20/ERC20)</p>
                             </div>
                             <ArrowRight size={20} className="text-nexus-subtext group-hover:text-white group-hover:translate-x-1 transition-all" />
                         </div>
