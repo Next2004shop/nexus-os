@@ -7,6 +7,34 @@ export const FuturesPage = () => {
     const [price, setPrice] = useState('64230.10');
     const [amount, setAmount] = useState('');
 
+    // MOCK POSITIONS STATE
+    const [positions, setPositions] = useState([
+        { symbol: 'BTCUSDT', side: 'Long', leverage: 20, size: 12450.00, entry: 63850.20, mark: 64230.10, liq: 61200.00, pnl: 125.40, pnlPercent: 12.5 }
+    ]);
+
+    const handleTrade = () => {
+        if (!amount || isNaN(amount) || parseFloat(amount) <= 0) {
+            alert("Please enter a valid amount.");
+            return;
+        }
+
+        const newPosition = {
+            symbol: 'BTCUSDT',
+            side: side === 'buy' ? 'Long' : 'Short',
+            leverage: leverage,
+            size: parseFloat(amount) * parseFloat(price),
+            entry: parseFloat(price),
+            mark: parseFloat(price),
+            liq: side === 'buy' ? parseFloat(price) * 0.95 : parseFloat(price) * 1.05,
+            pnl: 0.00,
+            pnlPercent: 0.00
+        };
+
+        setPositions([newPosition, ...positions]);
+        setAmount('');
+        alert(`${side === 'buy' ? 'Buy' : 'Sell'} Order Placed Successfully!`);
+    };
+
     return (
         <div className="bg-nexus-black min-h-screen pb-20">
             {/* HEADER */}
@@ -125,7 +153,10 @@ export const FuturesPage = () => {
                             <span className="text-nexus-text">0.42 BTC</span>
                         </div>
 
-                        <button className={`w-full py-3 rounded-lg font-bold text-white mt-4 ${side === 'buy' ? 'bg-nexus-green' : 'bg-nexus-red'}`}>
+                        <button
+                            onClick={handleTrade}
+                            className={`w-full py-3 rounded-lg font-bold text-white mt-4 ${side === 'buy' ? 'bg-nexus-green' : 'bg-nexus-red'}`}
+                        >
                             {side === 'buy' ? 'Buy / Long' : 'Sell / Short'}
                         </button>
                     </div>
@@ -135,34 +166,36 @@ export const FuturesPage = () => {
             {/* POSITIONS */}
             <div className="mt-4 px-4">
                 <div className="flex items-center gap-4 mb-4 border-b border-nexus-border pb-2">
-                    <h3 className="font-bold text-nexus-text text-sm border-b-2 border-nexus-yellow pb-2 -mb-2.5">Positions (1)</h3>
+                    <h3 className="font-bold text-nexus-text text-sm border-b-2 border-nexus-yellow pb-2 -mb-2.5">Positions ({positions.length})</h3>
                     <h3 className="font-bold text-nexus-subtext text-sm">Orders (0)</h3>
                 </div>
 
-                <div className="bg-nexus-card p-4 rounded-lg border-l-4 border-nexus-green">
-                    <div className="flex justify-between items-start mb-2">
-                        <div>
-                            <div className="font-bold text-nexus-text text-lg flex items-center gap-2">
-                                BTCUSDT <span className="text-xs bg-nexus-border px-1.5 py-0.5 rounded text-nexus-green">Long</span> <span className="text-xs text-nexus-subtext">20x</span>
+                {positions.map((pos, index) => (
+                    <div key={index} className="bg-nexus-card p-4 rounded-lg border-l-4 border-nexus-green mb-2">
+                        <div className="flex justify-between items-start mb-2">
+                            <div>
+                                <div className="font-bold text-nexus-text text-lg flex items-center gap-2">
+                                    {pos.symbol} <span className={`text-xs bg-nexus-border px-1.5 py-0.5 rounded ${pos.side === 'Long' ? 'text-nexus-green' : 'text-nexus-red'}`}>{pos.side}</span> <span className="text-xs text-nexus-subtext">{pos.leverage}x</span>
+                                </div>
+                            </div>
+                            <div className="text-right">
+                                <div className={`${pos.pnl >= 0 ? 'text-nexus-green' : 'text-nexus-red'} font-bold`}>{pos.pnl >= 0 ? '+' : ''}{pos.pnl.toFixed(2)}</div>
+                                <div className={`${pos.pnlPercent >= 0 ? 'text-nexus-green' : 'text-nexus-red'} text-xs`}>{pos.pnlPercent >= 0 ? '+' : ''}{pos.pnlPercent.toFixed(2)}%</div>
                             </div>
                         </div>
-                        <div className="text-right">
-                            <div className="text-nexus-green font-bold">+125.40</div>
-                            <div className="text-nexus-green text-xs">+12.5%</div>
+                        <div className="grid grid-cols-2 gap-y-2 text-xs">
+                            <div className="text-nexus-subtext">Size (USDT)</div>
+                            <div className="text-right text-nexus-text">{pos.size.toFixed(2)}</div>
+                            <div className="text-nexus-subtext">Entry Price</div>
+                            <div className="text-right text-nexus-text">{pos.entry.toFixed(2)}</div>
+                            <div className="text-nexus-subtext">Mark Price</div>
+                            <div className="text-right text-nexus-text">{pos.mark.toFixed(2)}</div>
+                            <div className="text-nexus-subtext">Liq. Price</div>
+                            <div className="text-right text-nexus-yellow">{pos.liq.toFixed(2)}</div>
                         </div>
+                        <button className="w-full mt-3 bg-nexus-border text-nexus-text py-2 rounded font-bold text-xs hover:bg-white/10 transition-colors">Close Position</button>
                     </div>
-                    <div className="grid grid-cols-2 gap-y-2 text-xs">
-                        <div className="text-nexus-subtext">Size (USDT)</div>
-                        <div className="text-right text-nexus-text">12,450.00</div>
-                        <div className="text-nexus-subtext">Entry Price</div>
-                        <div className="text-right text-nexus-text">63,850.20</div>
-                        <div className="text-nexus-subtext">Mark Price</div>
-                        <div className="text-right text-nexus-text">64,230.10</div>
-                        <div className="text-nexus-subtext">Liq. Price</div>
-                        <div className="text-right text-nexus-yellow">61,200.00</div>
-                    </div>
-                    <button className="w-full mt-3 bg-nexus-border text-nexus-text py-2 rounded font-bold text-xs">Close Position</button>
-                </div>
+                ))}
             </div>
         </div>
     );

@@ -38,14 +38,20 @@ const InvestmentsPage = () => {
                         </div>
                         <div className="text-nexus-blue font-bold text-xl mb-1">USDT Vault</div>
                         <p className="text-nexus-subtext text-xs mb-4">Stablecoin Yield Farming</p>
-                        <button className="w-full bg-nexus-blue text-black font-bold py-2 rounded-lg text-sm hover:bg-cyan-400 transition-colors">
+                        <button
+                            onClick={() => alert("USDT Staked Successfully! Earning 12.5% APY.")}
+                            className="w-full bg-nexus-blue text-black font-bold py-2 rounded-lg text-sm hover:bg-cyan-400 transition-colors"
+                        >
                             Stake Now
                         </button>
                     </div>
                     <div className="bg-nexus-card border border-nexus-border p-6 rounded-2xl">
                         <div className="text-white font-bold text-xl mb-1">ETH 2.0</div>
                         <p className="text-nexus-subtext text-xs mb-4">Validator Staking (4.8% APY)</p>
-                        <button className="w-full bg-white/5 text-white font-bold py-2 rounded-lg text-sm hover:bg-white/10 transition-colors">
+                        <button
+                            onClick={() => alert("ETH Staked Successfully! Validator Node Activated.")}
+                            className="w-full bg-white/5 text-white font-bold py-2 rounded-lg text-sm hover:bg-white/10 transition-colors"
+                        >
                             Stake Now
                         </button>
                     </div>

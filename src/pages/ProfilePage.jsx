@@ -90,8 +90,47 @@ const ReferralCard = () => (
     </div>
 );
 
+const SettingsModal = ({ isOpen, onClose, title, children }) => {
+    if (!isOpen) return null;
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
+            <div className="bg-nexus-card border border-nexus-border w-full max-w-md rounded-2xl overflow-hidden shadow-2xl animate-slideUp">
+                <div className="p-4 border-b border-white/10 flex justify-between items-center">
+                    <h3 className="font-bold text-white">{title}</h3>
+                    <button onClick={onClose} className="p-1 hover:bg-white/10 rounded-full transition-colors">
+                        <ChevronRight className="rotate-90" size={20} />
+                    </button>
+                </div>
+                <div className="p-4">
+                    {children}
+                </div>
+            </div>
+        </div>
+    );
+};
+
 export const ProfilePage = () => {
     const { currentUser, logout } = useAuth();
+    const [activeModal, setActiveModal] = useState(null); // 'personal', 'payment', 'language'
+    const [language, setLanguage] = useState('English (US)');
+    const [cards, setCards] = useState([
+        { type: 'Visa', last4: '4242', expiry: '12/25' },
+        { type: 'Mastercard', last4: '8899', expiry: '09/26' }
+    ]);
+
+    const handleSavePersonal = (e) => {
+        e.preventDefault();
+        setActiveModal(null);
+        alert("Personal Information Updated Successfully!");
+    };
+
+    const handleAddCard = (e) => {
+        e.preventDefault();
+        const newCard = { type: 'Visa', last4: Math.floor(1000 + Math.random() * 9000).toString(), expiry: '12/28' };
+        setCards([...cards, newCard]);
+        setActiveModal(null);
+        alert("New Payment Method Added Successfully!");
+    };
 
     return (
         <div className="min-h-screen bg-nexus-black pb-32 overflow-y-auto">
@@ -149,9 +188,9 @@ export const ProfilePage = () => {
                     <div>
                         <h3 className="text-xs font-bold text-nexus-subtext uppercase tracking-wider mb-3 px-2">Account Settings</h3>
                         <div className="bg-nexus-card border border-nexus-border rounded-2xl overflow-hidden">
-                            <ProfileItem icon={User} label="Personal Information" value="KYC Level 2" onClick={() => alert("Personal Info: Edit feature coming soon")} />
-                            <ProfileItem icon={CreditCard} label="Payment Methods" value="2 Linked" onClick={() => alert("Payment Methods: Manage cards feature coming soon")} />
-                            <ProfileItem icon={Globe} label="Language" value="English (US)" onClick={() => alert("Language settings coming soon")} />
+                            <ProfileItem icon={User} label="Personal Information" value="KYC Level 2" onClick={() => setActiveModal('personal')} />
+                            <ProfileItem icon={CreditCard} label="Payment Methods" value={`${cards.length} Linked`} onClick={() => setActiveModal('payment')} />
+                            <ProfileItem icon={Globe} label="Language" value={language} onClick={() => setActiveModal('language')} />
                             <ProfileItem icon={Moon} label="Dark Mode" hasToggle onClick={() => alert("Dark Mode is already active!")} />
                         </div>
                     </div>
@@ -167,8 +206,8 @@ export const ProfilePage = () => {
                     <div>
                         <h3 className="text-xs font-bold text-nexus-subtext uppercase tracking-wider mb-3 px-2">Support</h3>
                         <div className="bg-nexus-card border border-nexus-border rounded-2xl overflow-hidden">
-                            <ProfileItem icon={HelpCircle} label="Help Center" onClick={() => onNavigate('help')} />
-                            <ProfileItem icon={MessageSquare} label="Live Chat" value="Online" onClick={() => onNavigate('help')} />
+                            <ProfileItem icon={HelpCircle} label="Help Center" onClick={() => window.location.href = '/help'} />
+                            <ProfileItem icon={MessageSquare} label="Live Chat" value="Online" onClick={() => window.location.href = '/help'} />
                         </div>
                     </div>
 
@@ -184,6 +223,60 @@ export const ProfilePage = () => {
                     </div>
                 </div>
             </div>
+
+            {/* MODALS */}
+            <SettingsModal isOpen={activeModal === 'personal'} onClose={() => setActiveModal(null)} title="Edit Personal Info">
+                <form onSubmit={handleSavePersonal} className="space-y-4">
+                    <div>
+                        <label className="text-xs text-nexus-subtext block mb-1">Full Name</label>
+                        <input type="text" defaultValue={currentUser?.displayName || "Nexus Trader"} className="w-full bg-nexus-black border border-white/10 rounded-lg p-3 text-white outline-none focus:border-nexus-blue" />
+                    </div>
+                    <div>
+                        <label className="text-xs text-nexus-subtext block mb-1">Email Address</label>
+                        <input type="email" defaultValue={currentUser?.email} disabled className="w-full bg-nexus-black/50 border border-white/5 rounded-lg p-3 text-nexus-subtext outline-none cursor-not-allowed" />
+                    </div>
+                    <div>
+                        <label className="text-xs text-nexus-subtext block mb-1">Phone Number</label>
+                        <input type="tel" defaultValue="+254 712 345 678" className="w-full bg-nexus-black border border-white/10 rounded-lg p-3 text-white outline-none focus:border-nexus-blue" />
+                    </div>
+                    <button type="submit" className="w-full bg-nexus-blue text-black font-bold py-3 rounded-lg mt-2">Save Changes</button>
+                </form>
+            </SettingsModal>
+
+            <SettingsModal isOpen={activeModal === 'payment'} onClose={() => setActiveModal(null)} title="Payment Methods">
+                <div className="space-y-3 mb-4">
+                    {cards.map((card, i) => (
+                        <div key={i} className="bg-nexus-black border border-white/10 p-3 rounded-lg flex justify-between items-center">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-6 bg-white/10 rounded flex items-center justify-center text-[10px] font-bold text-white">{card.type}</div>
+                                <div>
+                                    <div className="text-sm text-white">•••• {card.last4}</div>
+                                    <div className="text-xs text-nexus-subtext">Expires {card.expiry}</div>
+                                </div>
+                            </div>
+                            <button className="text-nexus-red text-xs hover:underline">Remove</button>
+                        </div>
+                    ))}
+                </div>
+                <button onClick={handleAddCard} className="w-full border border-dashed border-white/20 text-nexus-subtext font-bold py-3 rounded-lg hover:bg-white/5 hover:text-white transition-colors">
+                    + Add New Card
+                </button>
+            </SettingsModal>
+
+            <SettingsModal isOpen={activeModal === 'language'} onClose={() => setActiveModal(null)} title="Select Language">
+                <div className="space-y-2">
+                    {['English (US)', 'Spanish', 'French', 'Swahili', 'Chinese'].map((lang) => (
+                        <button
+                            key={lang}
+                            onClick={() => { setLanguage(lang); setActiveModal(null); }}
+                            className={`w-full p-3 rounded-lg text-left flex justify-between items-center ${language === lang ? 'bg-nexus-blue/10 text-nexus-blue border border-nexus-blue/30' : 'bg-nexus-black border border-white/10 text-white hover:bg-white/5'}`}
+                        >
+                            {lang}
+                            {language === lang && <div className="w-2 h-2 rounded-full bg-nexus-blue"></div>}
+                        </button>
+                    ))}
+                </div>
+            </SettingsModal>
         </div>
     );
 };
