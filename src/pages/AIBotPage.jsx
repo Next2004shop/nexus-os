@@ -258,8 +258,8 @@ export const AIBotPage = () => {
                                 Command Center
                             </h3>
                             <div className="flex items-center gap-2">
-                                <span className="w-2 h-2 bg-nexus-green rounded-full animate-pulse"></span>
-                                <span className="text-xs text-nexus-subtext">Online</span>
+                                <span className={`w-2 h-2 rounded-full ${connected ? 'bg-nexus-green animate-pulse' : 'bg-nexus-red'}`}></span>
+                                <span className="text-xs text-nexus-subtext">{connected ? 'Online' : 'Offline'}</span>
                             </div>
                         </div>
 

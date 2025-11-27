@@ -29,7 +29,16 @@ export const aiService = {
 
         } catch (error) {
             console.error("AI Service Error:", error);
-            return "I'm having trouble connecting to the neural network right now. Please try again later.";
+
+            if (!API_KEY) {
+                return "System Error: API Key is missing. Please check configuration.";
+            }
+
+            if (error.message?.includes('403')) {
+                return "Access Denied: API Key invalid or restricted. Please check Google AI Studio settings.";
+            }
+
+            return `Connection Error: ${error.message || "Unable to reach neural network."}`;
         }
     }
 };
