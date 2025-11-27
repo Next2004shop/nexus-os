@@ -90,7 +90,7 @@ export const ModernLayout = ({ children, activeTab, onNavigate }) => {
 
                     <div className="flex items-center gap-4">
                         <button
-                            onClick={() => alert("Notifications feature coming soon!")}
+                            onClick={() => onNavigate('notifications')}
                             className="relative p-2 hover:bg-white/5 rounded-lg transition-colors"
                         >
                             <Bell size={20} className="text-nexus-subtext hover:text-white" />

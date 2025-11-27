@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, Star, Loader } from 'lucide-react';
 import { marketData } from '../services/marketData';
 import { useNavigate } from 'react-router-dom';
@@ -56,6 +56,13 @@ export const MarketsPage = () => {
                 }
             } catch (error) {
                 console.error("Failed to fetch market data", error);
+                result = [];
+            }
+
+            // Safety check: Ensure result is an array
+            if (!Array.isArray(result)) {
+                console.error("Market data is not an array:", result);
+                result = [];
             }
 
             setData(result);
@@ -67,9 +74,10 @@ export const MarketsPage = () => {
         return () => clearInterval(interval);
     }, [activeTab]);
 
-    const filteredData = data.filter(item =>
-        item.symbol.toLowerCase().includes(search.toLowerCase()) ||
-        item.name.toLowerCase().includes(search.toLowerCase())
+    const safeData = Array.isArray(data) ? data : [];
+    const filteredData = safeData.filter(item =>
+        (item.symbol?.toLowerCase() || '').includes(search.toLowerCase()) ||
+        (item.name?.toLowerCase() || '').includes(search.toLowerCase())
     );
 
     const handleItemClick = (item) => {
@@ -119,10 +127,14 @@ export const MarketsPage = () => {
                     <div className="flex justify-center py-10">
                         <Loader className="animate-spin text-nexus-yellow" />
                     </div>
-                ) : (
+                ) : filteredData.length > 0 ? (
                     filteredData.map((item, index) => (
                         <MarketItem key={index} item={item} onClick={handleItemClick} />
                     ))
+                ) : (
+                    <div className="text-center py-10 text-nexus-red font-bold">
+                        Market data unavailable. Please check connection.
+                    </div>
                 )}
             </div>
         </div>

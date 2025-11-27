@@ -4,22 +4,19 @@
 
 [36mvite v7.2.2 [32mbuilding client environment for production...[36m[39m
 transforming...
-[32m✓[39m 1766 modules transformed.
-[31m✗[39m Build failed in 8.33s
-[31merror during build:
-[31m[vite-plugin-pwa:build] There was an error during the build:
-  src/App.jsx (3:9): "HomePage" is not exported by "src/pages/HomePage.jsx", imported by "src/App.jsx".
+[32mΓ£ô[39m 2 modules transformed.
+Γ£ù Build failed in 2.27s
+error during build:
+[vite-plugin-pwa:build] [plugin vite-plugin-pwa:build] There was an error during the build:
+  [vite]: Rollup failed to resolve import "react-router-dom" from "C:/Users/Danteh/nexus-ai/src/main.jsx".
+This is most likely unintended because it can break your application at runtime.
+If you do want to externalize this module explicitly add it to
+`build.rollupOptions.external`
 Additionally, handling the error in the 'buildEnd' hook caused the following error:
-  src/App.jsx (3:9): "HomePage" is not exported by "src/pages/HomePage.jsx", imported by "src/App.jsx".[31m
-file: [36mC:/Users/Danteh/nexus-ai/src/App.jsx:3:9[31m
-[33m
-1: import React, { useState } from 'react';
-2: import { ModernLayout } from './components/layout/ModernLayout';
-3: import { HomePage } from './pages/HomePage';
-            ^
-4: import { TradePage } from './pages/TradePage';
-5: import { WalletPage } from './pages/WalletPage';
-[31m
+  [vite]: Rollup failed to resolve import "react-router-dom" from "C:/Users/Danteh/nexus-ai/src/main.jsx".
+This is most likely unintended because it can break your application at runtime.
+If you do want to externalize this module explicitly add it to
+`build.rollupOptions.external`
     at getRollupError (file:///C:/Users/Danteh/nexus-ai/node_modules/rollup/dist/es/shared/parseAst.js:401:41)
     at file:///C:/Users/Danteh/nexus-ai/node_modules/rollup/dist/es/shared/node-entry.js:23333:39
     at async catchUnfinishedHookActions (file:///C:/Users/Danteh/nexus-ai/node_modules/rollup/dist/es/shared/node-entry.js:22791:16)
@@ -27,4 +24,4 @@ file: [36mC:/Users/Danteh/nexus-ai/src/App.jsx:3:9[31m
     at async buildEnvironment (file:///C:/Users/Danteh/nexus-ai/node_modules/vite/dist/node/chunks/config.js:34160:12)
     at async Object.build (file:///C:/Users/Danteh/nexus-ai/node_modules/vite/dist/node/chunks/config.js:34519:19)
     at async Object.buildApp (file:///C:/Users/Danteh/nexus-ai/node_modules/vite/dist/node/chunks/config.js:34516:153)
-    at async CAC.<anonymous> (file:///C:/Users/Danteh/nexus-ai/node_modules/vite/dist/node/cli.js:629:3)[39m
+    at async CAC.<anonymous> (file:///C:/Users/Danteh/nexus-ai/node_modules/vite/dist/node/cli.js:629:3)

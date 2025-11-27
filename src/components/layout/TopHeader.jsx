@@ -40,7 +40,10 @@ export function TopHeader({ user, onProfileClick }) {
                 <button className="hover:text-nexus-yellow transition-colors">
                     <Headset size={20} />
                 </button>
-                <button className="hover:text-nexus-yellow transition-colors relative">
+                <button
+                    onClick={() => window.location.href = '/notifications'}
+                    className="hover:text-nexus-yellow transition-colors relative"
+                >
                     <Bell size={20} />
                     <span className="absolute -top-1 -right-1 w-2 h-2 bg-nexus-red rounded-full"></span>
                 </button>

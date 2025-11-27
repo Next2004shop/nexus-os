@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { ModernLayout } from './components/layout/ModernLayout';
 import HomePage from './pages/HomePage';
@@ -8,6 +9,7 @@ import { AuthPage } from './pages/AuthPage';
 import BankingPage from './pages/BankingPage';
 import { HedgeFundPage } from './pages/HedgeFundPage';
 import { AIBotPage } from './pages/AIBotPage';
+import { NotificationsPage } from './pages/NotificationsPage';
 import { useAuth } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -33,6 +35,7 @@ export default function NexusAI() {
          case 'banking': return <BankingPage />;
          case 'investments': return <HedgeFundPage />;
          case 'aibot': return <AIBotPage />;
+         case 'notifications': return <NotificationsPage />;
          case 'profile': return <ProfilePage />;
          default: return <HomePage onNavigate={setActiveTab} />;
       }

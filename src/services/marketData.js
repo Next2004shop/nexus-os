@@ -154,7 +154,7 @@ export const marketData = {
 
         } catch (error) {
             console.error("Stock Data Error (Using Fallback):", error);
-            return MOCK_STOCKS; // Return robust fallback
+            return MOCK_STOCKS || []; // Ensure array
         }
     },
 
@@ -194,7 +194,7 @@ export const marketData = {
             ];
         } catch (error) {
             console.error("Commodity Error (Using Fallback):", error);
-            return MOCK_COMMODITIES; // Return robust fallback
+            return MOCK_COMMODITIES || []; // Ensure array
         }
     },
 
