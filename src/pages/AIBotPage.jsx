@@ -216,20 +216,24 @@ export const AIBotPage = () => {
                         </div>
                         <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
                             <Server size={20} className="text-nexus-purple" />
-                            Nexus Host Agent
+                            Nexus Host Agent (Elite)
                         </h2>
-                        <div className="grid grid-cols-3 gap-4">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                             <div className="bg-nexus-black/50 p-3 rounded-xl border border-white/5">
                                 <div className="text-xs text-nexus-subtext uppercase font-bold">Host Status</div>
                                 <div className="text-xl font-mono font-bold text-nexus-green">ONLINE</div>
                             </div>
                             <div className="bg-nexus-black/50 p-3 rounded-xl border border-white/5">
-                                <div className="text-xs text-nexus-subtext uppercase font-bold">Memory Load</div>
-                                <div className="text-xl font-mono font-bold text-nexus-blue">OPTIMAL</div>
+                                <div className="text-xs text-nexus-subtext uppercase font-bold">Mode</div>
+                                <div className="text-xl font-mono font-bold text-nexus-purple">CLUSTER</div>
                             </div>
                             <div className="bg-nexus-black/50 p-3 rounded-xl border border-white/5">
-                                <div className="text-xs text-nexus-subtext uppercase font-bold">Uptime</div>
-                                <div className="text-xl font-mono font-bold text-white">99.9%</div>
+                                <div className="text-xs text-nexus-subtext uppercase font-bold">Active Cores</div>
+                                <div className="text-xl font-mono font-bold text-white">MAX</div>
+                            </div>
+                            <div className="bg-nexus-black/50 p-3 rounded-xl border border-white/5">
+                                <div className="text-xs text-nexus-subtext uppercase font-bold">Security</div>
+                                <div className="text-xl font-mono font-bold text-nexus-blue">ACTIVE</div>
                             </div>
                         </div>
                     </div>

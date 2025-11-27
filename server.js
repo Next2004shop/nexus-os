@@ -3,55 +3,84 @@ const path = require('path');
 const compression = require('compression');
 const helmet = require('helmet');
 const cors = require('cors');
+const rateLimit = require('express-rate-limit');
+const morgan = require('morgan');
+const cluster = require('cluster');
+const os = require('os');
 
-const app = express();
 const PORT = process.env.PORT || 3000;
+const numCPUs = os.cpus().length;
 
-// 1. Security & Optimization
-app.use(helmet({
-    contentSecurityPolicy: false, // Disabled for flexibility with external images/scripts
-}));
-app.use(compression()); // Gzip compression
-app.use(cors());
-app.use(express.json());
-
-// 2. Serve Static Files (The React App)
-app.use(express.static(path.join(__dirname, 'dist')));
-
-// 3. "Server Agent" API Endpoint
-// This allows the AI Command Center to monitor the host's health
-app.get('/api/server-agent/status', (req, res) => {
-    const uptime = process.uptime();
-    const memory = process.memoryUsage();
-
-    res.json({
-        status: 'ONLINE',
-        agent: 'Nexus Host Agent',
-        uptime: uptime,
-        memory: {
-            rss: Math.round(memory.rss / 1024 / 1024) + ' MB',
-            heapTotal: Math.round(memory.heapTotal / 1024 / 1024) + ' MB',
-            heapUsed: Math.round(memory.heapUsed / 1024 / 1024) + ' MB',
-        },
-        load: 'OPTIMAL',
-        timestamp: new Date().toISOString()
-    });
-});
-
-// 4. Catch-All Route (SPA Support)
-// Sends all other requests to index.html so React Router handles them
-app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
-});
-
-// 5. Start the Host
-app.listen(PORT, () => {
+if (cluster.isPrimary) {
     console.log(`
-    🚀 NEXUS HOST ONLINE
-    --------------------
-    > Port: ${PORT}
-    > Mode: Production
-    > Agent: Active
-    > URL:  http://localhost:${PORT}
+    🚀 NEXUS HOST: MAXIMUM POWER
+    ----------------------------
+    > Master Process: ${process.pid}
+    > Detected Cores: ${numCPUs}
+    > Mode: CLUSTER (Multi-Core)
+    > Security: ACTIVE
     `);
-});
+
+    // Fork workers for each CPU core
+    for (let i = 0; i < numCPUs; i++) {
+        cluster.fork();
+    }
+
+    cluster.on('exit', (worker, code, signal) => {
+        console.log(`⚠️ Worker ${worker.process.pid} died. Auto-Respawning...`);
+        cluster.fork(); // Self-Healing: Respawn worker
+    });
+
+} else {
+    // WORKER PROCESS
+    const app = express();
+
+    // 1. Advanced Security & Optimization
+    app.use(helmet({
+        contentSecurityPolicy: false,
+    }));
+    app.use(compression());
+    app.use(cors());
+    app.use(express.json());
+    app.use(morgan('tiny')); // Request logging
+
+    // Rate Limiting (DDoS Protection)
+    const limiter = rateLimit({
+        windowMs: 15 * 60 * 1000, // 15 minutes
+        max: 1000, // Limit each IP to 1000 requests per windowMs
+        message: { error: "Security Alert: Rate limit exceeded. Cooldown initiated." }
+    });
+    app.use(limiter);
+
+    // 2. Serve Static Files
+    app.use(express.static(path.join(__dirname, 'dist')));
+
+    // 3. "Server Agent" API Endpoint (Enhanced)
+    app.get('/api/server-agent/status', (req, res) => {
+        const memory = process.memoryUsage();
+
+        res.json({
+            status: 'ONLINE',
+            agent: 'Nexus Host Agent (Elite)',
+            mode: 'CLUSTER',
+            workerId: process.pid,
+            totalCores: numCPUs,
+            memory: {
+                rss: Math.round(memory.rss / 1024 / 1024) + ' MB',
+                heapTotal: Math.round(memory.heapTotal / 1024 / 1024) + ' MB',
+            },
+            uptime: process.uptime(),
+            timestamp: new Date().toISOString()
+        });
+    });
+
+    // 4. Catch-All Route
+    app.get('*', (req, res) => {
+        res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+    });
+
+    // 5. Start Worker
+    app.listen(PORT, () => {
+        console.log(`> Worker ${process.pid} ready on port ${PORT}`);
+    });
+}
