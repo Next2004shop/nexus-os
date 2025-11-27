@@ -17,7 +17,7 @@ const StockCard = ({ symbol, name, price, change }) => (
     </div>
 );
 
-const InvestmentsPage = () => {
+export const InvestmentsPage = () => {
     return (
         <div className="p-6 animate-fadeIn pb-24 md:pb-6">
             <div className="mb-8">
@@ -75,5 +75,3 @@ const InvestmentsPage = () => {
         </div>
     );
 };
-
-export default InvestmentsPage;
