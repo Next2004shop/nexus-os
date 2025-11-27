@@ -271,8 +271,8 @@ export const AIBotPage = () => {
                                         {msg.role === 'user' ? <User size={16} className="text-white" /> : <Bot size={16} className="text-nexus-blue" />}
                                     </div>
                                     <div className={`border rounded-2xl p-3 max-w-[80%] ${msg.role === 'user'
-                                            ? 'bg-white/10 border-white/20 rounded-tr-none'
-                                            : 'bg-nexus-blue/10 border-nexus-blue/20 rounded-tl-none'
+                                        ? 'bg-white/10 border-white/20 rounded-tr-none'
+                                        : 'bg-nexus-blue/10 border-nexus-blue/20 rounded-tl-none'
                                         }`}>
                                         <p className="text-sm text-white whitespace-pre-wrap">{msg.text}</p>
                                     </div>
@@ -292,13 +292,20 @@ export const AIBotPage = () => {
                         </div>
 
                         {/* Input Area */}
-                        <div className="p-4 border-t border-nexus-border bg-nexus-black/50">
-                            <form onSubmit={handleSendMessage} className="relative">
+                        <div className="p-4 border-t border-nexus-border bg-nexus-black/50 flex gap-2">
+                            <button
+                                onClick={() => setMessages([])}
+                                className="p-3 bg-nexus-card border border-nexus-border text-nexus-subtext rounded-xl hover:text-white hover:border-nexus-red transition-colors"
+                                title="Clear Chat"
+                            >
+                                <AlertCircle size={18} />
+                            </button>
+                            <form onSubmit={handleSendMessage} className="relative flex-1">
                                 <input
                                     type="text"
                                     value={input}
                                     onChange={(e) => setInput(e.target.value)}
-                                    placeholder="Type your instruction..."
+                                    placeholder="Ask Nexus AI..."
                                     className="w-full bg-nexus-black border border-nexus-border rounded-xl py-3 pl-4 pr-12 text-sm text-white focus:border-nexus-blue outline-none transition-colors"
                                     disabled={isTyping}
                                 />
