@@ -6,7 +6,7 @@ import ErrorBoundary from './components/ErrorBoundary.jsx'
 
 import { AuthProvider } from './context/AuthContext.jsx'
 
-import { BrowserRouter } from 'react-router-dom'
+import { HashRouter } from 'react-router-dom'
 
 console.log("NEXUS v3.0 (Crash Proof) - Loaded");
 
@@ -24,11 +24,11 @@ window.onunhandledrejection = function (event) {
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <ErrorBoundary>
-      <BrowserRouter>
+      <HashRouter>
         <AuthProvider>
           <App />
         </AuthProvider>
-      </BrowserRouter>
+      </HashRouter>
     </ErrorBoundary>
   </StrictMode>,
 )

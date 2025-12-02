@@ -45,22 +45,17 @@ export const MarketSelector = ({ onSelect }) => {
         const loadAssets = async () => {
             setLoading(true);
             let data = [];
-            if (activeTab === 'crypto') {
-                const cryptos = await marketData.getTopCryptos();
-                data = cryptos.map(c => ({
-                    id: c.id,
-                    symbol: c.symbol,
-                    name: c.name,
-                    price: c.current_price,
-                    change: c.price_change_percentage_24h,
-                    image: c.image,
-                    type: 'crypto'
-                }));
-            } else if (activeTab === 'stocks') {
-                data = marketData.getStocks();
-            } else if (activeTab === 'commodities') {
-                data = marketData.getCommodities();
-            }
+            // Always fetch crypto, ignore other tabs
+            const cryptos = await marketData.getTopCryptos();
+            data = cryptos.map(c => ({
+                id: c.id,
+                symbol: c.symbol,
+                name: c.name,
+                price: c.current_price,
+                change: c.price_change_percentage_24h,
+                image: c.image,
+                type: 'crypto'
+            }));
             setAssets(data);
             setLoading(false);
         };
@@ -74,8 +69,7 @@ export const MarketSelector = ({ onSelect }) => {
 
     const tabs = [
         { id: 'crypto', label: 'Crypto', icon: Zap },
-        { id: 'stocks', label: 'Stocks', icon: Globe },
-        { id: 'commodities', label: 'Gold/Oil', icon: Layers },
+        // Stocks and Commodities removed to prevent errors
     ];
 
     return (

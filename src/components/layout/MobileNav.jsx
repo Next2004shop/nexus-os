@@ -8,7 +8,7 @@ export const MobileNav = () => {
 
     const navItems = [
         { id: 'trade', path: '/trade', icon: Terminal, label: 'Trade' },
-        { id: 'stocks', path: '/stocks', icon: Globe, label: 'Stocks' },
+        // Stocks removed
         { id: 'ai-bot', path: '/ai-bot', icon: Bot, label: 'AI Core' },
         { id: 'wallet', path: '/wallet', icon: Wallet, label: 'Wallet' },
         { id: 'downloads', path: '/downloads', icon: Download, label: 'Get App' },

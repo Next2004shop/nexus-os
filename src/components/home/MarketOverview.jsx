@@ -5,20 +5,6 @@ export const MarketOverview = () => {
     const [coins, setCoins] = useState([]);
     const [activeTab, setActiveTab] = useState('CRYPTO');
 
-    // Mock Data for Non-Crypto Assets
-    const STOCKS = [
-        { id: 'aapl', symbol: 'AAPL', name: 'Apple Inc.', price: 182.50, change: 1.25, image: 'https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg' },
-        { id: 'tsla', symbol: 'TSLA', name: 'Tesla, Inc.', price: 175.30, change: -2.40, image: 'https://upload.wikimedia.org/wikipedia/commons/e/e8/Tesla_logo.png' },
-        { id: 'nvda', symbol: 'NVDA', name: 'NVIDIA Corp.', price: 890.00, change: 3.50, image: 'https://upload.wikimedia.org/wikipedia/commons/2/21/Nvidia_logo.svg' },
-        { id: 'msft', symbol: 'MSFT', name: 'Microsoft', price: 420.00, change: 0.80, image: 'https://upload.wikimedia.org/wikipedia/commons/4/44/Microsoft_logo.svg' },
-    ];
-
-    const COMMODITIES = [
-        { id: 'xau', symbol: 'GOLD', name: 'Gold / USD', price: 2350.00, change: 0.45, image: 'https://cdn-icons-png.flaticon.com/512/196/196568.png' },
-        { id: 'xag', symbol: 'SILVER', name: 'Silver / USD', price: 28.50, change: 1.10, image: 'https://cdn-icons-png.flaticon.com/512/196/196568.png' }, // Placeholder icon
-        { id: 'wti', symbol: 'OIL', name: 'Crude Oil', price: 85.20, change: -0.50, image: 'https://cdn-icons-png.flaticon.com/512/2933/2933861.png' },
-    ];
-
     useEffect(() => {
         const fetchMarket = async () => {
             try {
@@ -36,8 +22,7 @@ export const MarketOverview = () => {
     }, []);
 
     const getDisplayData = () => {
-        if (activeTab === 'STOCKS') return STOCKS;
-        if (activeTab === 'COMMODITIES') return COMMODITIES;
+        // Only return crypto data
         return coins.map(c => ({
             id: c.id,
             symbol: c.symbol.toUpperCase(),
@@ -57,25 +42,13 @@ export const MarketOverview = () => {
                 </div>
             </div>
 
-            {/* TABS */}
+            {/* TABS - Removed Stocks/Commodities */}
             <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
                 <button
                     onClick={() => setActiveTab('CRYPTO')}
                     className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-all ${activeTab === 'CRYPTO' ? 'bg-nexus-gold text-black' : 'bg-[#2b3139] text-zinc-400 hover:text-white'}`}
                 >
                     <Layers size={14} /> Crypto
-                </button>
-                <button
-                    onClick={() => setActiveTab('STOCKS')}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-all ${activeTab === 'STOCKS' ? 'bg-nexus-gold text-black' : 'bg-[#2b3139] text-zinc-400 hover:text-white'}`}
-                >
-                    <Globe size={14} /> Stocks
-                </button>
-                <button
-                    onClick={() => setActiveTab('COMMODITIES')}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-all ${activeTab === 'COMMODITIES' ? 'bg-nexus-gold text-black' : 'bg-[#2b3139] text-zinc-400 hover:text-white'}`}
-                >
-                    <Database size={14} /> Gold/Oil
                 </button>
             </div>
 
