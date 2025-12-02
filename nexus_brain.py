@@ -46,6 +46,11 @@ class NexusBrain:
         df['time'] = pd.to_datetime(df['time'], unit='s')
         df.set_index('time', inplace=True)
         
+        # Initialize variables
+        signal = "HOLD"
+        confidence = 50
+        reasons = []
+        
         # Calculate Indicators
         # 1. RSI (Relative Strength Index)
         df['rsi'] = ta.momentum.RSIIndicator(df['close'], window=14).rsi()
