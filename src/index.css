@@ -19,7 +19,8 @@
 body {
   background-color: var(--nexus-black);
   color: var(--nexus-text);
-  font-family: 'Outfit', sans-serif; /* Premium Modern Font */
+  font-family: 'Outfit', sans-serif;
+  /* Premium Modern Font */
   overflow-x: hidden;
   -webkit-tap-highlight-color: transparent;
   background-image: radial-gradient(circle at 50% 0%, #1a1d24 0%, #050505 70%);
@@ -32,12 +33,29 @@ body {
 }
 
 /* --- Utilities --- */
-.bg-nexus-black { background-color: var(--nexus-black); }
-.bg-card { background-color: var(--nexus-card); }
-.text-nexus-yellow { color: var(--nexus-yellow); }
-.text-nexus-green { color: var(--nexus-green); }
-.text-nexus-red { color: var(--nexus-red); }
-.text-nexus-subtext { color: var(--nexus-subtext); }
+.bg-nexus-black {
+  background-color: var(--nexus-black);
+}
+
+.bg-card {
+  background-color: var(--nexus-card);
+}
+
+.text-nexus-yellow {
+  color: var(--nexus-yellow);
+}
+
+.text-nexus-green {
+  color: var(--nexus-green);
+}
+
+.text-nexus-red {
+  color: var(--nexus-red);
+}
+
+.text-nexus-subtext {
+  color: var(--nexus-subtext);
+}
 
 /* --- Glassmorphism & Premium Borders --- */
 .glass-panel {
@@ -116,8 +134,15 @@ body {
 
 /* --- Animations --- */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .animate-fadeIn {
@@ -125,8 +150,15 @@ body {
 }
 
 @keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 10px rgba(252, 213, 53, 0.1); }
-  50% { box-shadow: 0 0 20px rgba(252, 213, 53, 0.3); }
+
+  0%,
+  100% {
+    box-shadow: 0 0 10px rgba(252, 213, 53, 0.1);
+  }
+
+  50% {
+    box-shadow: 0 0 20px rgba(252, 213, 53, 0.3);
+  }
 }
 
 .animate-pulse-glow {
@@ -134,10 +166,31 @@ body {
 }
 
 @keyframes progress {
-  0% { transform: scaleX(0); }
-  100% { transform: scaleX(1); }
+  0% {
+    transform: scaleX(0);
+  }
+
+  100% {
+    transform: scaleX(1);
+  }
 }
 
 .animate-progress {
   animation: progress 5s linear forwards;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slideUp {
+  animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }

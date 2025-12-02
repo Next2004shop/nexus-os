@@ -1,3 +1,47 @@
+import MetaTrader5 as mt5
+from flask import Flask, request, jsonify, abort
+from flask_cors import CORS
+from flask_httpauth import HTTPBasicAuth
+from werkzeug.security import generate_password_hash, check_password_hash
+import logging
+import time
+import pandas as pd
+from nexus_security import security
+
+# --- LOGGING ---
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger("NexusBridge")
+
+# --- CONFIGURATION ---
+SERVER_PORT = 5000
+DEVIATION = 20
+MAGIC_NUMBER = 234000
+MT5_PATH = r"C:\Program Files\MetaTrader 5\terminal64.exe"
+
+app = Flask(__name__)
+CORS(app)
+
+# --- SECURITY MIDDLEWARE ---
+@app.before_request
+def check_security():
+    # Skip security check for local loopback if needed, but security module handles whitelist
+    if not security.check_request(request.remote_addr, request.path):
+        abort(403, description="Security Alert: Request Blocked by Nexus Defense Protocol")
+
+# --- AUTHENTICATION ---
+auth = HTTPBasicAuth()
+users = {
+    "admin": generate_password_hash("securepassword")
+}
+
+@auth.verify_password
+def verify_password(username, password):
+    if username in users and check_password_hash(users.get(username), password):
+        return username
+    # Record failed login attempt
+    security.record_failed_login(request.remote_addr)
+
+# --- INITIALIZATION ---
 logger.info("--- NEXUS BRIDGE: INITIALIZING ---")
 
 if not mt5.initialize(path=MT5_PATH):

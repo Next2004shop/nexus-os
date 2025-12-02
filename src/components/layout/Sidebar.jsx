@@ -1,10 +1,12 @@
-import { Terminal, Wallet, Landmark, PieChart, Globe, Shield, Users, Bot, Download, Scale } from 'lucide-react';
+import { Terminal, Wallet, Landmark, PieChart, Globe, Shield, Users, Bot, Download, Scale, LogOut } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import logo from '../../assets/logo.png';
 
 export const Sidebar = () => {
     const location = useLocation();
     const navigate = useNavigate();
+    const { logout } = useAuth();
     const activeTab = location.pathname.substring(1) || 'home';
 
     const navItems = [
@@ -20,12 +22,21 @@ export const Sidebar = () => {
         { id: 'downloads', path: '/downloads', icon: Download }
     ];
 
+    const handleLogout = async () => {
+        try {
+            await logout();
+            navigate('/');
+        } catch (error) {
+            console.error("Logout failed", error);
+        }
+    };
+
     return (
         <div className="hidden md:flex w-20 border-r border-[#2b3139] flex-col items-center py-6 bg-[#181a20] z-50 h-full">
             <div className="w-10 h-10 mb-8 rounded-full overflow-hidden border-2 border-nexus-gold shadow-[0_0_15px_rgba(252,213,53,0.3)]">
                 <img src={logo} alt="Nexus" className="w-full h-full object-cover" />
             </div>
-            <div className="space-y-6 flex-1">
+            <div className="space-y-6 flex-1 overflow-y-auto scrollbar-hide w-full flex flex-col items-center">
                 {navItems.map(item => (
                     <button
                         key={item.id}
@@ -38,6 +49,16 @@ export const Sidebar = () => {
                         )}
                     </button>
                 ))}
+            </div>
+
+            <div className="mt-auto pt-4 border-t border-white/5 w-full flex justify-center">
+                <button
+                    onClick={handleLogout}
+                    className="p-3 rounded-xl text-nexus-red hover:bg-nexus-red/10 transition-all duration-300 group"
+                    title="Logout"
+                >
+                    <LogOut size={24} />
+                </button>
             </div>
         </div>
     );

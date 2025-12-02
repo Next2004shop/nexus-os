@@ -10,6 +10,7 @@ import TradePage from './pages/TradePage';
 import { StocksPage } from './pages/StocksPage';
 import { CommoditiesPage } from './pages/CommoditiesPage';
 import AIBotPage from './pages/AIBotPage';
+import { WalletPage } from './pages/WalletPage';
 import { ServicesPage } from './pages/ServicesPage';
 import BankingPage from './pages/BankingPage';
 import { TaxPage } from './pages/TaxPage';
@@ -62,8 +63,18 @@ export default function App() {
       return () => clearInterval(interval);
    }, []);
 
+   const { currentUser } = useAuth();
+
    if (maintenance) {
       return <MaintenanceScreen />;
+   }
+
+   if (!currentUser) {
+      return (
+         <ToastProvider>
+            <AuthPage onClose={() => { }} />
+         </ToastProvider>
+      );
    }
 
    return (
@@ -93,6 +104,7 @@ export default function App() {
                      <Route path="/security" element={<SecurityPage />} />
                      <Route path="/investments" element={<InvestmentsPage />} />
                      <Route path="/downloads" element={<DownloadPage />} />
+                     <Route path="*" element={<Navigate to="/trade" replace />} />
                   </Routes>
                </div>
 

@@ -16,9 +16,12 @@ const OrderBookRow = ({ price, amount, total, type }) => (
     </div>
 );
 
+import { useLocation } from 'react-router-dom';
+
 const TradePage = () => {
+    const location = useLocation();
     // STATE
-    const [selectedAsset, setSelectedAsset] = useState(null); // If null, show MarketSelector
+    const [selectedAsset, setSelectedAsset] = useState(location.state?.asset || null); // If null, show MarketSelector
     const [side, setSide] = useState('buy');
     const [orderType, setOrderType] = useState('market'); // market, limit
     const [amount, setAmount] = useState('');
