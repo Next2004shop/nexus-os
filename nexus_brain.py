@@ -67,12 +67,30 @@ class NexusBrain:
         # Get latest values
         current = df.iloc[-1]
         prev = df.iloc[-2]
-        
-        signal = "HOLD"
-        confidence = 0
-        reasons = []
 
-        # --- LEGENDARY STRATEGY LOGIC ---
+        # --- HEDGE FUND LOGIC (MAXIMUM POTENTIAL) ---
+
+        # 1. CRISIS MODE (Market Crash Detection)
+        # If price drops > 2% in last 5 candles, trigger emergency protocol
+        recent_high = df['high'].iloc[-5:].max()
+        drop_percent = (recent_high - current['close']) / recent_high
+        
+        if drop_percent > 0.02:
+            signal = "SELL_ALL"
+            confidence = 100
+            reasons = ["CRISIS MODE: >2% Drop Detected. Preserving Capital."]
+            return {
+                "signal": signal,
+                "confidence": confidence,
+                "reason": "CRISIS MODE ACTIVE",
+                "indicators": {
+                    "rsi": round(current['rsi'], 2),
+                    "macd": round(current['macd'], 5),
+                    "trend": "CRASH"
+                }
+            }
+
+        # 3. LEGENDARY STRATEGY LOGIC
         
         # Strategy A: Trend Following (Golden Cross / Death Cross logic + RSI filter)
         trend_score = 0
@@ -102,19 +120,19 @@ class NexusBrain:
         if symbol == "XAUUSD":
             if trend_score > 0 and momentum_score > 0:
                 signal = "BUY"
-                confidence = 85
+                confidence = 90
                 reasons.append("Gold Bullish Trend + MACD Momentum")
             elif trend_score < 0 and momentum_score < 0:
                 signal = "SELL"
-                confidence = 85
+                confidence = 90
                 reasons.append("Gold Bearish Trend + MACD Momentum")
             elif reversion_score >= 2:
                 signal = "BUY"
-                confidence = 70
+                confidence = 75
                 reasons.append("Gold Oversold Bounce (RSI < 30)")
             elif reversion_score <= -2:
                 signal = "SELL"
-                confidence = 70
+                confidence = 75
                 reasons.append("Gold Overbought Rejection (RSI > 70)")
         else:
             # General Strategy

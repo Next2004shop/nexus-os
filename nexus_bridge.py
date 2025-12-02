@@ -1,37 +1,3 @@
-import MetaTrader5 as mt5
-from flask import Flask, request, jsonify
-from flask_cors import CORS
-from flask_httpauth import HTTPBasicAuth
-from werkzeug.security import generate_password_hash, check_password_hash
-import logging
-import time
-import pandas as pd
-
-# --- CONFIGURATION ---
-SERVER_PORT = 5000
-DEVIATION = 20
-MAGIC_NUMBER = 234000
-MT5_PATH = r"C:\Program Files\MetaTrader 5\terminal64.exe"
-
-app = Flask(__name__)
-CORS(app)
-
-# --- AUTHENTICATION ---
-auth = HTTPBasicAuth()
-users = {
-    "admin": generate_password_hash("securepassword")
-}
-
-@auth.verify_password
-def verify_password(username, password):
-    if username in users and check_password_hash(users.get(username), password):
-        return username
-
-# --- LOGGING ---
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger("NexusBridge")
-
-# --- INITIALIZATION ---
 logger.info("--- NEXUS BRIDGE: INITIALIZING ---")
 
 if not mt5.initialize(path=MT5_PATH):

@@ -1,86 +1,65 @@
-import hashlib
 import time
 import logging
-import json
-from datetime import datetime
+from collections import defaultdict
 
+# Configure Logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("NexusSecurity")
 
-class SecurityVault:
+class NexusSecurity:
     def __init__(self):
-        self.master_key = hashlib.sha256(b"nexus-master-key").hexdigest()
-        self.withdrawal_limit = 50000.00  # Daily limit
-        self.daily_withdrawn = 0.00
-        logger.info("🔒 SECURITY VAULT: INITIALIZED")
-        logger.info("🛡️ ENCRYPTION PROTOCOLS: AES-256 (Simulated)")
+        self.lockdown_mode = False
+        self.ip_whitelist = ["127.0.0.1", "localhost", "::1"]
+        self.request_log = defaultdict(list)
+        self.failed_logins = defaultdict(int)
+        self.MAX_REQUESTS_PER_MINUTE = 60
+        self.MAX_FAILED_LOGINS = 3
+        logger.info("🛡️ NEXUS SECURITY: ONLINE (DEFENSIVE MODE)")
 
-    def encrypt_wallet(self, private_key):
+    def check_request(self, ip_address, endpoint):
         """
-        Simulates encrypting a wallet private key.
+        Analyzes incoming requests for anomalies.
+        Returns True if safe, False if blocked.
         """
-        encrypted = hashlib.sha256(private_key.encode()).hexdigest()
-        return f"enc_{encrypted[:16]}"
+        if self.lockdown_mode:
+            logger.warning(f"BLOCKED request from {ip_address} (LOCKDOWN ACTIVE)")
+            return False
 
-    def verify_withdrawal(self, amount, user_id):
-        """
-        Verifies if a withdrawal request is safe and within limits.
-        """
-        logger.info(f"🕵️ VERIFYING WITHDRAWAL: ${amount} for {user_id}")
+        current_time = time.time()
         
-        if amount > self.withdrawal_limit:
-            logger.warning(f"❌ WITHDRAWAL BLOCKED: Exceeds daily limit of ${self.withdrawal_limit}")
-            return False, "Exceeds daily limit"
+        # 1. Rate Limiting (DDoS Protection)
+        self.request_log[ip_address] = [t for t in self.request_log[ip_address] if current_time - t < 60]
+        self.request_log[ip_address].append(current_time)
         
-        if self.daily_withdrawn + amount > self.withdrawal_limit:
-            logger.warning(f"❌ WITHDRAWAL BLOCKED: Daily limit reached")
-            return False, "Daily limit reached"
+        if len(self.request_log[ip_address]) > self.MAX_REQUESTS_PER_MINUTE:
+            logger.warning(f"Rate Limit Exceeded for {ip_address}. Blocking.")
+            return False
 
-        # Simulate risk check
-        if amount > 10000:
-            logger.info("⚠️ HIGH VALUE TRANSACTION: Performing deep packet inspection...")
-            time.sleep(0.5) # Simulate check
-        
-        self.daily_withdrawn += amount
-        logger.info("✅ WITHDRAWAL APPROVED")
-        return True, "Approved"
+        # 2. Anomaly Detection (Mock Logic)
+        # If accessing sensitive endpoints rapidly
+        if endpoint == "/withdraw" and len(self.request_log[ip_address]) > 5:
+             logger.critical(f"Suspicious Withdrawal Activity from {ip_address}. TRIGGERING LOCKDOWN.")
+             self.trigger_lockdown("Suspicious Withdrawal Activity")
+             return False
 
-class LedgerSystem:
-    def __init__(self):
-        self.ledger_file = "nexus_ledger.json"
-        self.transactions = []
-        logger.info("📚 LEDGER SYSTEM: ACTIVE")
-        logger.info("🧾 BOOKS OF ACCOUNTS: OPEN")
+        return True
 
-    def record_transaction(self, type, amount, details):
-        """
-        Records a transaction immutably.
-        """
-        tx_id = hashlib.md5(f"{time.time()}{details}".encode()).hexdigest()[:12]
-        entry = {
-            "id": tx_id,
-            "timestamp": datetime.now().isoformat(),
-            "type": type,
-            "amount": amount,
-            "details": details,
-            "hash": hashlib.sha256(f"{tx_id}{amount}".encode()).hexdigest()
-        }
-        self.transactions.append(entry)
-        self._save_ledger()
-        logger.info(f"🖊️ LEDGER ENTRY: [{type}] ${amount} - {details}")
-        return tx_id
+    def record_failed_login(self, ip_address):
+        """Tracks failed logins to prevent Brute Force."""
+        self.failed_logins[ip_address] += 1
+        if self.failed_logins[ip_address] >= self.MAX_FAILED_LOGINS:
+            logger.critical(f"Brute Force Detected from {ip_address}. Blocking IP.")
+            return False # IP Blocked
+        return True
 
-    def _save_ledger(self):
-        """
-        Saves ledger to disk (simulated persistence).
-        """
-        try:
-            with open(self.ledger_file, 'w') as f:
-                json.dump(self.transactions, f, indent=2)
-        except Exception as e:
-            logger.error(f"Failed to save ledger: {e}")
+    def trigger_lockdown(self, reason):
+        """Freezes all critical operations."""
+        self.lockdown_mode = True
+        logger.critical(f"🚨 SYSTEM LOCKDOWN INITIATED: {reason}")
+        # In a real system, this would email the admin and freeze funds.
 
-    def get_audit_trail(self):
-        return self.transactions
+    def lift_lockdown(self):
+        self.lockdown_mode = False
+        logger.info("System Lockdown Lifted. Operations Normal.")
 
-vault = SecurityVault()
-ledger = LedgerSystem()
+security = NexusSecurity()

@@ -1,25 +1,28 @@
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;500;600;700;800&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --binance-black: #1E2329;
-  --binance-bg: #0B0E11;
-  --binance-yellow: #FCD535;
-  --binance-green: #0ECB81;
-  --binance-red: #F6465D;
-  --binance-text: #EAECEF;
-  --binance-subtext: #848E9C;
-  --binance-border: #2B3139;
+  /* NEXUS PREMIUM PALETTE */
+  --nexus-black: #050505;
+  --nexus-card: #0F1115;
+  --nexus-border: #1E2329;
+  --nexus-yellow: #FCD535;
+  --nexus-green: #0ECB81;
+  --nexus-red: #F6465D;
+  --nexus-text: #EAECEF;
+  --nexus-subtext: #848E9C;
+  --nexus-accent: #3B82F6;
 }
 
 body {
-  background-color: var(--binance-bg);
-  color: var(--binance-text);
-  font-family: 'Inter', sans-serif;
+  background-color: var(--nexus-black);
+  color: var(--nexus-text);
+  font-family: 'Outfit', sans-serif; /* Premium Modern Font */
   overflow-x: hidden;
   -webkit-tap-highlight-color: transparent;
+  background-image: radial-gradient(circle at 50% 0%, #1a1d24 0%, #050505 70%);
 }
 
 /* --- Typography --- */
@@ -29,86 +32,73 @@ body {
 }
 
 /* --- Utilities --- */
-.bg-card {
-  background-color: var(--binance-black);
+.bg-nexus-black { background-color: var(--nexus-black); }
+.bg-card { background-color: var(--nexus-card); }
+.text-nexus-yellow { color: var(--nexus-yellow); }
+.text-nexus-green { color: var(--nexus-green); }
+.text-nexus-red { color: var(--nexus-red); }
+.text-nexus-subtext { color: var(--nexus-subtext); }
+
+/* --- Glassmorphism & Premium Borders --- */
+.glass-panel {
+  background: rgba(15, 17, 21, 0.7);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.text-primary {
-  color: var(--binance-yellow);
-}
-
-.text-up {
-  color: var(--binance-green);
-}
-
-.text-down {
-  color: var(--binance-red);
-}
-
-.border-b-theme {
-  border-bottom: 1px solid var(--binance-border);
+.border-premium {
+  border: 1px solid var(--nexus-border);
 }
 
 /* --- Buttons --- */
 .btn-primary {
-  background-color: var(--binance-yellow);
-  color: #1E2329;
-  font-weight: 600;
-  border-radius: 4px;
-  padding: 8px 16px;
-  transition: all 0.2s;
+  background: linear-gradient(135deg, var(--nexus-yellow) 0%, #FDE059 100%);
+  color: #000;
+  font-weight: 700;
+  border-radius: 8px;
+  padding: 10px 20px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(252, 213, 53, 0.2);
 }
 
 .btn-primary:hover {
-  background-color: #FDE059;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(252, 213, 53, 0.3);
 }
 
 .btn-secondary {
-  background-color: #2B3139;
-  color: #EAECEF;
+  background-color: var(--nexus-border);
+  color: var(--nexus-text);
   font-weight: 600;
-  border-radius: 4px;
-  padding: 8px 16px;
+  border-radius: 8px;
+  padding: 10px 20px;
   transition: all 0.2s;
 }
 
 .btn-secondary:hover {
-  background-color: #3A404A;
-}
-
-.btn-buy {
-  background-color: var(--binance-green);
-  color: white;
-  font-weight: 600;
-  border-radius: 4px;
-}
-
-.btn-sell {
-  background-color: var(--binance-red);
-  color: white;
-  font-weight: 600;
-  border-radius: 4px;
+  background-color: #2B3139;
 }
 
 /* --- Inputs --- */
-.input-theme {
-  background-color: #2B3139;
-  border: 1px solid transparent;
+.input-premium {
+  background-color: var(--nexus-card);
+  border: 1px solid var(--nexus-border);
   color: white;
-  border-radius: 4px;
-  padding: 8px 12px;
+  border-radius: 8px;
+  padding: 12px 16px;
   outline: none;
-  transition: border-color 0.2s;
+  transition: all 0.3s;
 }
 
-.input-theme:focus {
-  border-color: var(--binance-yellow);
+.input-premium:focus {
+  border-color: var(--nexus-yellow);
+  box-shadow: 0 0 0 2px rgba(252, 213, 53, 0.1);
 }
 
 /* --- Scrollbar --- */
 ::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -116,25 +106,38 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #2B3139;
-  border-radius: 2px;
+  background: var(--nexus-border);
+  border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #474D57;
+  background: var(--nexus-subtext);
 }
 
 /* --- Animations --- */
-@keyframes slideUp {
-  from {
-    transform: translateY(100%);
-  }
-
-  to {
-    transform: translateY(0);
-  }
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-.animate-slide-up {
-  animation: slideUp 0.3s ease-out forwards;
+.animate-fadeIn {
+  animation: fadeIn 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 10px rgba(252, 213, 53, 0.1); }
+  50% { box-shadow: 0 0 20px rgba(252, 213, 53, 0.3); }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s infinite;
+}
+
+@keyframes progress {
+  0% { transform: scaleX(0); }
+  100% { transform: scaleX(1); }
+}
+
+.animate-progress {
+  animation: progress 5s linear forwards;
 }
