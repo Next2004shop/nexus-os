@@ -22,6 +22,9 @@ MAGIC_NUMBER = 234000
 # FORCED PATH - We found this is where it is running
 FORCED_MT5_PATH = r"C:\Program Files\MetaTrader 5\terminal64.exe"
 
+# WATCHLIST FOR AUTO-TRADER
+WATCHLIST = ["EURUSD", "GBPUSD", "USDJPY", "XAUUSD", "BTCUSD", "US30", "NAS100", "NVDA", "TSLA"]
+
 app = Flask(__name__)
 CORS(app)
 
@@ -77,7 +80,7 @@ def connection_manager():
                      connection_state["status"] = "CONNECTED"
                      connection_state["path"] = "Default"
             else:
-                 logger.info(f"✅ SUCCESS: Connected to MetaTrader 5 at {FORCED_MT5_PATH}")
+                 # logger.info(f"✅ SUCCESS: Connected to MetaTrader 5 at {FORCED_MT5_PATH}")
                  connection_state["status"] = "CONNECTED"
                  connection_state["path"] = FORCED_MT5_PATH
             
@@ -92,10 +95,8 @@ def connection_manager():
                         "server": account_info.server,
                         "currency": account_info.currency
                     }
-                    # logger.info(f"Account: {account_info.login} | Balance: {account_info.balance}")
                 else:
                     connection_state["status"] = "CONNECTED_NO_ACCOUNT"
-                    logger.warning("Connected but cannot read account info. Is MT5 logged in?")
                     
             connection_state["last_check"] = time.time()
             
@@ -105,8 +106,96 @@ def connection_manager():
             
         time.sleep(10) # Check every 10 seconds
 
+def auto_trader():
+    """Background thread that scans markets and executes trades."""
+    logger.info("--- NEXUS AUTO-TRADER: ENGAGED ---")
+    
+    # Wait for connection
+    while connection_state["status"] != "CONNECTED":
+        time.sleep(5)
+
+    logger.info("--- AUTO-TRADER: SCANNING MARKETS ---")
+    
+    while True:
+        try:
+            if connection_state["status"] == "CONNECTED":
+                for symbol in WATCHLIST:
+                    # 1. Check if symbol is valid/visible
+                    s_info = mt5.symbol_info(symbol)
+                    if s_info is None:
+                        # Try adding it
+                        if not mt5.symbol_select(symbol, True):
+                            continue
+                        s_info = mt5.symbol_info(symbol)
+                        if s_info is None: continue
+                    
+                    if not s_info.visible:
+                        mt5.symbol_select(symbol, True)
+
+                    # 2. Get Data
+                    rates = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_M15, 0, 100)
+                    if rates is None or len(rates) < 50:
+                        continue
+
+                    # 3. Analyze
+                    # Convert to list of dicts for brain
+                    price_data = []
+                    for rate in rates:
+                        price_data.append({
+                            "time": int(rate['time']),
+                            "open": float(rate['open']),
+                            "high": float(rate['high']),
+                            "low": float(rate['low']),
+                            "close": float(rate['close']),
+                            "tick_volume": int(rate['tick_volume'])
+                        })
+                    
+                    from nexus_brain import brain
+                    analysis = brain.analyze_market(symbol, price_data)
+                    
+                    # 4. Execute Trade if Confidence is High
+                    if analysis['confidence'] >= 85 and analysis['signal'] in ["BUY", "SELL"]:
+                        logger.info(f"🚨 SIGNAL DETECTED: {symbol} {analysis['signal']} ({analysis['confidence']}%)")
+                        
+                        # Check if we already have a position to avoid spamming
+                        positions = mt5.positions_get(symbol=symbol)
+                        if positions and len(positions) > 0:
+                            # logger.info(f"Skipping {symbol}: Position already open.")
+                            continue
+
+                        # Execute
+                        action = mt5.ORDER_TYPE_BUY if analysis['signal'] == "BUY" else mt5.ORDER_TYPE_SELL
+                        price = mt5.symbol_info_tick(symbol).ask if analysis['signal'] == "BUY" else mt5.symbol_info_tick(symbol).bid
+                        
+                        request_trade = {
+                            "action": mt5.TRADE_ACTION_DEAL,
+                            "symbol": symbol,
+                            "volume": 0.01, # Fixed lot for safety
+                            "type": action,
+                            "price": price,
+                            "deviation": DEVIATION,
+                            "magic": MAGIC_NUMBER,
+                            "comment": "Nexus AI Auto",
+                            "type_time": mt5.ORDER_TIME_GTC,
+                            "type_filling": mt5.ORDER_FILLING_IOC,
+                        }
+                        
+                        result = mt5.order_send(request_trade)
+                        if result.retcode == mt5.TRADE_RETCODE_DONE:
+                            logger.info(f"✅ TRADE EXECUTED: {symbol} {analysis['signal']}")
+                        else:
+                            logger.error(f"❌ TRADE FAILED: {result.comment}")
+
+            time.sleep(60) # Scan every 60 seconds
+
+        except Exception as e:
+            logger.error(f"Auto-Trader Error: {e}")
+            time.sleep(60)
+
 # Start connection manager in background
 threading.Thread(target=connection_manager, daemon=True).start()
+# Start auto-trader in background
+threading.Thread(target=auto_trader, daemon=True).start()
 
 # --- ROUTES ---
 

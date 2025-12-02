@@ -121,7 +121,6 @@ class NexusBrain:
         # --- COMPOSITE DECISION ---
         
         # GOLD SPECIALIZATION (XAUUSD)
-        # Gold respects levels and momentum. We prioritize momentum in trend direction.
         if symbol == "XAUUSD":
             if trend_score > 0 and momentum_score > 0:
                 signal = "BUY"
@@ -139,6 +138,44 @@ class NexusBrain:
                 signal = "SELL"
                 confidence = 75
                 reasons.append("Gold Overbought Rejection (RSI > 70)")
+
+        # CRYPTO SPECIALIZATION (BTCUSD, ETHUSD)
+        elif "BTC" in symbol or "ETH" in symbol:
+            # Crypto loves trend following. Ignore overbought/oversold in strong trends.
+            if trend_score > 0 and current['rsi'] > 50:
+                signal = "BUY"
+                confidence = 85
+                reasons.append("Crypto Momentum Breakout")
+            elif trend_score < 0 and current['rsi'] < 50:
+                signal = "SELL"
+                confidence = 85
+                reasons.append("Crypto Panic Sell-off")
+        
+        # INDICES SPECIALIZATION (US30, NAS100, SPX500)
+        elif symbol in ["US30", "NAS100", "SPX500", "DJ30"]:
+            # Indices respect moving averages heavily
+            if current['close'] > current['ema_200'] and momentum_score > 0:
+                signal = "BUY"
+                confidence = 80
+                reasons.append("Index Bull Run (Above EMA200)")
+            elif current['close'] < current['ema_200'] and momentum_score < 0:
+                signal = "SELL"
+                confidence = 80
+                reasons.append("Index Bear Market (Below EMA200)")
+
+        # STOCKS SPECIALIZATION (NVDA, TSLA, AAPL)
+        elif len(symbol) <= 4 and symbol not in ["GOLD", "OIL"]:
+            # Stocks: Volume + Trend
+            vol_spike = current['tick_volume'] > df['tick_volume'].mean() * 1.5
+            if vol_spike and trend_score > 0:
+                signal = "BUY"
+                confidence = 88
+                reasons.append("Stock Volume Spike + Trend")
+            elif vol_spike and trend_score < 0:
+                signal = "SELL"
+                confidence = 88
+                reasons.append("Stock Institutional Dump")
+        
         else:
             # General Strategy
             total_score = trend_score + momentum_score + reversion_score
