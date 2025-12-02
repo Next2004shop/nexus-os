@@ -1,44 +1,22 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import axios from 'axios';
 
-// Initialize Gemini API
-const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-const genAI = new GoogleGenerativeAI(API_KEY);
+// Bridge Configuration
+const BRIDGE_URL = '/api/bridge';
+const AUTH = { username: 'admin', password: 'securepassword' };
 
 export const aiService = {
-    // Send message to Gemini
+    // Send message to Gemini via Vertex AI Bridge
     sendMessage: async (message, history = []) => {
         try {
-            if (!API_KEY) throw new Error("API Key missing");
+            const response = await axios.post(`${BRIDGE_URL}/ai/chat`, {
+                message,
+                history
+            }, { auth: AUTH });
 
-            const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-
-            // Convert history to Gemini format
-            const chat = model.startChat({
-                history: history.map(msg => ({
-                    role: msg.role === 'user' ? 'user' : 'model',
-                    parts: [{ text: msg.text }]
-                })),
-                generationConfig: {
-                    maxOutputTokens: 1000,
-                },
-            });
-
-            const result = await chat.sendMessage(message);
-            const response = await result.response;
-            return response.text();
-
+            return response.data.response;
         } catch (error) {
             console.error("AI Service Error:", error);
-
-            if (!API_KEY) {
-                return "System Error: API Key is missing. Please check configuration.";
-            }
-
-            if (error.message?.includes('403')) {
-                return "Access Denied: API Key invalid or restricted. Please check Google AI Studio settings.";
-            }
-
-            return `Connection Error: ${error.message || "Unable to reach neural network."}`;
+            return "System: Unable to reach Nexus Brain. Please check connection.";
         }
     }
 };

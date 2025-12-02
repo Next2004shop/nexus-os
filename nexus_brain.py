@@ -102,6 +102,28 @@ class NexusBrain:
             logger.error(f"Gemini Analysis Failed: {e}")
             return None
 
+    def ask_gemini_chat(self, message, history=[]):
+        """Handles general chat with Gemini Pro via Vertex AI."""
+        if not self.vertex_active:
+            return "System: AI Brain is running in LOCAL MODE. Cloud connection unavailable."
+
+        try:
+            # Construct prompt from history
+            context = "You are Nesa, an advanced AI Trading Assistant created by Nexus AI. You have access to real-time market data and deep financial knowledge. Be concise, professional, and confident."
+            
+            full_prompt = f"{context}\n\n"
+            for msg in history:
+                role = "User" if msg['role'] == 'user' else "Model"
+                full_prompt += f"{role}: {msg['text']}\n"
+            
+            full_prompt += f"User: {message}\nModel:"
+
+            response = self.model.generate_content(full_prompt)
+            return response.text
+        except Exception as e:
+            logger.error(f"Gemini Chat Error: {e}")
+            return "System: Error communicating with Vertex AI."
+
     def analyze_market(self, symbol, price_data):
         """
         Analyzes market data using advanced technical indicators and adaptive logic.

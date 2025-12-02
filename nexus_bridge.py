@@ -22,7 +22,6 @@ MAGIC_NUMBER = 234000
 # FORCED PATH - We found this is where it is running
 FORCED_MT5_PATH = r"C:\Program Files\MetaTrader 5\terminal64.exe"
 
-# WATCHLIST FOR AUTO-TRADER
 # WATCHLIST FOR AUTO-TRADER (Global)
 WATCHLIST = [
     "EURUSD", "GBPUSD", "USDJPY", "XAUUSD", "XAGUSD", "BTCUSD", "ETHUSD", 
@@ -270,6 +269,22 @@ def place_trade():
         return jsonify({"error": "Trade Failed", "retcode": result.retcode, "comment": result.comment}), 400
         
     return jsonify({"status": "Trade Executed", "ticket": result.order})
+
+@app.route('/ai/chat', methods=['POST'])
+@auth.login_required
+def ai_chat():
+    """General AI Chat Endpoint"""
+    try:
+        from nexus_brain import brain
+        data = request.json
+        message = data.get('message', '')
+        history = data.get('history', [])
+        
+        response_text = brain.ask_gemini_chat(message, history)
+        return jsonify({"response": response_text})
+    except Exception as e:
+        logger.error(f"Chat Error: {e}")
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/ai/analyze', methods=['POST'])
 @auth.login_required
