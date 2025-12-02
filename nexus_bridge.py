@@ -6,6 +6,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import logging
 import time
 import pandas as pd
+import threading
 from nexus_security import security
 
 # --- LOGGING ---
@@ -44,16 +45,24 @@ def verify_password(username, password):
 # --- INITIALIZATION ---
 logger.info("--- NEXUS BRIDGE: INITIALIZING ---")
 
-if not mt5.initialize(path=MT5_PATH):
-    logger.error("Initialization failed. Error: %s", mt5.last_error())
-    logger.warning("Continuing in OFFLINE mode...")
-else:
-    logger.info("Connected to MetaTrader 5")
-    account_info = mt5.account_info()
-    if account_info:
-        logger.info(f"User: {account_info.login}, Balance: {account_info.balance} {account_info.currency}, Server: {account_info.server}")
-    else:
-        logger.warning("Could not retrieve account info. Ensure MT5 is open and logged in.")
+def connect_mt5():
+    logger.info("--- NEXUS BRIDGE: ATTEMPTING CONNECTION ---")
+    try:
+        if not mt5.initialize(path=MT5_PATH):
+            logger.error("Initialization failed. Error: %s", mt5.last_error())
+            logger.warning("Running in OFFLINE mode...")
+        else:
+            logger.info("Connected to MetaTrader 5")
+            account_info = mt5.account_info()
+            if account_info:
+                logger.info(f"User: {account_info.login}, Balance: {account_info.balance} {account_info.currency}, Server: {account_info.server}")
+            else:
+                logger.warning("Could not retrieve account info. Ensure MT5 is open and logged in.")
+    except Exception as e:
+        logger.error(f"Connection Error: {e}")
+
+# Start connection in background to not block Flask
+threading.Thread(target=connect_mt5, daemon=True).start()
 
 # --- ROUTES ---
 
@@ -61,18 +70,21 @@ else:
 @auth.login_required
 def status():
     """Checks if the bridge is alive and gets account balance"""
-    if not mt5.initialize(path=MT5_PATH):
-        return jsonify({"status": "ERROR", "msg": "MT5 Disconnected"})
+    # Check if MT5 is initialized (non-blocking check if possible, or just try-catch)
+    # Since we run initialize in background, we can check mt5.terminal_info() or similar
+    try:
+        info = mt5.account_info()
+        if info:
+            return jsonify({
+                "status": "ONLINE",
+                "balance": info.balance,
+                "equity": info.equity,
+                "profit": info.profit
+            })
+    except:
+        pass
         
-    info = mt5.account_info()
-    if info:
-        return jsonify({
-            "status": "ONLINE",
-            "balance": info.balance,
-            "equity": info.equity,
-            "profit": info.profit
-        })
-    return jsonify({"status": "ERROR", "msg": "MT5 Disconnected"})
+    return jsonify({"status": "OFFLINE", "msg": "MT5 Disconnected or Initializing"})
 
 @app.route('/trade', methods=['POST'])
 @auth.login_required
