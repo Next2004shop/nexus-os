@@ -106,7 +106,7 @@ if (cluster.isPrimary) {
     app.use('/api/bridge', (req, res) => {
         console.log(`[GATEWAY] Proxying request: ${req.method} ${req.url} -> Python Bridge`);
         // req.url is already relative to the mount point in app.use
-        apiProxy.web(req, res, { target: 'http://127.0.0.1:5000' }, (e) => {
+        apiProxy.web(req, res, { target: 'http://127.0.0.1:5001' }, (e) => {
             console.error("[GATEWAY] Bridge Error:", e.message);
             if (!res.headersSent) {
                 res.status(502).json({ error: "Nexus Bridge Unreachable. Is the Python Core running?" });

@@ -7,6 +7,7 @@ import logging
 import time
 import pandas as pd
 import threading
+import os
 from nexus_security import security
 
 # --- LOGGING ---
@@ -14,18 +15,27 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger("NexusBridge")
 
 # --- CONFIGURATION ---
-SERVER_PORT = 5000
+SERVER_PORT = 5001
 DEVIATION = 20
 MAGIC_NUMBER = 234000
-MT5_PATH = r"C:\Program Files\MetaTrader 5\terminal64.exe"
+
+# FORCED PATH - We found this is where it is running
+FORCED_MT5_PATH = r"C:\Program Files\MetaTrader 5\terminal64.exe"
 
 app = Flask(__name__)
 CORS(app)
 
+# Global State
+connection_state = {
+    "status": "DISCONNECTED",
+    "path": None,
+    "account": None,
+    "last_check": 0
+}
+
 # --- SECURITY MIDDLEWARE ---
 @app.before_request
 def check_security():
-    # Skip security check for local loopback if needed, but security module handles whitelist
     if not security.check_request(request.remote_addr, request.path):
         abort(403, description="Security Alert: Request Blocked by Nexus Defense Protocol")
 
@@ -39,57 +49,92 @@ users = {
 def verify_password(username, password):
     if username in users and check_password_hash(users.get(username), password):
         return username
-    # Record failed login attempt
     security.record_failed_login(request.remote_addr)
 
-# --- INITIALIZATION ---
-logger.info("--- NEXUS BRIDGE: INITIALIZING ---")
+# --- CONNECTION LOGIC ---
 
-def connect_mt5():
-    logger.info("--- NEXUS BRIDGE: ATTEMPTING CONNECTION ---")
-    try:
-        if not mt5.initialize(path=MT5_PATH):
-            logger.error("Initialization failed. Error: %s", mt5.last_error())
-            logger.warning("Running in OFFLINE mode...")
-        else:
-            logger.info("Connected to MetaTrader 5")
-            account_info = mt5.account_info()
-            if account_info:
-                logger.info(f"User: {account_info.login}, Balance: {account_info.balance} {account_info.currency}, Server: {account_info.server}")
+def connection_manager():
+    """Background thread to maintain MT5 connection."""
+    global connection_state
+    
+    logger.info("--- NEXUS BRIDGE: CONNECTION MANAGER STARTED ---")
+    logger.info(f"Targeting MT5 at: {FORCED_MT5_PATH}")
+    
+    while True:
+        try:
+            # Check if connected
+            if not mt5.initialize(path=FORCED_MT5_PATH):
+                 # Try without path if specific path fails, or retry
+                 err = mt5.last_error()
+                 logger.error(f"Initialize failed with path {FORCED_MT5_PATH}. Error: {err}")
+                 
+                 # Retry without path (uses registry)
+                 if not mt5.initialize():
+                     logger.error(f"Initialize (default) failed. Error: {mt5.last_error()}")
+                     connection_state["status"] = "DISCONNECTED"
+                 else:
+                     logger.info("✅ SUCCESS: Connected to MetaTrader 5 (Default Path)")
+                     connection_state["status"] = "CONNECTED"
+                     connection_state["path"] = "Default"
             else:
-                logger.warning("Could not retrieve account info. Ensure MT5 is open and logged in.")
-    except Exception as e:
-        logger.error(f"Connection Error: {e}")
+                 logger.info(f"✅ SUCCESS: Connected to MetaTrader 5 at {FORCED_MT5_PATH}")
+                 connection_state["status"] = "CONNECTED"
+                 connection_state["path"] = FORCED_MT5_PATH
+            
+            # Update Account Info if connected
+            if connection_state["status"] == "CONNECTED":
+                account_info = mt5.account_info()
+                if account_info:
+                    connection_state["account"] = {
+                        "login": account_info.login,
+                        "balance": account_info.balance,
+                        "equity": account_info.equity,
+                        "server": account_info.server,
+                        "currency": account_info.currency
+                    }
+                    # logger.info(f"Account: {account_info.login} | Balance: {account_info.balance}")
+                else:
+                    connection_state["status"] = "CONNECTED_NO_ACCOUNT"
+                    logger.warning("Connected but cannot read account info. Is MT5 logged in?")
+                    
+            connection_state["last_check"] = time.time()
+            
+        except Exception as e:
+            logger.error(f"Connection Manager Error: {e}")
+            connection_state["status"] = "ERROR"
+            
+        time.sleep(10) # Check every 10 seconds
 
-# Start connection in background to not block Flask
-threading.Thread(target=connect_mt5, daemon=True).start()
+# Start connection manager in background
+threading.Thread(target=connection_manager, daemon=True).start()
 
 # --- ROUTES ---
 
 @app.route('/status', methods=['GET'])
 @auth.login_required
 def status():
-    """Checks if the bridge is alive and gets account balance"""
-    # Check if MT5 is initialized (non-blocking check if possible, or just try-catch)
-    # Since we run initialize in background, we can check mt5.terminal_info() or similar
-    try:
-        info = mt5.account_info()
-        if info:
-            return jsonify({
-                "status": "ONLINE",
-                "balance": info.balance,
-                "equity": info.equity,
-                "profit": info.profit
-            })
-    except:
-        pass
+    """Returns detailed connection status"""
+    global connection_state
+    
+    response = {
+        "bridge_status": "ONLINE",
+        "mt5_status": connection_state["status"],
+        "mt5_path": connection_state["path"],
+        "timestamp": time.time()
+    }
+    
+    if connection_state["account"]:
+        response.update(connection_state["account"])
         
-    return jsonify({"status": "OFFLINE", "msg": "MT5 Disconnected or Initializing"})
+    return jsonify(response)
 
 @app.route('/trade', methods=['POST'])
 @auth.login_required
 def place_trade():
     """Executes a BUY or SELL order"""
+    if connection_state["status"] != "CONNECTED":
+        return jsonify({"error": "MT5 Not Connected", "status": connection_state["status"]}), 503
+
     data = request.json
     symbol = data.get('symbol', 'EURUSD')
     action_type = data.get('type', 'BUY')
@@ -124,7 +169,13 @@ def place_trade():
         "type_time": mt5.ORDER_TIME_GTC,
         "type_filling": mt5.ORDER_FILLING_IOC,
     }
-    return jsonify({"status": "Trade Simulated (MT5 Offline)"})
+    
+    result = mt5.order_send(request_data)
+    
+    if result.retcode != mt5.TRADE_RETCODE_DONE:
+        return jsonify({"error": "Trade Failed", "retcode": result.retcode, "comment": result.comment}), 400
+        
+    return jsonify({"status": "Trade Executed", "ticket": result.order})
 
 @app.route('/ai/analyze', methods=['POST'])
 @auth.login_required
@@ -144,13 +195,14 @@ def analyze_symbol():
         }
         timeframe = tf_map.get(timeframe_str, mt5.TIMEFRAME_M15)
 
-        # Fetch recent data (100 candles)
-        rates = mt5.copy_rates_from_pos(symbol, timeframe, 0, 100)
+        rates = None
+        if connection_state["status"] == "CONNECTED":
+            # Fetch recent data (100 candles)
+            rates = mt5.copy_rates_from_pos(symbol, timeframe, 0, 100)
         
         if rates is None or len(rates) == 0:
-             # Fallback for offline mode testing if MT5 is not connected
-             # Create mock data for testing "Legendary" logic if real data fails
-             logger.warning(f"No data for {symbol} (MT5 Offline?). Using Mock Data.")
+             # Fallback for offline mode testing
+             logger.warning(f"No data for {symbol} (MT5 Offline/Unavailable). Using Mock Data.")
              import numpy as np
              mock_data = []
              base_price = 2000.0 if symbol == "XAUUSD" else 1.1000
@@ -160,7 +212,7 @@ def analyze_symbol():
                      "open": base_price,
                      "high": base_price + 5,
                      "low": base_price - 5,
-                     "close": base_price + (np.sin(i/10) * 10), # Sine wave for trend
+                     "close": base_price + (np.sin(i/10) * 10),
                      "tick_volume": 1000
                  })
              result = brain.analyze_market(symbol, mock_data)
@@ -190,6 +242,9 @@ def analyze_symbol():
 @auth.login_required
 def get_positions():
     """Fetches all open positions"""
+    if connection_state["status"] != "CONNECTED":
+        return jsonify({"error": "MT5 Not Connected"}), 503
+        
     positions = mt5.positions_get()
     if positions is None:
         return jsonify({"error": "Could not retrieve positions"}), 500
@@ -209,6 +264,9 @@ def get_positions():
 @auth.login_required
 def get_history():
     """Fetches trade history for the current account"""
+    if connection_state["status"] != "CONNECTED":
+        return jsonify({"error": "MT5 Not Connected"}), 503
+
     start_time = request.args.get('start', int(time.time()) - 86400)
     end_time = request.args.get('end', int(time.time()))
 
@@ -228,5 +286,5 @@ def get_history():
     return jsonify(history_list)
 
 if __name__ == '__main__':
-    logger.info("🚀 NEXUS BRIDGE LISTENING ON PORT %d...", SERVER_PORT)
-    app.run(host='0.0.0.0', port=SERVER_PORT)
+    logger.info("🚀 NEXUS BRIDGE UPGRADED (v2.0) LISTENING ON PORT %d...", SERVER_PORT)
+    app.run(host='0.0.0.0', port=SERVER_PORT, threaded=True)
