@@ -92,16 +92,12 @@ export default function App() {
                   <Routes>
                      <Route path="/" element={<Navigate to="/trade" replace />} />
                      <Route path="/trade" element={<TradePage />} />
-                     {/* Stocks and Commodities routes removed */}
+                     <Route path="/stocks" element={<StocksPage />} />
+                     <Route path="/commodities" element={<CommoditiesPage />} />
                      <Route path="/ai-bot" element={<AIBotPage />} />
                      <Route path="/wallet" element={<WalletPage />} />
-                     <Route path="/services" element={<ServicesPage />} />
-                     <Route path="/banking" element={<BankingPage />} />
-                     <Route path="/tax" element={<TaxPage />} />
                      <Route path="/notifications" element={<NotificationsPage />} />
                      <Route path="/profile" element={<ProfilePage />} />
-                     <Route path="/security" element={<SecurityPage />} />
-                     <Route path="/investments" element={<InvestmentsPage />} />
                      <Route path="/downloads" element={<DownloadPage />} />
                      <Route path="*" element={<Navigate to="/trade" replace />} />
                   </Routes>

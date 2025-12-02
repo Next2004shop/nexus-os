@@ -1,108 +1,136 @@
-import React, { useState, useEffect } from 'react';
-import { Search, Layers, Loader, Droplets } from 'lucide-react';
-import { marketData } from '../services/marketData';
+import React from 'react';
+import { Coins, TrendingUp, TrendingDown, Droplets, ArrowRight, BarChart3, Search, Loader } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-const CommodityItem = ({ item, onClick }) => {
-    if (!item || typeof item.price !== 'number') return null;
+const COMMODITY_DATA = [
+    {
+        id: 'xau',
+        symbol: 'XAUUSD',
+        name: 'Gold Spot / US Dollar',
+        price: 2345.80,
+        change: 1.25,
+        color: 'text-nexus-gold',
+        bgColor: 'bg-nexus-gold/10',
+        borderColor: 'border-nexus-gold/20',
+        description: 'Safe haven asset. High liquidity.'
+    },
+    {
+        id: 'xag',
+        symbol: 'XAGUSD',
+        name: 'Silver Spot / US Dollar',
+        price: 28.45,
+        change: 2.10,
+        color: 'text-zinc-300',
+        bgColor: 'bg-zinc-500/10',
+        borderColor: 'border-zinc-500/20',
+        description: 'Industrial and precious metal.'
+    },
+    {
+        id: 'wti',
+        symbol: 'USOIL',
+        name: 'WTI Crude Oil',
+        price: 86.50,
+        change: -0.45,
+        color: 'text-orange-500',
+        bgColor: 'bg-orange-500/10',
+        borderColor: 'border-orange-500/20',
+        description: 'Global energy benchmark.'
+    },
+    {
+        id: 'ng',
+        symbol: 'NGAS',
+        name: 'Natural Gas',
+        price: 1.85,
+        change: -1.20,
+        color: 'text-blue-400',
+        bgColor: 'bg-blue-500/10',
+        borderColor: 'border-blue-500/20',
+        description: 'Clean energy transition fuel.'
+    }
+];
 
-    return (
-        <div onClick={() => onClick(item)} className="flex justify-between items-center py-4 border-b border-nexus-border last:border-0 cursor-pointer hover:bg-white/5 transition-colors px-4">
-            <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-nexus-yellow/10 flex items-center justify-center text-nexus-yellow font-bold text-xs">
-                    {item.symbol.includes('XAU') ? 'Au' : item.symbol.includes('XAG') ? 'Ag' : item.symbol[0]}
+const CommodityCard = ({ item, onClick }) => (
+    <div
+        onClick={() => onClick(item)}
+        className="relative overflow-hidden bg-[#13151a] border border-white/5 rounded-2xl p-6 mb-4 cursor-pointer group hover:border-white/20 transition-all"
+    >
+        {/* Background Glow */}
+        <div className={`absolute top-0 right-0 w-32 h-32 rounded-full blur-[60px] opacity-10 ${item.bgColor.replace('/10', '')}`}></div>
+
+        <div className="relative z-10 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+                <div className={`w-12 h-12 rounded-xl ${item.bgColor} ${item.borderColor} border flex items-center justify-center`}>
+                    {item.symbol.includes('OIL') || item.symbol.includes('GAS') ? (
+                        <Droplets className={item.color} size={24} />
+                    ) : (
+                        <Coins className={item.color} size={24} />
+                    )}
                 </div>
                 <div>
-                    <div className="font-bold text-nexus-text text-sm">{item.symbol}</div>
-                    <div className="text-xs text-nexus-subtext">{item.name}</div>
+                    <h3 className="text-xl font-black text-white tracking-wide">{item.symbol}</h3>
+                    <p className="text-sm text-nexus-subtext">{item.name}</p>
                 </div>
             </div>
+
             <div className="text-right">
-                <div className="text-nexus-text font-medium text-sm font-mono-numbers">
-                    ${item.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                <div className="text-2xl font-mono font-medium text-white">
+                    ${item.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </div>
-                <div className={`text-xs font-bold ${item.change >= 0 ? 'text-nexus-green' : 'text-nexus-red'}`}>
-                    {item.change >= 0 ? '+' : ''}{item.change?.toFixed(2)}%
+                <div className={`flex items-center justify-end gap-1 text-sm font-bold ${item.change >= 0 ? 'text-nexus-green' : 'text-nexus-red'}`}>
+                    {item.change >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+                    {Math.abs(item.change)}%
                 </div>
             </div>
         </div>
-    );
-};
+
+        {/* Footer / Action */}
+        <div className="mt-6 flex items-center justify-between border-t border-white/5 pt-4">
+            <p className="text-xs text-zinc-500">{item.description}</p>
+            <div className="flex items-center gap-2 text-sm font-bold text-white group-hover:text-nexus-blue transition-colors">
+                Trade Now <ArrowRight size={16} />
+            </div>
+        </div>
+    </div>
+);
 
 export const CommoditiesPage = () => {
-    const [data, setData] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [search, setSearch] = useState('');
     const navigate = useNavigate();
 
-    useEffect(() => {
-        const fetchData = async () => {
-            setLoading(true);
-            try {
-                const result = await marketData.getCommodities();
-                // Defensive check
-                setData(Array.isArray(result) ? result : []);
-            } catch (error) {
-                console.error("Failed to fetch commodities", error);
-                setData([]);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchData();
-        const interval = setInterval(fetchData, 15000); // Refresh every 15s
-        return () => clearInterval(interval);
-    }, []);
-
-    const filteredData = data.filter(item =>
-        (item.symbol?.toLowerCase() || '').includes(search.toLowerCase()) ||
-        (item.name?.toLowerCase() || '').includes(search.toLowerCase())
-    );
-
     const handleItemClick = (item) => {
-        navigate('/trade', { state: { asset: item } });
+        navigate('/trade', { state: { asset: { ...item, type: 'commodity' } } });
     };
 
     return (
-        <div className="bg-nexus-black min-h-screen pb-24 animate-fadeIn">
-            {/* HEADER */}
-            <div className="p-4 pt-6">
-                <h1 className="text-2xl font-black text-white flex items-center gap-2 mb-1">
-                    <Layers className="text-nexus-yellow" /> Commodities
+        <div className="min-h-screen bg-nexus-black pb-24 animate-fadeIn">
+            {/* HERO */}
+            <div className="relative bg-[#0f1115] border-b border-white/5 p-8">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-nexus-gold via-orange-500 to-nexus-black"></div>
+
+                <h1 className="text-3xl font-black text-white mb-2 flex items-center gap-3">
+                    <Coins className="text-nexus-gold" size={32} />
+                    Commodities <span className="text-nexus-gold">Exchange</span>
                 </h1>
-                <p className="text-nexus-subtext text-sm">Gold, Silver, Oil & Energy</p>
+                <p className="text-nexus-subtext max-w-lg">
+                    Direct access to global energy and precious metal markets.
+                    Trade Gold, Silver, and Oil with leverage up to 1:500.
+                </p>
             </div>
 
-            {/* SEARCH */}
-            <div className="px-4 mb-4">
-                <div className="bg-nexus-card border border-nexus-border rounded-xl flex items-center px-4 py-3 gap-2">
-                    <Search size={18} className="text-nexus-subtext" />
-                    <input
-                        type="text"
-                        placeholder="Search Gold, Oil..."
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        className="bg-transparent text-sm text-white outline-none w-full placeholder-nexus-subtext"
-                    />
+            {/* CONTENT */}
+            <div className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                        <BarChart3 className="text-nexus-subtext" size={18} />
+                        Live Markets
+                    </h2>
+                    <span className="text-xs font-mono text-nexus-green animate-pulse">● MARKET OPEN</span>
                 </div>
-            </div>
 
-            {/* LIST */}
-            <div className="bg-nexus-card border-y border-nexus-border">
-                {loading ? (
-                    <div className="flex justify-center py-10">
-                        <Loader className="animate-spin text-nexus-yellow" />
-                    </div>
-                ) : filteredData.length > 0 ? (
-                    filteredData.map((item, index) => (
-                        <CommodityItem key={index} item={item} onClick={handleItemClick} />
-                    ))
-                ) : (
-                    <div className="text-center py-10 text-nexus-subtext">
-                        No commodities found.
-                    </div>
-                )}
+                <div className="space-y-2">
+                    {COMMODITY_DATA.map(item => (
+                        <CommodityCard key={item.id} item={item} onClick={handleItemClick} />
+                    ))}
+                </div>
             </div>
         </div>
     );
