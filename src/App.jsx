@@ -10,13 +10,13 @@ import TradePage from './pages/TradePage';
 import { StocksPage } from './pages/StocksPage';
 import { CommoditiesPage } from './pages/CommoditiesPage';
 import AIBotPage from './pages/AIBotPage';
-import { WalletPage } from './pages/WalletPage';
+import { ServicesPage } from './pages/ServicesPage';
 import BankingPage from './pages/BankingPage';
+import { TaxPage } from './pages/TaxPage';
 import { NotificationsPage } from './pages/NotificationsPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { SecurityPage } from './pages/SecurityPage';
 import { InvestmentsPage } from './pages/InvestmentsPage';
-import { TaxPage } from './pages/TaxPage';
 import { DownloadPage } from './pages/DownloadPage';
 import { NesaAgent } from './components/agents/NesaAgent';
 
@@ -85,12 +85,13 @@ export default function App() {
                      <Route path="/commodities" element={<CommoditiesPage />} />
                      <Route path="/ai-bot" element={<AIBotPage />} />
                      <Route path="/wallet" element={<WalletPage />} />
+                     <Route path="/services" element={<ServicesPage />} />
                      <Route path="/banking" element={<BankingPage />} />
+                     <Route path="/tax" element={<TaxPage />} />
                      <Route path="/notifications" element={<NotificationsPage />} />
                      <Route path="/profile" element={<ProfilePage />} />
                      <Route path="/security" element={<SecurityPage />} />
                      <Route path="/investments" element={<InvestmentsPage />} />
-                     <Route path="/tax" element={<TaxPage />} />
                      <Route path="/downloads" element={<DownloadPage />} />
                   </Routes>
                </div>

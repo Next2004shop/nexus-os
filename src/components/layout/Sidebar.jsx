@@ -1,5 +1,4 @@
-import React from 'react';
-import { Terminal, Wallet, Server, PieChart, Globe, Shield, Home, Bot, Download } from 'lucide-react';
+import { Terminal, Wallet, Landmark, PieChart, Globe, Shield, Users, Bot, Download, Scale } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import logo from '../../assets/logo.png';
 
@@ -13,10 +12,11 @@ export const Sidebar = () => {
         { id: 'stocks', path: '/stocks', icon: Globe },
         { id: 'ai-bot', path: '/ai-bot', icon: Bot },
         { id: 'wallet', path: '/wallet', icon: Wallet },
-        { id: 'banking', path: '/banking', icon: Server }, // Using Server icon for Banking for now
+        { id: 'services', path: '/services', icon: Users }, // New Services Page
+        { id: 'banking', path: '/banking', icon: Landmark }, // New Banking Page
+        { id: 'tax', path: '/tax', icon: Scale }, // New Tax Page
         { id: 'security', path: '/security', icon: Shield },
         { id: 'investments', path: '/investments', icon: PieChart },
-        { id: 'tax', path: '/tax', icon: Server },
         { id: 'downloads', path: '/downloads', icon: Download }
     ];
 

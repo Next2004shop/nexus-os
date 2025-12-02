@@ -1,115 +1,119 @@
 import React, { useState } from 'react';
-import { Building, CreditCard, Globe, Shield, ArrowRight, Plus } from 'lucide-react';
-import { useToast } from '../context/ToastContext';
-import { userRepository } from '../services/userRepository';
-import { useAuth } from '../context/AuthContext';
+import { Landmark, Eye, EyeOff, FileText, Download, Lock, ShieldCheck, PieChart } from 'lucide-react';
 
-const BankingPage = () => {
-    const [showAddAccount, setShowAddAccount] = useState(false);
-    const { showToast } = useToast();
-    const { currentUser } = useAuth();
+export default function BankingPage() {
+    const [bankMode, setBankMode] = useState(false);
 
-    const handleAddAccount = () => {
-        showToast("Connecting to SWIFT network...", "info");
-        setTimeout(() => {
-            showToast("Offshore Account Linked Successfully", "success");
-            setShowAddAccount(false);
-        }, 2000);
+    // Data that changes based on Bank Mode
+    const financialData = {
+        totalAssets: bankMode ? 1500000.00 : 12450000.00, // Hide crypto/offshore in Bank Mode
+        liabilities: 25000.00,
+        monthlyRevenue: bankMode ? 45000.00 : 185000.00, // Show only "clean" revenue
+        netIncome: bankMode ? 32000.00 : 145000.00
     };
 
     return (
-        <div className="p-6 animate-fadeIn pb-24 md:pb-6">
-            <div className="flex justify-between items-end mb-8">
+        <div className="p-6 space-y-6 animate-fadeIn pb-24 md:pb-6">
+            {/* HEADER */}
+            <div className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-3xl font-bold text-white mb-1">Offshore Banking</h1>
-                    <p className="text-nexus-subtext text-sm">Manage international liquidity and assets.</p>
+                    <h1 className="text-2xl font-bold text-white flex items-center gap-3">
+                        <Landmark className="text-nexus-yellow" /> Corporate Banking
+                    </h1>
+                    <p className="text-nexus-subtext">Official Book of Accounts & Statements</p>
                 </div>
+
+                {/* BANK MODE TOGGLE */}
                 <button
-                    onClick={() => setShowAddAccount(true)}
-                    className="bg-nexus-blue/10 text-nexus-blue px-4 py-2 rounded-lg text-sm font-bold hover:bg-nexus-blue/20 transition-colors flex items-center gap-2"
+                    onClick={() => setBankMode(!bankMode)}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all font-bold ${bankMode
+                            ? 'bg-white text-black border-white hover:bg-gray-200'
+                            : 'bg-nexus-black text-nexus-subtext border-white/10 hover:text-white'
+                        }`}
                 >
-                    <Plus size={16} /> Link Account
+                    {bankMode ? <Eye size={18} /> : <EyeOff size={18} />}
+                    {bankMode ? 'BANK MODE: ON' : 'BANK MODE: OFF'}
                 </button>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* MAIN ACCOUNT CARD */}
-                <div className="bg-gradient-to-br from-[#0f172a] to-[#1e293b] border border-white/10 rounded-2xl p-8 relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                        <Globe size={120} />
-                    </div>
-                    <div className="relative z-10">
-                        <div className="flex justify-between items-start mb-8">
-                            <div className="flex items-center gap-2">
-                                <Shield className="text-nexus-green" size={20} />
-                                <span className="text-nexus-green font-bold text-xs tracking-wider">ENCRYPTED & INSURED</span>
-                            </div>
-                            <img src="/logo.jpg" className="w-8 h-8 rounded-full opacity-50" alt="Logo" />
-                        </div>
-                        <div className="mb-8">
-                            <div className="text-nexus-subtext text-sm mb-1">Total Liquidity (USD)</div>
-                            <div className="text-4xl font-bold text-white font-mono">$124,592.00</div>
-                        </div>
-                        <div className="flex gap-4">
-                            <div className="flex-1">
-                                <div className="text-[10px] text-nexus-subtext uppercase font-bold">Account Holder</div>
-                                <div className="text-white font-medium">{currentUser?.displayName || 'Commander'}</div>
-                            </div>
-                            <div className="flex-1">
-                                <div className="text-[10px] text-nexus-subtext uppercase font-bold">IBAN</div>
-                                <div className="text-white font-mono text-sm">CH89 0076 2099 8812</div>
-                            </div>
-                        </div>
+            {bankMode && (
+                <div className="bg-white/10 border border-white/20 p-4 rounded-xl flex items-center gap-3 animate-fadeIn">
+                    <ShieldCheck size={24} className="text-white" />
+                    <div>
+                        <h3 className="font-bold text-white">Sanitized View Active</h3>
+                        <p className="text-xs text-white/70">
+                            Displaying only verified, tax-compliant income sources. Crypto wallets and offshore assets are hidden.
+                            Safe for loan applications and bank audits.
+                        </p>
                     </div>
                 </div>
+            )}
 
-                {/* ACTIONS */}
-                <div className="space-y-4">
-                    {/* MPESA */}
-                    <div className="bg-nexus-card border border-nexus-border p-6 rounded-xl hover:border-nexus-green/50 transition-all cursor-pointer group" onClick={() => showToast("MPESA Paybill: 247247 (Enter Account No)", "info")}>
-                        <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-green-500/10 rounded-full flex items-center justify-center text-green-500 group-hover:scale-110 transition-transform">
-                                <Building size={24} />
+            {/* FINANCIAL OVERVIEW */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="bg-card border border-white/5 p-6 rounded-xl">
+                    <h3 className="text-nexus-subtext text-xs uppercase font-bold">Total Assets</h3>
+                    <p className="text-2xl font-mono text-white mt-2">${financialData.totalAssets.toLocaleString()}</p>
+                </div>
+                <div className="bg-card border border-white/5 p-6 rounded-xl">
+                    <h3 className="text-nexus-subtext text-xs uppercase font-bold">Liabilities</h3>
+                    <p className="text-2xl font-mono text-nexus-red mt-2">${financialData.liabilities.toLocaleString()}</p>
+                </div>
+                <div className="bg-card border border-white/5 p-6 rounded-xl">
+                    <h3 className="text-nexus-subtext text-xs uppercase font-bold">Monthly Revenue</h3>
+                    <p className="text-2xl font-mono text-nexus-green mt-2">+${financialData.monthlyRevenue.toLocaleString()}</p>
+                </div>
+                <div className="bg-card border border-white/5 p-6 rounded-xl">
+                    <h3 className="text-nexus-subtext text-xs uppercase font-bold">Net Income</h3>
+                    <p className="text-2xl font-mono text-white mt-2">${financialData.netIncome.toLocaleString()}</p>
+                </div>
+            </div>
+
+            {/* STATEMENTS VAULT */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="bg-card border border-white/5 rounded-xl p-6">
+                    <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                        <FileText size={20} className="text-nexus-accent" /> Financial Statements
+                    </h3>
+                    <div className="space-y-3">
+                        {['Balance Sheet (Nov 2025)', 'Profit & Loss (Q3 2025)', 'Cash Flow Statement', 'Tax Returns (2024)'].map((doc, i) => (
+                            <div key={i} className="flex items-center justify-between p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-colors cursor-pointer group">
+                                <div className="flex items-center gap-3">
+                                    <FileText size={18} className="text-nexus-subtext group-hover:text-white" />
+                                    <span className="text-sm text-nexus-subtext group-hover:text-white">{doc}</span>
+                                </div>
+                                <Download size={16} className="text-nexus-subtext group-hover:text-nexus-accent" />
                             </div>
-                            <div className="flex-1">
-                                <h3 className="text-white font-bold">MPESA Mobile Money</h3>
-                                <p className="text-nexus-subtext text-xs">Instant Deposit via Paybill 247247</p>
-                            </div>
-                            <ArrowRight size={20} className="text-nexus-subtext group-hover:text-white group-hover:translate-x-1 transition-all" />
-                        </div>
+                        ))}
                     </div>
+                    <button className="w-full mt-6 btn-secondary flex items-center justify-center gap-2">
+                        GENERATE NEW REPORT
+                    </button>
+                </div>
 
-                    {/* PAYPAL */}
-                    <div className="bg-nexus-card border border-nexus-border p-6 rounded-xl hover:border-blue-500/50 transition-all cursor-pointer group" onClick={() => showToast("Redirecting to PayPal Secure Gateway...", "info")}>
-                        <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-blue-500/10 rounded-full flex items-center justify-center text-blue-500 group-hover:scale-110 transition-transform">
-                                <Globe size={24} />
-                            </div>
-                            <div className="flex-1">
-                                <h3 className="text-white font-bold">PayPal</h3>
-                                <p className="text-nexus-subtext text-xs">Link account for international transfers</p>
-                            </div>
-                            <ArrowRight size={20} className="text-nexus-subtext group-hover:text-white group-hover:translate-x-1 transition-all" />
-                        </div>
+                <div className="bg-card border border-white/5 rounded-xl p-6 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-6 opacity-5">
+                        <Lock size={120} />
                     </div>
+                    <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                        <Lock size={20} className="text-nexus-yellow" /> Secure Vault
+                    </h3>
+                    <p className="text-sm text-nexus-subtext mb-6">
+                        Encrypted storage for sensitive documents. Access requires biometric authentication (Level 10).
+                    </p>
 
-                    {/* BINANCE / CRYPTO */}
-                    <div className="bg-nexus-card border border-nexus-border p-6 rounded-xl hover:border-yellow-500/50 transition-all cursor-pointer group" onClick={() => showToast("Binance Connect: Address Copied", "success")}>
-                        <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-yellow-500/10 rounded-full flex items-center justify-center text-yellow-500 group-hover:scale-110 transition-transform">
-                                <CreditCard size={24} />
-                            </div>
-                            <div className="flex-1">
-                                <h3 className="text-white font-bold">Binance / Crypto</h3>
-                                <p className="text-nexus-subtext text-xs">Deposit USDT, BTC, ETH (TRC20/ERC20)</p>
-                            </div>
-                            <ArrowRight size={20} className="text-nexus-subtext group-hover:text-white group-hover:translate-x-1 transition-all" />
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="p-4 bg-nexus-black border border-nexus-yellow/20 rounded-lg flex flex-col items-center justify-center gap-2 hover:border-nexus-yellow/50 transition-colors cursor-pointer">
+                            <Lock size={24} className="text-nexus-yellow" />
+                            <span className="text-xs font-bold text-nexus-yellow">PRIVATE KEYS</span>
+                        </div>
+                        <div className="p-4 bg-nexus-black border border-nexus-yellow/20 rounded-lg flex flex-col items-center justify-center gap-2 hover:border-nexus-yellow/50 transition-colors cursor-pointer">
+                            <FileText size={24} className="text-nexus-yellow" />
+                            <span className="text-xs font-bold text-nexus-yellow">DEEDS & TITLES</span>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     );
-};
-
-export default BankingPage;
+}
