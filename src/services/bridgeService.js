@@ -65,5 +65,16 @@ export const bridgeService = {
             console.error("Bridge AI Error:", error);
             return null;
         }
+    },
+
+    // Get Real-Time Market Prices
+    getMarketPrices: async () => {
+        try {
+            const response = await axios.get(`${BRIDGE_URL}/market/prices`, { auth: AUTH });
+            return response.data;
+        } catch (error) {
+            console.error("Bridge Prices Error:", error);
+            return [];
+        }
     }
 };

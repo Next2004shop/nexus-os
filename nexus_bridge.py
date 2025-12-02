@@ -23,7 +23,12 @@ MAGIC_NUMBER = 234000
 FORCED_MT5_PATH = r"C:\Program Files\MetaTrader 5\terminal64.exe"
 
 # WATCHLIST FOR AUTO-TRADER
-WATCHLIST = ["EURUSD", "GBPUSD", "USDJPY", "XAUUSD", "BTCUSD", "US30", "NAS100", "NVDA", "TSLA"]
+# WATCHLIST FOR AUTO-TRADER (Global)
+WATCHLIST = [
+    "EURUSD", "GBPUSD", "USDJPY", "XAUUSD", "XAGUSD", "BTCUSD", "ETHUSD", 
+    "US30", "NAS100", "SPX500", 
+    "NVDA", "TSLA", "AAPL", "MSFT", "GOOGL", "AMZN", "META", "NFLX"
+]
 
 app = Flask(__name__)
 CORS(app)
@@ -373,6 +378,34 @@ def get_history():
             "profit": deal.profit
         })
     return jsonify(history_list)
+
+@app.route('/market/prices', methods=['GET'])
+@auth.login_required
+def get_market_prices():
+    """Fetches real-time prices for all watchlist assets"""
+    if connection_state["status"] != "CONNECTED":
+        # Return Mock Data if offline (so app doesn't crash)
+        return jsonify({"status": "OFFLINE", "prices": []}), 503
+
+    prices = []
+    for symbol in WATCHLIST:
+        # Ensure symbol is selected
+        if not mt5.symbol_info(symbol):
+            # Try variations if standard fails (e.g. NAS100 vs USTEC)
+            continue
+            
+        tick = mt5.symbol_info_tick(symbol)
+        if tick:
+            prices.append({
+                "symbol": symbol,
+                "bid": tick.bid,
+                "ask": tick.ask,
+                "last": tick.last,
+                "time": tick.time,
+                "change": 0.0 # MT5 tick doesn't give 24h change easily, handled in frontend or separate call
+            })
+    
+    return jsonify(prices)
 
 if __name__ == '__main__':
     logger.info("🚀 NEXUS BRIDGE UPGRADED (v2.0) LISTENING ON PORT %d...", SERVER_PORT)
