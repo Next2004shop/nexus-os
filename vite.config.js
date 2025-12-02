@@ -49,6 +49,17 @@ export default defineConfig({
   server: {
     host: true, // Allow access from external devices
     port: 3000, // Default port
+    proxy: {
+      '/api/bridge': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/bridge/, ''),
+      },
+      '/api': {
+        target: 'http://localhost:3000', // Proxy other API calls to Node server if running separately
+        changeOrigin: true,
+      }
+    }
   },
   build: {
     outDir: 'dist',

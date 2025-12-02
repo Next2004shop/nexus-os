@@ -5,11 +5,13 @@ from flask_httpauth import HTTPBasicAuth
 from werkzeug.security import generate_password_hash, check_password_hash
 import logging
 import time
+import pandas as pd
 
 # --- CONFIGURATION ---
 SERVER_PORT = 5000
 DEVIATION = 20
 MAGIC_NUMBER = 234000
+MT5_PATH = r"C:\Program Files\MetaTrader 5\terminal64.exe"
 
 app = Flask(__name__)
 CORS(app)
@@ -32,9 +34,9 @@ logger = logging.getLogger("NexusBridge")
 # --- INITIALIZATION ---
 logger.info("--- NEXUS BRIDGE: INITIALIZING ---")
 
-if not mt5.initialize():
+if not mt5.initialize(path=MT5_PATH):
     logger.error("Initialization failed. Error: %s", mt5.last_error())
-    quit()
+    logger.warning("Continuing in OFFLINE mode...")
 else:
     logger.info("Connected to MetaTrader 5")
     account_info = mt5.account_info()
@@ -49,7 +51,7 @@ else:
 @auth.login_required
 def status():
     """Checks if the bridge is alive and gets account balance"""
-    if not mt5.initialize():
+    if not mt5.initialize(path=MT5_PATH):
         return jsonify({"status": "ERROR", "msg": "MT5 Disconnected"})
         
     info = mt5.account_info()
@@ -100,55 +102,7 @@ def place_trade():
         "type_time": mt5.ORDER_TIME_GTC,
         "type_filling": mt5.ORDER_FILLING_IOC,
     }
-
-    # Send Order
-    result = mt5.order_send(request_data)
-    
-    if result.retcode != mt5.TRADE_RETCODE_DONE:
-        logger.error("Trade failed: %s", result.comment)
-        return jsonify({"status": "FAILED", "error": result.comment})
-    
-    # Log to Ledger
-    try:
-        from nexus_security import ledger
-        ledger.record_transaction("TRADE", 0, f"{action_type} {volume} {symbol} @ {price}")
-    except ImportError:
-        logger.warning("Security module not found, skipping ledger.")
-
-    logger.info("%s ORDER EXECUTED: %s @ %s", action_type, symbol, price)
-    return jsonify({"status": "EXECUTED", "ticket": result.order})
-
-@app.route('/withdraw', methods=['POST'])
-@auth.login_required
-def withdraw():
-    """Process a secure withdrawal"""
-    try:
-        from nexus_security import vault, ledger
-        data = request.json
-        amount = float(data.get('amount', 0))
-        address = data.get('address', 'Unknown')
-        
-        success, msg = vault.verify_withdrawal(amount, "admin")
-        if not success:
-            return jsonify({"status": "BLOCKED", "error": msg}), 403
-            
-        # Log to Ledger
-        tx_id = ledger.record_transaction("WITHDRAWAL", amount, f"To: {address}")
-        return jsonify({"status": "APPROVED", "tx_id": tx_id, "msg": "Funds released to blockchain"})
-    except ImportError:
-        return jsonify({"status": "ERROR", "msg": "Security module missing"}), 500
-
-# --- AI ENDPOINTS ---
-
-@app.route('/ai/insight', methods=['GET'])
-@auth.login_required
-def get_insight():
-    """Returns a live insight from the AI brain"""
-    try:
-        from nexus_brain import brain
-        return jsonify({"insight": brain.get_ai_insights()})
-    except ImportError:
-        return jsonify({"insight": "AI Module Loading..."})
+    return jsonify({"status": "Trade Simulated (MT5 Offline)"})
 
 @app.route('/ai/analyze', methods=['POST'])
 @auth.login_required
@@ -158,10 +112,57 @@ def analyze_symbol():
         from nexus_brain import brain
         data = request.json
         symbol = data.get('symbol', 'EURUSD')
-        result = brain.analyze_market(symbol)
+        timeframe_str = data.get('timeframe', 'M15')
+        
+        # Map timeframe string to MT5 constant
+        tf_map = {
+            'M1': mt5.TIMEFRAME_M1, 'M5': mt5.TIMEFRAME_M5, 'M15': mt5.TIMEFRAME_M15,
+            'M30': mt5.TIMEFRAME_M30, 'H1': mt5.TIMEFRAME_H1, 'H4': mt5.TIMEFRAME_H4,
+            'D1': mt5.TIMEFRAME_D1
+        }
+        timeframe = tf_map.get(timeframe_str, mt5.TIMEFRAME_M15)
+
+        # Fetch recent data (100 candles)
+        rates = mt5.copy_rates_from_pos(symbol, timeframe, 0, 100)
+        
+        if rates is None or len(rates) == 0:
+             # Fallback for offline mode testing if MT5 is not connected
+             # Create mock data for testing "Legendary" logic if real data fails
+             logger.warning(f"No data for {symbol} (MT5 Offline?). Using Mock Data.")
+             import numpy as np
+             mock_data = []
+             base_price = 2000.0 if symbol == "XAUUSD" else 1.1000
+             for i in range(100):
+                 mock_data.append({
+                     "time": int(time.time()) - (100-i)*900,
+                     "open": base_price,
+                     "high": base_price + 5,
+                     "low": base_price - 5,
+                     "close": base_price + (np.sin(i/10) * 10), # Sine wave for trend
+                     "tick_volume": 1000
+                 })
+             result = brain.analyze_market(symbol, mock_data)
+             result['note'] = "MOCK DATA USED (MT5 Offline)"
+             return jsonify(result)
+
+        price_data = []
+        for rate in rates:
+            price_data.append({
+                "time": int(rate['time']),
+                "open": float(rate['open']),
+                "high": float(rate['high']),
+                "low": float(rate['low']),
+                "close": float(rate['close']),
+                "tick_volume": int(rate['tick_volume'])
+            })
+
+        result = brain.analyze_market(symbol, price_data)
         return jsonify(result)
     except ImportError:
         return jsonify({"error": "AI Module missing"}), 500
+    except Exception as e:
+        logger.error(f"Analysis Error: {e}")
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/positions', methods=['GET'])
 @auth.login_required

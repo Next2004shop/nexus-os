@@ -24,6 +24,7 @@
     "firebase": "^12.6.0",
     "framer-motion": "^12.23.24",
     "helmet": "^8.1.0",
+    "http-proxy": "^1.18.1",
     "lightweight-charts": "^4.2.0",
     "lucide-react": "^0.554.0",
     "morgan": "^1.10.1",

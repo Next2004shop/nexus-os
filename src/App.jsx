@@ -17,7 +17,7 @@ import { ProfilePage } from './pages/ProfilePage';
 import { SecurityPage } from './pages/SecurityPage';
 import { InvestmentsPage } from './pages/InvestmentsPage';
 import { TaxPage } from './pages/TaxPage';
-
+import { DownloadPage } from './pages/DownloadPage';
 import { NesaAgent } from './components/agents/NesaAgent';
 
 // MAINTENANCE SCREEN COMPONENT
@@ -67,44 +67,40 @@ export default function App() {
    }
 
    return (
-      <AuthProvider>
-         <ToastProvider>
-            <NesaAgent />
-            <Router>
-               <div className="flex h-screen bg-nexus-black text-white overflow-hidden font-sans selection:bg-nexus-green/30">
-                  {/* DESKTOP SIDEBAR (Hidden on Mobile) */}
-                  <div className="hidden md:block w-64 flex-shrink-0 border-r border-white/5">
-                     <Sidebar />
-                  </div>
+      <ToastProvider>
+         <NesaAgent />
+         <div className="flex h-screen bg-nexus-black text-white overflow-hidden font-sans selection:bg-nexus-green/30">
+            {/* DESKTOP SIDEBAR (Hidden on Mobile) */}
+            <div className="hidden md:block w-64 flex-shrink-0 border-r border-white/5">
+               <Sidebar />
+            </div>
 
-                  {/* MAIN CONTENT AREA */}
-                  <div className="flex-1 flex flex-col h-full relative overflow-hidden">
-                     <div className="flex-1 overflow-y-auto scrollbar-hide pb-20 md:pb-0">
-                        <Routes>
-                           <Route path="/" element={<Navigate to="/trade" replace />} />
-                           <Route path="/trade" element={<TradePage />} />
-                           <Route path="/stocks" element={<StocksPage />} />
-                           <Route path="/commodities" element={<CommoditiesPage />} />
-                           <Route path="/ai-bot" element={<AIBotPage />} />
-                           <Route path="/wallet" element={<WalletPage />} />
-                           <Route path="/banking" element={<BankingPage />} />
-                           <Route path="/notifications" element={<NotificationsPage />} />
-                           <Route path="/profile" element={<ProfilePage />} />
-                           <Route path="/security" element={<SecurityPage />} />
-                           <Route path="/investments" element={<InvestmentsPage />} />
-                           <Route path="/tax" element={<TaxPage />} />
-                           <Route path="/downloads" element={<DownloadPage />} />
-                        </Routes>
-                     </div>
-
-                     {/* MOBILE NAVIGATION (Hidden on Desktop) */}
-                     <div className="md:hidden absolute bottom-0 left-0 right-0 z-50">
-                        <MobileNav />
-                     </div>
-                  </div>
+            {/* MAIN CONTENT AREA */}
+            <div className="flex-1 flex flex-col h-full relative overflow-hidden">
+               <div className="flex-1 overflow-y-auto scrollbar-hide pb-20 md:pb-0">
+                  <Routes>
+                     <Route path="/" element={<Navigate to="/trade" replace />} />
+                     <Route path="/trade" element={<TradePage />} />
+                     <Route path="/stocks" element={<StocksPage />} />
+                     <Route path="/commodities" element={<CommoditiesPage />} />
+                     <Route path="/ai-bot" element={<AIBotPage />} />
+                     <Route path="/wallet" element={<WalletPage />} />
+                     <Route path="/banking" element={<BankingPage />} />
+                     <Route path="/notifications" element={<NotificationsPage />} />
+                     <Route path="/profile" element={<ProfilePage />} />
+                     <Route path="/security" element={<SecurityPage />} />
+                     <Route path="/investments" element={<InvestmentsPage />} />
+                     <Route path="/tax" element={<TaxPage />} />
+                     <Route path="/downloads" element={<DownloadPage />} />
+                  </Routes>
                </div>
-            </Router>
-         </ToastProvider>
-      </AuthProvider>
+
+               {/* MOBILE NAVIGATION (Hidden on Desktop) */}
+               <div className="md:hidden absolute bottom-0 left-0 right-0 z-50">
+                  <MobileNav />
+               </div>
+            </div>
+         </div>
+      </ToastProvider>
    );
 }

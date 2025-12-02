@@ -1,8 +1,8 @@
 import axios from 'axios';
 
-// Default to localhost for desktop/emulator. 
-// User can update this in settings if running on a separate device.
-const BRIDGE_URL = 'http://localhost:5000';
+// Default to relative path. The Node.js Host (server.cjs) will proxy this to port 5000.
+// This ensures "Synchronization" between Frontend and Backend.
+const BRIDGE_URL = '/api/bridge';
 const AUTH = { username: 'admin', password: 'securepassword' };
 
 export const bridgeService = {
