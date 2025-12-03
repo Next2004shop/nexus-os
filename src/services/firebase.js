@@ -3,6 +3,7 @@ import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
+import { getDatabase } from "firebase/database";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -12,7 +13,8 @@ const firebaseConfig = {
     storageBucket: "nexus-d7b05.firebasestorage.app",
     messagingSenderId: "691725766314",
     appId: "1:691725766314:web:18e4af3ca4d86eeaa64ad3",
-    measurementId: "G-YD5P4FZD3D"
+    measurementId: "G-YD5P4FZD3D",
+    databaseURL: "https://nexus-d7b05-default-rtdb.firebaseio.com" // Added for RTDB
 };
 
 // Initialize Firebase
@@ -20,6 +22,7 @@ const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+export const rtdb = getDatabase(app);
 
 export const logTradeToCloud = async (tradeData) => {
     try {

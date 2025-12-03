@@ -1,18 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Search, TrendingUp, TrendingDown, Globe, Zap, Activity, ArrowUpRight } from 'lucide-react';
+import { Search, TrendingUp, TrendingDown, Globe, Zap, Activity, ArrowUpRight, Loader } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-
-// ROBUST MOCK DATA (Premium Selection)
-const STOCK_DATA = [
-    { id: 'aapl', symbol: 'AAPL', name: 'Apple Inc.', price: 182.50, change: 1.25, sector: 'Tech', marketCap: '2.8T' },
-    { id: 'nvda', symbol: 'NVDA', name: 'NVIDIA Corp.', price: 890.00, change: 3.50, sector: 'Tech', marketCap: '2.2T' },
-    { id: 'tsla', symbol: 'TSLA', name: 'Tesla, Inc.', price: 175.30, change: -2.40, sector: 'Auto', marketCap: '550B' },
-    { id: 'msft', symbol: 'MSFT', name: 'Microsoft', price: 420.00, change: 0.80, sector: 'Tech', marketCap: '3.1T' },
-    { id: 'amzn', symbol: 'AMZN', name: 'Amazon.com', price: 180.00, change: 1.10, sector: 'Retail', marketCap: '1.8T' },
-    { id: 'googl', symbol: 'GOOGL', name: 'Alphabet Inc.', price: 165.00, change: -0.50, sector: 'Tech', marketCap: '1.7T' },
-    { id: 'meta', symbol: 'META', name: 'Meta Platforms', price: 490.00, change: 2.10, sector: 'Tech', marketCap: '1.2T' },
-    { id: 'nflx', symbol: 'NFLX', name: 'Netflix, Inc.', price: 610.00, change: 0.90, sector: 'Media', marketCap: '260B' },
-];
+import { marketData } from '../services/marketData';
 
 const StockCard = ({ item, onClick }) => (
     <div
@@ -77,9 +66,28 @@ const StockRow = ({ item, onClick }) => (
 
 export const StocksPage = () => {
     const [search, setSearch] = useState('');
+    const [stocks, setStocks] = useState([]);
+    const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
 
-    const filteredData = STOCK_DATA.filter(item =>
+    useEffect(() => {
+        const fetchStocks = async () => {
+            try {
+                const data = await marketData.getStocks();
+                setStocks(data);
+            } catch (error) {
+                console.error("Failed to fetch stocks:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchStocks();
+        const interval = setInterval(fetchStocks, 5000); // Poll every 5 seconds
+        return () => clearInterval(interval);
+    }, []);
+
+    const filteredData = stocks.filter(item =>
         item.symbol.toLowerCase().includes(search.toLowerCase()) ||
         item.name.toLowerCase().includes(search.toLowerCase())
     );
@@ -122,39 +130,48 @@ export const StocksPage = () => {
                 </div>
             </div>
 
-            {/* FEATURED GRID */}
-            {!search && (
-                <div className="p-6">
-                    <div className="flex items-center gap-2 mb-4">
-                        <Zap className="text-nexus-yellow" size={16} />
-                        <h2 className="text-sm font-bold text-nexus-subtext uppercase tracking-wider">Trending Now</h2>
-                    </div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        {STOCK_DATA.slice(0, 4).map(item => (
-                            <StockCard key={item.id} item={item} onClick={handleItemClick} />
-                        ))}
-                    </div>
+            {/* CONTENT */}
+            {loading ? (
+                <div className="flex items-center justify-center h-64">
+                    <Loader className="text-nexus-blue animate-spin" size={32} />
                 </div>
-            )}
-
-            {/* MARKET LIST */}
-            <div className="px-6">
-                <div className="flex items-center gap-2 mb-4 mt-2">
-                    <Activity className="text-nexus-green" size={16} />
-                    <h2 className="text-sm font-bold text-nexus-subtext uppercase tracking-wider">Market Movers</h2>
-                </div>
-                <div className="bg-[#13151a] border border-white/5 rounded-2xl overflow-hidden">
-                    {filteredData.length > 0 ? (
-                        filteredData.map(item => (
-                            <StockRow key={item.id} item={item} onClick={handleItemClick} />
-                        ))
-                    ) : (
-                        <div className="p-8 text-center text-nexus-subtext">
-                            No stocks found matching "{search}"
+            ) : (
+                <>
+                    {/* FEATURED GRID */}
+                    {!search && stocks.length > 0 && (
+                        <div className="p-6">
+                            <div className="flex items-center gap-2 mb-4">
+                                <Zap className="text-nexus-yellow" size={16} />
+                                <h2 className="text-sm font-bold text-nexus-subtext uppercase tracking-wider">Trending Now</h2>
+                            </div>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                {stocks.slice(0, 4).map(item => (
+                                    <StockCard key={item.id} item={item} onClick={handleItemClick} />
+                                ))}
+                            </div>
                         </div>
                     )}
-                </div>
-            </div>
+
+                    {/* MARKET LIST */}
+                    <div className="px-6">
+                        <div className="flex items-center gap-2 mb-4 mt-2">
+                            <Activity className="text-nexus-green" size={16} />
+                            <h2 className="text-sm font-bold text-nexus-subtext uppercase tracking-wider">Market Movers</h2>
+                        </div>
+                        <div className="bg-[#13151a] border border-white/5 rounded-2xl overflow-hidden">
+                            {filteredData.length > 0 ? (
+                                filteredData.map(item => (
+                                    <StockRow key={item.id} item={item} onClick={handleItemClick} />
+                                ))
+                            ) : (
+                                <div className="p-8 text-center text-nexus-subtext">
+                                    {stocks.length === 0 ? "No stocks available. Check connection." : `No stocks found matching "${search}"`}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </>
+            )}
         </div>
     );
 };

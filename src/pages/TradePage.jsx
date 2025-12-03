@@ -38,15 +38,19 @@ const TradePage = () => {
     const { showToast } = useToast();
     const { currentUser } = useAuth();
 
-    // Fetch Wallet on Mount
+    // Subscribe to Wallet Updates (Real-time)
     useEffect(() => {
-        const initWallet = async () => {
-            if (currentUser) {
-                const userWallet = await userRepository.getWallet(currentUser.uid);
-                setWallet(userWallet);
-            }
+        let unsubscribe;
+        if (currentUser) {
+            unsubscribe = userRepository.subscribeToWallet(currentUser.uid, (data) => {
+                if (data) {
+                    setWallet(data);
+                }
+            });
+        }
+        return () => {
+            if (unsubscribe) unsubscribe();
         };
-        initWallet();
     }, [currentUser]);
 
     // Update Price when Asset Changes
@@ -76,27 +80,32 @@ const TradePage = () => {
         return () => clearInterval(interval);
     }, [selectedAsset]);
 
-    const handleAnalyze = () => {
+    const handleAnalyze = async () => {
         setAnalyzing(true);
         setAiSignal(null);
 
-        // Mock AI Analysis
-        setTimeout(() => {
-            const isBullish = Math.random() > 0.4; // Slightly bullish bias
-            const currentPrice = price || selectedAsset.price;
+        // Real AI Analysis
+        try {
+            const analysis = await aiService.analyzeMarket(selectedAsset.symbol, 'M15');
 
-            setAiSignal({
-                direction: isBullish ? 'LONG' : 'SHORT',
-                confidence: Math.floor(Math.random() * (98 - 75) + 75),
-                reasoning: isBullish
-                    ? "Bullish divergence on RSI (14) coupled with strong support bounce at key fib level."
-                    : "Bearish engulfing candle on 4H timeframe indicating potential reversal.",
-                entry: currentPrice,
-                tp: isBullish ? currentPrice * 1.04 : currentPrice * 0.96,
-                sl: isBullish ? currentPrice * 0.98 : currentPrice * 1.02
-            });
+            if (analysis) {
+                setAiSignal({
+                    direction: analysis.signal === 'BUY' ? 'LONG' : 'SHORT',
+                    confidence: analysis.confidence,
+                    reasoning: analysis.reasoning,
+                    entry: price || selectedAsset.price,
+                    tp: price ? (analysis.signal === 'BUY' ? price * 1.02 : price * 0.98) : 0, // Dynamic TP based on signal
+                    sl: price ? (analysis.signal === 'BUY' ? price * 0.99 : price * 1.01) : 0
+                });
+            } else {
+                showToast("AI Analysis Failed. Try again.", "error");
+            }
+        } catch (e) {
+            console.error(e);
+            showToast("AI Connection Error", "error");
+        } finally {
             setAnalyzing(false);
-        }, 2000);
+        }
     };
 
     const applyStrategy = () => {

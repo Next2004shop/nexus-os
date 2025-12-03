@@ -54,21 +54,25 @@ const CommandCenter = () => {
         const fetchStatus = async () => {
             try {
                 const res = await fetch('/api/server-agent/status');
-                const data = await res.json();
-                if (data) {
+                if (res.ok) {
+                    const data = await res.json();
                     setSystemStatus({
                         status: data.status,
-                        latency: Math.floor(Math.random() * 20 + 10) + 'ms',
-                        cpu: Math.floor(Math.random() * 30 + 10) + '%',
-                        memory: data.memory?.rss || '45%',
+                        latency: '24ms', // Real latency would require client-side measurement, keeping static low value or measuring ping
+                        cpu: '15%', // Placeholder as browser can't easily get server CPU without more complex backend setup, but we can use what the API returns if it does.
+                        // The API returns memory, so we use that.
+                        memory: data.memory?.rss || 'Unknown',
                         uptime: Math.floor(data.uptime / 60) + 'm'
                     });
+                } else {
+                    setSystemStatus(prev => ({ ...prev, status: 'OFFLINE' }));
                 }
             } catch (e) {
-                // Fallback if offline
+                setSystemStatus(prev => ({ ...prev, status: 'OFFLINE' }));
             }
         };
-        const interval = setInterval(fetchStatus, 3000);
+        fetchStatus(); // Initial fetch
+        const interval = setInterval(fetchStatus, 5000); // Poll every 5s
         return () => clearInterval(interval);
     }, []);
 
@@ -81,19 +85,7 @@ const CommandCenter = () => {
         setIsTyping(true);
 
         try {
-            // Mock Risk Analysis
-            if (input.toLowerCase().includes('sell all') || input.toLowerCase().includes('dump')) {
-                setTimeout(() => {
-                    setMessages(prev => [...prev, {
-                        role: 'assistant',
-                        content: "⚠️ **WARNING**: Commander, dumping all assets now would realize a -12% loss on your ETH position. Are you sure you want to proceed? I recommend holding for the 4H rebound.",
-                        isWarning: true
-                    }]);
-                    setIsTyping(false);
-                }, 1500);
-                return;
-            }
-
+            // Real AI Chat
             const response = await aiService.chat(input);
             setMessages(prev => [...prev, { role: 'assistant', content: response, isStreaming: true }]);
         } catch (error) {

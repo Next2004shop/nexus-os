@@ -411,20 +411,6 @@ def get_market_prices():
             
         tick = mt5.symbol_info_tick(symbol)
         if tick:
-            prices.append({
-                "symbol": symbol,
-                "bid": tick.bid,
-                "ask": tick.ask,
-                "last": tick.last,
-                "time": tick.time,
-                "change": 0.0 # MT5 tick doesn't give 24h change easily, handled in frontend or separate call
-            })
-    
-    return jsonify(prices)
-
-@app.route('/market/candles', methods=['GET'])
-@auth.login_required
-def get_market_candles():
     """Fetches OHLC candles for a symbol"""
     if connection_state["status"] != "CONNECTED":
         return jsonify({"error": "MT5 Not Connected"}), 503

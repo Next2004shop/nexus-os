@@ -40,7 +40,7 @@ export const marketData = {
             symbol: p.symbol,
             name: p.symbol,
             current_price: p.last,
-            price_change_percentage_24h: 0, // TODO: Calculate if possible
+            price_change_percentage_24h: p.change,
             image: `https://assets.coingecko.com/coins/images/1/large/bitcoin.png` // Placeholder or map
         }));
     },
@@ -57,7 +57,7 @@ export const marketData = {
             symbol: p.symbol,
             name: p.symbol,
             price: p.last,
-            change: 0,
+            change: p.change,
             type: 'stock'
         }));
     },
@@ -74,7 +74,7 @@ export const marketData = {
             symbol: p.symbol,
             name: p.symbol,
             price: p.last,
-            change: 0,
+            change: p.change,
             type: 'commodity'
         }));
     },
@@ -105,5 +105,13 @@ export const marketData = {
             low: c.low,
             close: c.close
         }));
+    },
+
+    // Get Market News
+    getNews: async () => {
+        // Placeholder for Bridge News API
+        // If the bridge has a news endpoint, call it here.
+        // For now, return empty to avoid "undefined" errors in HomePage
+        return [];
     }
 };

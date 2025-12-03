@@ -7,7 +7,7 @@ const AUTH = { username: 'admin', password: 'securepassword' };
 
 export const aiService = {
     // Send message to Gemini via Vertex AI Bridge
-    sendMessage: async (message, history = []) => {
+    chat: async (message, history = []) => {
         try {
             const response = await axios.post(`${BRIDGE_URL}/ai/chat`, {
                 message,
@@ -18,6 +18,21 @@ export const aiService = {
         } catch (error) {
             console.error("AI Service Error:", error);
             return "System: Unable to reach Nexus Brain. Please check connection.";
+        }
+    },
+
+    // Analyze Market Structure via Vertex AI
+    analyzeMarket: async (symbol, timeframe = 'M15') => {
+        try {
+            const response = await axios.post(`${BRIDGE_URL}/ai/analyze`, {
+                symbol,
+                timeframe
+            }, { auth: AUTH });
+
+            return response.data;
+        } catch (error) {
+            console.error("AI Analysis Error:", error);
+            return null;
         }
     }
 };
