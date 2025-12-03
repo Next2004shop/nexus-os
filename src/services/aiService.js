@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Bridge Configuration
 // Bridge Configuration
-const BRIDGE_URL = 'http://35.239.252.226:3000/api/bridge';
+const BRIDGE_URL = '/api/bridge';
 const AUTH = { username: 'admin', password: 'securepassword' };
 
 export const aiService = {

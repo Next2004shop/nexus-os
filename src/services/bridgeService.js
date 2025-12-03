@@ -3,7 +3,7 @@ import axios from 'axios';
 // Default to relative path. The Node.js Host (server.cjs) will proxy this to port 5000.
 // This ensures "Synchronization" between Frontend and Backend.
 // FOR APK: We must use the Public IP
-const BRIDGE_URL = 'http://35.239.252.226:3000/api/bridge';
+const BRIDGE_URL = '/api/bridge';
 const AUTH = { username: 'admin', password: 'securepassword' };
 
 export const bridgeService = {

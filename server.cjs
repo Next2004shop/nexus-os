@@ -8,7 +8,7 @@ const morgan = require('morgan');
 const cluster = require('cluster');
 const os = require('os');
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 const numCPUs = os.cpus().length;
 
 if (cluster.isPrimary) {

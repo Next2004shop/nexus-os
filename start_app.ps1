@@ -10,7 +10,7 @@ Write-Host "✅ Python Bridge Started." -ForegroundColor Green
 
 # 2. Start Node.js Backend (Server Agent)
 Write-Host "Starting Node.js Server (Host Agent)..." -ForegroundColor Yellow
-Start-Process -FilePath "node" -ArgumentList "server.js" -WorkingDirectory "$PSScriptRoot" -WindowStyle Minimized
+Start-Process -FilePath "node" -ArgumentList "server.cjs" -WorkingDirectory "$PSScriptRoot" -WindowStyle Minimized
 Write-Host "✅ Node.js Server Started." -ForegroundColor Green
 
 # 3. Start Frontend (React App)

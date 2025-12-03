@@ -52,12 +52,12 @@ export default defineConfig({
     port: 3000, // Default port
     proxy: {
       '/api/bridge': {
-        target: 'http://localhost:5000',
+        target: 'http://localhost:5001',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/bridge/, ''),
       },
       '/api': {
-        target: 'http://localhost:3000', // Proxy other API calls to Node server if running separately
+        target: 'http://localhost:3001', // Proxy other API calls to Node server if running separately
         changeOrigin: true,
       }
     }

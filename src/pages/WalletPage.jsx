@@ -20,11 +20,27 @@ export const WalletPage = () => {
         const fetchBridgeData = async () => {
             // Balance
             const status = await bridgeService.getStatus();
+            const positions = await bridgeService.getPositions();
+
+            let cryptoPL = 0;
+            let stocksPL = 0;
+
+            if (Array.isArray(positions)) {
+                positions.forEach(p => {
+                    const sym = p.symbol.toUpperCase();
+                    if (sym.includes('BTC') || sym.includes('ETH') || sym.includes('XRP') || sym.includes('LTC')) {
+                        cryptoPL += p.profit;
+                    } else if (['AAPL', 'TSLA', 'NVDA', 'MSFT', 'GOOG', 'AMZN', 'US30', 'NAS100', 'SPX500'].some(s => sym.includes(s))) {
+                        stocksPL += p.profit;
+                    }
+                });
+            }
+
             if (status && status.balance) {
                 setBalance({
                     total: status.equity || status.balance,
-                    crypto: 0,
-                    stocks: 0,
+                    crypto: cryptoPL,
+                    stocks: stocksPL,
                     cash: status.balance
                 });
             }
@@ -33,12 +49,16 @@ export const WalletPage = () => {
             const historyData = await bridgeService.getHistory();
             if (historyData && Array.isArray(historyData)) {
                 setHistory(historyData.reverse()); // Show newest first
+
+                // Calculate Total Realized Profit from History
+                const totalRealized = historyData.reduce((acc, curr) => acc + (curr.profit || 0), 0);
+                setCloudProfit(totalRealized);
             }
 
             setLoading(false);
         };
         fetchBridgeData();
-        const interval = setInterval(fetchBridgeData, 10000);
+        const interval = setInterval(fetchBridgeData, 5000); // Faster updates
         return () => clearInterval(interval);
     }, []);
 
@@ -116,7 +136,7 @@ export const WalletPage = () => {
                     </p>
                     <div className="mt-4 flex items-center text-nexus-green text-sm">
                         <Activity size={16} className="mr-1" />
-                        <span>+${cloudProfit.toFixed(2)} (Cloud Analytics)</span>
+                        <span>{cloudProfit >= 0 ? '+' : ''}${cloudProfit.toFixed(2)} (Realized Profit)</span>
                     </div>
                 </div>
 
@@ -146,7 +166,7 @@ export const WalletPage = () => {
                     </p>
                     <div className="mt-4 flex items-center text-nexus-yellow text-sm">
                         <ArrowUpRight size={16} className="mr-1" />
-                        <span>High Yield Staking Active</span>
+                        <span>Floating P/L (Live)</span>
                     </div>
                 </div>
             </div>
