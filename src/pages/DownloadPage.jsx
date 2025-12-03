@@ -77,13 +77,14 @@ export const DownloadPage = () => {
                             </div>
                         </div>
 
-                        <button
-                            onClick={() => alert("Build APK Command: npx cap build android")}
+                        <a
+                            href="/nexus-ai.apk"
+                            download="Nexus-AI-Debug.apk"
                             className="w-full py-4 bg-nexus-green text-black font-bold rounded-xl hover:bg-emerald-400 transition-colors flex items-center justify-center gap-2"
                         >
                             <Download size={20} />
-                            DOWNLOAD APK
-                        </button>
+                            DOWNLOAD APK (v2.5.0)
+                        </a>
                         <p className="text-center text-xs text-nexus-subtext mt-3">
                             *Version 2.5.0 (Build 420)
                         </p>
