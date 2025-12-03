@@ -2,7 +2,8 @@ import axios from 'axios';
 
 // Default to relative path. The Node.js Host (server.cjs) will proxy this to port 5000.
 // This ensures "Synchronization" between Frontend and Backend.
-const BRIDGE_URL = '/api/bridge';
+// FOR APK: We must use the Public IP
+const BRIDGE_URL = 'http://35.239.252.226:3000/api/bridge';
 const AUTH = { username: 'admin', password: 'securepassword' };
 
 export const bridgeService = {
@@ -74,6 +75,20 @@ export const bridgeService = {
             return response.data;
         } catch (error) {
             console.error("Bridge Prices Error:", error);
+            return [];
+        }
+    },
+
+    // Get OHLC Candles
+    getCandles: async (symbol, timeframe = 'M15') => {
+        try {
+            const response = await axios.get(`${BRIDGE_URL}/market/candles`, {
+                params: { symbol, timeframe },
+                auth: AUTH
+            });
+            return response.data;
+        } catch (error) {
+            console.error("Bridge Candles Error:", error);
             return [];
         }
     }

@@ -2,7 +2,8 @@ import axios from 'axios';
 import { logTradeToCloud } from './firebase';
 
 // Use environment variable or fallback to local IP (change this to your computer's IP)
-const API_URL = import.meta.env.VITE_API_URL || ''; // Empty default forces Demo Mode on mobile
+// Use environment variable or fallback to local IP (change this to your computer's IP)
+const API_URL = 'http://35.239.252.226:3000/api/bridge'; // Hardcoded for APK Connectivity
 const AUTH_USERNAME = 'admin';
 const AUTH_PASSWORD = 'securepassword';
 

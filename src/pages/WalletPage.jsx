@@ -1,14 +1,59 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Wallet, ArrowUpRight, ArrowDownLeft, CreditCard, Building, Shield, PieChart, Activity } from 'lucide-react';
+import { bridgeService } from '../services/bridgeService';
 
 export const WalletPage = () => {
     const [activeTab, setActiveTab] = useState('deposit');
     const [balance, setBalance] = useState({
-        total: 12450000.00,
-        crypto: 8500000.00,
-        stocks: 3200000.00,
-        cash: 750000.00
+        total: 0.00,
+        crypto: 0.00,
+        stocks: 0.00,
+        cash: 0.00
     });
+    const [loading, setLoading] = useState(true);
+    const [cloudProfit, setCloudProfit] = useState(0);
+
+    // 1. Bridge Status (Live Balance)
+    useEffect(() => {
+        const fetchBalance = async () => {
+            const status = await bridgeService.getStatus();
+            if (status && status.balance) {
+                setBalance({
+                    total: status.equity || status.balance,
+                    crypto: 0,
+                    stocks: 0,
+                    cash: status.balance
+                });
+            }
+            setLoading(false);
+        };
+        fetchBalance();
+        const interval = setInterval(fetchBalance, 10000);
+        return () => clearInterval(interval);
+    }, []);
+
+    // 2. Google Cloud Firestore (Real-Time Trade Analytics)
+    useEffect(() => {
+        const fetchCloudAnalytics = async () => {
+            try {
+                const { collection, getDocs, query, where } = await import("firebase/firestore");
+                const { db } = await import("../services/firebase");
+
+                // Calculate total profit from Cloud Database
+                const q = query(collection(db, "trades"));
+                const querySnapshot = await getDocs(q);
+                let total = 0;
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    if (data.profit) total += parseFloat(data.profit);
+                });
+                setCloudProfit(total);
+            } catch (e) {
+                console.log("Cloud Analytics: Waiting for data...");
+            }
+        };
+        fetchCloudAnalytics();
+    }, []);
 
     return (
         <div className="p-6 space-y-6 animate-fadeIn pb-24 md:pb-6">
@@ -19,7 +64,9 @@ export const WalletPage = () => {
                     <p className="text-nexus-subtext">Global Asset Management & Transfers</p>
                 </div>
                 <div className="bg-nexus-green/10 px-4 py-2 rounded-lg border border-nexus-green/20">
-                    <span className="text-nexus-green font-mono font-bold">STATUS: VERIFIED (LEVEL 10)</span>
+                    <span className="text-nexus-green font-mono font-bold">
+                        {loading ? "SYNCING..." : "STATUS: LIVE (MT5 CONNECTED)"}
+                    </span>
                 </div>
             </div>
 
@@ -36,7 +83,7 @@ export const WalletPage = () => {
                     </p>
                     <div className="mt-4 flex items-center text-nexus-green text-sm">
                         <Activity size={16} className="mr-1" />
-                        <span>+12.5% this month</span>
+                        <span>+${cloudProfit.toFixed(2)} (Cloud Analytics)</span>
                     </div>
                 </div>
 
@@ -79,8 +126,8 @@ export const WalletPage = () => {
                         <button
                             onClick={() => setActiveTab('deposit')}
                             className={`flex-1 py-4 text-sm font-bold transition-colors ${activeTab === 'deposit'
-                                    ? 'bg-nexus-green/10 text-nexus-green border-b-2 border-nexus-green'
-                                    : 'text-nexus-subtext hover:text-white'
+                                ? 'bg-nexus-green/10 text-nexus-green border-b-2 border-nexus-green'
+                                : 'text-nexus-subtext hover:text-white'
                                 }`}
                         >
                             <div className="flex items-center justify-center gap-2">
@@ -91,8 +138,8 @@ export const WalletPage = () => {
                         <button
                             onClick={() => setActiveTab('withdraw')}
                             className={`flex-1 py-4 text-sm font-bold transition-colors ${activeTab === 'withdraw'
-                                    ? 'bg-nexus-red/10 text-nexus-red border-b-2 border-nexus-red'
-                                    : 'text-nexus-subtext hover:text-white'
+                                ? 'bg-nexus-red/10 text-nexus-red border-b-2 border-nexus-red'
+                                : 'text-nexus-subtext hover:text-white'
                                 }`}
                         >
                             <div className="flex items-center justify-center gap-2">
@@ -107,48 +154,37 @@ export const WalletPage = () => {
                             <div className="space-y-4 animate-fadeIn">
                                 <div className="bg-nexus-green/5 border border-nexus-green/20 p-4 rounded-lg mb-6">
                                     <h4 className="text-nexus-green font-bold flex items-center gap-2">
-                                        <Shield size={16} /> Secure Deposit Gateway
+                                        <Shield size={16} /> Broker Deposit Instructions
                                     </h4>
                                     <p className="text-xs text-nexus-subtext mt-1">
-                                        Supports Wire Transfer, ACH, Crypto, and Institutional Transfers.
+                                        To fund your live account, please transfer funds directly to your Broker.
+                                        Nexus AI will automatically detect the deposit within 5-10 minutes.
                                     </p>
                                 </div>
 
-                                <div>
-                                    <label className="block text-xs text-nexus-subtext mb-1">Select Asset</label>
-                                    <select className="w-full bg-nexus-black border border-white/10 rounded p-3 text-white outline-none focus:border-nexus-green">
-                                        <option>USD - United States Dollar</option>
-                                        <option>EUR - Euro</option>
-                                        <option>BTC - Bitcoin</option>
-                                        <option>USDT - Tether (TRC20)</option>
-                                        <option>XAU - Gold Bullion</option>
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label className="block text-xs text-nexus-subtext mb-1">Amount</label>
-                                    <div className="relative">
-                                        <span className="absolute left-3 top-3 text-nexus-subtext">$</span>
-                                        <input
-                                            type="number"
-                                            placeholder="0.00"
-                                            className="w-full bg-nexus-black border border-white/10 rounded p-3 pl-8 text-white outline-none focus:border-nexus-green font-mono text-lg"
-                                        />
+                                <div className="bg-black/40 p-4 rounded border border-white/10">
+                                    <h5 className="text-white font-bold text-sm mb-2">Option 1: Crypto (USDT TRC20)</h5>
+                                    <div className="flex items-center justify-between bg-white/5 p-3 rounded">
+                                        <code className="text-nexus-green text-xs break-all">
+                                            TE7w... (Your Broker Wallet Address)
+                                        </code>
+                                        <button className="text-xs text-nexus-subtext hover:text-white">COPY</button>
                                     </div>
                                 </div>
 
-                                <div>
-                                    <label className="block text-xs text-nexus-subtext mb-1">Source / Method</label>
-                                    <select className="w-full bg-nexus-black border border-white/10 rounded p-3 text-white outline-none focus:border-nexus-green">
-                                        <option>Bank Wire (Chase JP Morgan)</option>
-                                        <option>Crypto Wallet (Connect Web3)</option>
-                                        <option>Credit Card (Visa Infinite)</option>
-                                    </select>
+                                <div className="bg-black/40 p-4 rounded border border-white/10">
+                                    <h5 className="text-white font-bold text-sm mb-2">Option 2: Bank Wire</h5>
+                                    <p className="text-xs text-nexus-subtext">
+                                        Please login to your Broker's Client Portal to view Wire Instructions.
+                                    </p>
                                 </div>
 
-                                <button className="w-full bg-nexus-green text-black font-bold py-4 rounded-lg hover:bg-green-400 transition-colors mt-4 flex items-center justify-center gap-2">
+                                <button
+                                    onClick={() => window.open('https://www.google.com/search?q=metatrader+broker+login', '_blank')}
+                                    className="w-full bg-nexus-green text-black font-bold py-4 rounded-lg hover:bg-green-400 transition-colors mt-4 flex items-center justify-center gap-2"
+                                >
                                     <ArrowDownLeft size={20} />
-                                    INITIATE DEPOSIT
+                                    GO TO BROKER PORTAL
                                 </button>
                             </div>
                         ) : (
@@ -214,8 +250,8 @@ export const WalletPage = () => {
                             <div key={i} className="flex items-center justify-between p-3 hover:bg-white/5 rounded-lg transition-colors cursor-pointer group">
                                 <div className="flex items-center gap-3">
                                     <div className={`w-10 h-10 rounded-full flex items-center justify-center ${tx.type.includes('Deposit') || tx.type.includes('Profit') || tx.type.includes('Dividend')
-                                            ? 'bg-nexus-green/10 text-nexus-green'
-                                            : 'bg-nexus-red/10 text-nexus-red'
+                                        ? 'bg-nexus-green/10 text-nexus-green'
+                                        : 'bg-nexus-red/10 text-nexus-red'
                                         }`}>
                                         {tx.type.includes('Deposit') || tx.type.includes('Profit') || tx.type.includes('Dividend') ? <ArrowDownLeft size={18} /> : <ArrowUpRight size={18} />}
                                     </div>
@@ -226,8 +262,8 @@ export const WalletPage = () => {
                                 </div>
                                 <div className="text-right">
                                     <p className={`font-mono font-bold ${tx.type.includes('Deposit') || tx.type.includes('Profit') || tx.type.includes('Dividend')
-                                            ? 'text-nexus-green'
-                                            : 'text-white'
+                                        ? 'text-nexus-green'
+                                        : 'text-white'
                                         }`}>
                                         {tx.amount}
                                     </p>

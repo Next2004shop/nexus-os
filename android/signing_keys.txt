@@ -1,0 +1,56 @@
+
+> Configure project :app
+WARNING: Using flatDir should be avoided because it doesn't support any meta-data formats.
+
+> Configure project :capacitor-cordova-android-plugins
+WARNING: Using flatDir should be avoided because it doesn't support any meta-data formats.
+
+> Task :app:signingReport
+Variant: debug
+Config: debug
+Store: C:\Users\user\.android\debug.keystore
+Alias: AndroidDebugKey
+MD5: 84:B3:B3:26:4A:F8:9D:61:2A:11:2A:BC:5F:9E:A9:76
+SHA1: AE:86:18:74:67:C3:0F:AE:2B:1A:E9:83:E2:06:E3:F4:9A:46:FA:F6
+SHA-256: 04:6A:8E:18:B2:F4:2A:CE:F8:41:C2:4E:B0:5B:A7:F7:D4:2B:AB:5B:28:8A:20:88:9C:CC:1A:3C:66:78:94:95
+Valid until: Thursday, November 25, 2055
+----------
+Variant: release
+Config: null
+Store: null
+Alias: null
+----------
+Variant: debugAndroidTest
+Config: debug
+Store: C:\Users\user\.android\debug.keystore
+Alias: AndroidDebugKey
+MD5: 84:B3:B3:26:4A:F8:9D:61:2A:11:2A:BC:5F:9E:A9:76
+SHA1: AE:86:18:74:67:C3:0F:AE:2B:1A:E9:83:E2:06:E3:F4:9A:46:FA:F6
+SHA-256: 04:6A:8E:18:B2:F4:2A:CE:F8:41:C2:4E:B0:5B:A7:F7:D4:2B:AB:5B:28:8A:20:88:9C:CC:1A:3C:66:78:94:95
+Valid until: Thursday, November 25, 2055
+----------
+
+> Task :capacitor-android:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: C:\Users\user\.android\debug.keystore
+Alias: AndroidDebugKey
+MD5: 84:B3:B3:26:4A:F8:9D:61:2A:11:2A:BC:5F:9E:A9:76
+SHA1: AE:86:18:74:67:C3:0F:AE:2B:1A:E9:83:E2:06:E3:F4:9A:46:FA:F6
+SHA-256: 04:6A:8E:18:B2:F4:2A:CE:F8:41:C2:4E:B0:5B:A7:F7:D4:2B:AB:5B:28:8A:20:88:9C:CC:1A:3C:66:78:94:95
+Valid until: Thursday, November 25, 2055
+----------
+
+> Task :capacitor-cordova-android-plugins:signingReport
+Variant: debugAndroidTest
+Config: debug
+Store: C:\Users\user\.android\debug.keystore
+Alias: AndroidDebugKey
+MD5: 84:B3:B3:26:4A:F8:9D:61:2A:11:2A:BC:5F:9E:A9:76
+SHA1: AE:86:18:74:67:C3:0F:AE:2B:1A:E9:83:E2:06:E3:F4:9A:46:FA:F6
+SHA-256: 04:6A:8E:18:B2:F4:2A:CE:F8:41:C2:4E:B0:5B:A7:F7:D4:2B:AB:5B:28:8A:20:88:9C:CC:1A:3C:66:78:94:95
+Valid until: Thursday, November 25, 2055
+----------
+
+BUILD SUCCESSFUL in 2s
+3 actionable tasks: 3 executed

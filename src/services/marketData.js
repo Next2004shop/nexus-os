@@ -91,16 +91,19 @@ export const marketData = {
     },
 
     // Get OHLC Candles (Bridge AI Analyze returns candles!)
+    // Get OHLC Candles (Bridge AI Analyze returns candles!)
     getCandles: async (assetId, days = '1') => {
         const mt5Symbol = ASSET_MAP[assetId] || assetId.toUpperCase();
-        // Use the AI Analyze endpoint to get candles
-        const analysis = await bridgeService.analyzeMarket(mt5Symbol);
-        if (analysis && analysis.indicators) {
-            // This is a hack, analyzeMarket returns analysis, not raw candles.
-            // We need a proper candles endpoint in Bridge.
-            // For now, return empty to avoid breaking chart.
-            return [];
-        }
-        return [];
+        // Use the new Bridge Endpoint
+        const candles = await bridgeService.getCandles(mt5Symbol, 'M15'); // Default to M15 for now
+
+        // Format for Chart (Lightweight Charts expects: time (seconds), open, high, low, close)
+        return candles.map(c => ({
+            time: c.time,
+            open: c.open,
+            high: c.high,
+            low: c.low,
+            close: c.close
+        }));
     }
 };

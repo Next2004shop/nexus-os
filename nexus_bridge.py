@@ -422,6 +422,48 @@ def get_market_prices():
     
     return jsonify(prices)
 
+@app.route('/market/candles', methods=['GET'])
+@auth.login_required
+def get_market_candles():
+    """Fetches OHLC candles for a symbol"""
+    if connection_state["status"] != "CONNECTED":
+        return jsonify({"error": "MT5 Not Connected"}), 503
+
+    symbol = request.args.get('symbol', 'EURUSD')
+    timeframe_str = request.args.get('timeframe', 'M15')
+    limit = int(request.args.get('limit', 100))
+
+    # Map timeframe string to MT5 constant
+    tf_map = {
+        'M1': mt5.TIMEFRAME_M1, 'M5': mt5.TIMEFRAME_M5, 'M15': mt5.TIMEFRAME_M15,
+        'M30': mt5.TIMEFRAME_M30, 'H1': mt5.TIMEFRAME_H1, 'H4': mt5.TIMEFRAME_H4,
+        'D1': mt5.TIMEFRAME_D1
+    }
+    timeframe = tf_map.get(timeframe_str, mt5.TIMEFRAME_M15)
+
+    # Ensure symbol is selected
+    if not mt5.symbol_info(symbol):
+         if not mt5.symbol_select(symbol, True):
+             return jsonify({"error": f"Symbol {symbol} not found"}), 404
+
+    rates = mt5.copy_rates_from_pos(symbol, timeframe, 0, limit)
+    
+    if rates is None or len(rates) == 0:
+        return jsonify([])
+
+    candles = []
+    for rate in rates:
+        candles.append({
+            "time": int(rate['time']), # Unix timestamp
+            "open": float(rate['open']),
+            "high": float(rate['high']),
+            "low": float(rate['low']),
+            "close": float(rate['close']),
+            "volume": int(rate['tick_volume'])
+        })
+    
+    return jsonify(candles)
+
 if __name__ == '__main__':
     logger.info("🚀 NEXUS BRIDGE UPGRADED (v2.0) LISTENING ON PORT %d...", SERVER_PORT)
     app.run(host='0.0.0.0', port=SERVER_PORT, threaded=True)
