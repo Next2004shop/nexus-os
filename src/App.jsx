@@ -19,7 +19,7 @@ import { ProfilePage } from './pages/ProfilePage';
 import { SecurityPage } from './pages/SecurityPage';
 import { InvestmentsPage } from './pages/InvestmentsPage';
 import { DownloadPage } from './pages/DownloadPage';
-import { NesaAgent } from './components/agents/NesaAgent';
+
 
 // MAINTENANCE SCREEN COMPONENT
 const MaintenanceScreen = () => (
@@ -79,7 +79,7 @@ export default function App() {
 
    return (
       <ToastProvider>
-         <NesaAgent />
+
          <div className="flex h-screen bg-nexus-black text-white overflow-hidden font-sans selection:bg-nexus-green/30">
             {/* DESKTOP SIDEBAR (Hidden on Mobile) */}
             <div className="hidden md:block w-64 flex-shrink-0 border-r border-white/5">

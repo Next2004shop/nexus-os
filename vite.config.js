@@ -48,7 +48,7 @@ export default defineConfig({
     }),
   ],
   server: {
-    host: true, // Allow access from external devices
+    host: '127.0.0.1', // Stealth Mode: Localhost Only
     port: 3000, // Default port
     proxy: {
       '/api/bridge': {

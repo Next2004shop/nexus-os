@@ -109,7 +109,7 @@ class NexusBrain:
 
         try:
             # Construct prompt from history
-            context = "You are Nesa, an advanced AI Trading Assistant created by Nexus AI. You have access to real-time market data and deep financial knowledge. Be concise, professional, and confident."
+            context = "You are Nexus, an advanced AI Trading Assistant created by Nexus AI. You have access to real-time market data and deep financial knowledge. Be concise, professional, and confident."
             
             full_prompt = f"{context}\n\n"
             for msg in history:

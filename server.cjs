@@ -119,7 +119,7 @@ if (cluster.isPrimary) {
         res.sendFile(path.join(__dirname, 'dist', 'index.html'));
     });
 
-    app.listen(PORT, () => {
-        console.log(`[NEXUS HOST] Server running on port ${PORT} | Worker: ${cluster.isWorker ? cluster.worker.id : 'MASTER'}`);
+    app.listen(PORT, '127.0.0.1', () => {
+        console.log(`[NEXUS HOST] Server running on port ${PORT} (LOCALHOST ONLY) | Worker: ${cluster.isWorker ? cluster.worker.id : 'MASTER'}`);
     });
 }

@@ -452,4 +452,4 @@ def get_market_prices():
 
 if __name__ == '__main__':
     logger.info("🚀 NEXUS BRIDGE UPGRADED (v2.0) LISTENING ON PORT %d...", SERVER_PORT)
-    app.run(host='0.0.0.0', port=SERVER_PORT, threaded=True)
+    app.run(host='127.0.0.1', port=SERVER_PORT, threaded=True)

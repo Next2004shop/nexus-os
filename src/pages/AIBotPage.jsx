@@ -139,13 +139,7 @@ const CommandCenter = () => {
                                     <div className="text-[10px] text-nexus-accent">Active Strategy</div>
                                 </div>
                             </div>
-                            <div className="flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-lg opacity-80">
-                                <div className="p-2 bg-red-500/20 rounded-md"><Shield size={16} className="text-red-500" /></div>
-                                <div>
-                                    <div className="text-sm font-bold text-white">NESA</div>
-                                    <div className="text-[10px] text-nexus-subtext">Monitoring Errors</div>
-                                </div>
-                            </div>
+
                         </div>
                     </div>
 
