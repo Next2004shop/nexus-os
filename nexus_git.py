@@ -59,6 +59,11 @@ def nexus_commit(message="Auto-update"):
     commit_msg = f"NEXUS v{new_ver} | {timestamp} | {message}"
     run_git_command(f'git commit -m "{commit_msg}"')
     
+    print("   > Pushing to Remote Repository...")
+    run_git_command("git push")
+    
+    print(f"\n✅ SUCCESS: Nexus v{new_ver} Deployed & Synced!")
+    
     print(f"✅ SECURE COMMIT COMPLETE: {commit_msg}")
 
 if __name__ == "__main__":

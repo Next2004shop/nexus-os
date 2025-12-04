@@ -1,7 +1,14 @@
 import time
 import requests
 import logging
-from nexus_brain import brain
+from nexus_core.engine import NexusEngine, ScalpingStrategy, TrendStrategy, SwingStrategy
+
+# Initialize Engine for Auto-Trader (if running standalone)
+engine = NexusEngine()
+engine.register_strategy(ScalpingStrategy())
+engine.register_strategy(TrendStrategy())
+engine.register_strategy(SwingStrategy())
+brain = engine # Alias for backward compatibility in this script
 
 # Configure Logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -114,20 +121,6 @@ def run_autopilot():
                         requests.post(f"{BRIDGE_URL}/close", json={"ticket": ticket}, auth=AUTH)
                         del active_trades[ticket]
                         session_profit += current_profit
-                    except Exception as e:
-                        logger.error(f"❌ CLOSE FAILED: {e}")
-
-            # 2. Market Scan
-            for symbol in SYMBOLS:
-                symbol_trades = [t for t in active_trades.values() if t['symbol'] == symbol]
-                price_data = get_market_price(symbol)
-                decision = brain.analyze_market(symbol, price_data)
-                
-                if decision["signal"] in ["BUY", "SELL"] and decision["confidence"] > 80:
-                    if len(symbol_trades) >= MAX_PYRAMID_LAYERS:
-                        continue
-
-                    logger.info(f"⚡ EXECUTING {decision['signal']} {symbol} (Confidence: {decision['confidence']}%)")
                     
                     # ADAPTIVE LOT SIZING
                     # If we are having a "Good Day" (Session Profit > $5), increase aggression.

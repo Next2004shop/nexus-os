@@ -148,19 +148,6 @@ def auto_trader():
                         price_data.append({
                             "time": int(rate['time']),
                             "open": float(rate['open']),
-                            "high": float(rate['high']),
-                            "low": float(rate['low']),
-                            "close": float(rate['close']),
-                            "tick_volume": int(rate['tick_volume'])
-                        })
-                    
-                    from nexus_brain import brain
-                    analysis = brain.analyze_market(symbol, price_data)
-                    
-                    # 4. Execute Trade if Confidence is High
-                    if analysis['confidence'] >= 85 and analysis['signal'] in ["BUY", "SELL"]:
-                        logger.info(f"🚨 SIGNAL DETECTED: {symbol} {analysis['signal']} ({analysis['confidence']}%)")
-                        
                         # Check if we already have a position to avoid spamming
                         positions = mt5.positions_get(symbol=symbol)
                         if positions and len(positions) > 0:
@@ -338,21 +325,6 @@ def analyze_symbol():
                 "close": float(rate['close']),
                 "tick_volume": int(rate['tick_volume'])
             })
-
-        result = brain.analyze_market(symbol, price_data)
-        return jsonify(result)
-    except ImportError:
-        return jsonify({"error": "AI Module missing"}), 500
-    except Exception as e:
-        logger.error(f"Analysis Error: {e}")
-        return jsonify({"error": str(e)}), 500
-
-@app.route('/positions', methods=['GET'])
-@auth.login_required
-def get_positions():
-    """Fetches all open positions"""
-    if connection_state["status"] != "CONNECTED":
-        return jsonify({"error": "MT5 Not Connected"}), 503
         
     positions = mt5.positions_get()
     if positions is None:

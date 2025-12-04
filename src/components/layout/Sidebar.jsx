@@ -47,10 +47,27 @@ export const Sidebar = () => {
                 ))}
             </div>
 
-            <div className="mt-auto pt-4 border-t border-white/5 w-full flex justify-center">
+            <div className="mt-auto pt-4 border-t border-white/5 w-full flex flex-col items-center gap-4">
+                <button
+                    onClick={async () => {
+                        if (confirm("💀 ACTIVATE KILL SWITCH? THIS WILL CLOSE ALL POSITIONS.")) {
+                            try {
+                                await fetch('/api/bridge/kill', { method: 'POST', headers: { 'Authorization': 'Basic ' + btoa('admin:securepassword') } });
+                                alert("SYSTEM KILLED.");
+                            } catch (e) {
+                                alert("KILL FAILED: " + e.message);
+                            }
+                        }
+                    }}
+                    className="p-3 rounded-xl text-nexus-red bg-nexus-red/10 hover:bg-nexus-red hover:text-white transition-all duration-300 group animate-pulse"
+                    title="KILL SWITCH"
+                >
+                    <Shield size={24} />
+                </button>
+
                 <button
                     onClick={handleLogout}
-                    className="p-3 rounded-xl text-nexus-red hover:bg-nexus-red/10 transition-all duration-300 group"
+                    className="p-3 rounded-xl text-nexus-subtext hover:text-white hover:bg-white/5 transition-all duration-300 group"
                     title="Logout"
                 >
                     <LogOut size={24} />

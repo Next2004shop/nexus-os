@@ -1,9 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { Wallet, ArrowUpRight, ArrowDownLeft, CreditCard, Building, Shield, PieChart, Activity } from 'lucide-react';
+import { Wallet, ArrowUpRight, ArrowDownLeft, Shield, PieChart, Activity, Building, Smartphone, CreditCard, Bitcoin, Landmark, ChevronRight, Copy, Check } from 'lucide-react';
 import { bridgeService } from '../services/bridgeService';
+import { brokerService } from '../services/BrokerService';
+import { BrokerSelector } from '../components/banking/BrokerSelector';
+import { useToast } from '../context/ToastContext';
 
 export const WalletPage = () => {
     const [activeTab, setActiveTab] = useState('deposit');
+    const [selectedBroker, setSelectedBroker] = useState(null);
+    const [selectedMethod, setSelectedMethod] = useState(null);
+    const [paymentDetails, setPaymentDetails] = useState(null);
+    const [copied, setCopied] = useState(false);
+
+    const { showToast } = useToast();
+
+    // Load Brokers
+    const brokers = brokerService.getBrokers();
+
     const [balance, setBalance] = useState({
         total: 0.00,
         crypto: 0.00,
@@ -12,7 +25,6 @@ export const WalletPage = () => {
     });
     const [loading, setLoading] = useState(true);
     const [cloudProfit, setCloudProfit] = useState(0);
-
     const [history, setHistory] = useState([]);
 
     // 1. Bridge Status (Live Balance & History)
@@ -49,8 +61,6 @@ export const WalletPage = () => {
             const historyData = await bridgeService.getHistory();
             if (historyData && Array.isArray(historyData)) {
                 setHistory(historyData.reverse()); // Show newest first
-
-                // Calculate Total Realized Profit from History
                 const totalRealized = historyData.reduce((acc, curr) => acc + (curr.profit || 0), 0);
                 setCloudProfit(totalRealized);
             }
@@ -62,51 +72,17 @@ export const WalletPage = () => {
         return () => clearInterval(interval);
     }, []);
 
-    // 2. Firebase Realtime Database (Real-Time Trade Analytics)
-    useEffect(() => {
-        const fetchCloudAnalytics = async () => {
-            try {
-                const { rtdb } = await import("../services/firebase");
-                const { ref, get } = await import("firebase/database");
+    const handleMethodSelect = (method) => {
+        setSelectedMethod(method);
+        setPaymentDetails(brokerService.getPaymentDetails(method));
+    };
 
-                // Calculate total profit from Cloud Database
-                const tradesRef = ref(rtdb, "trades");
-                const snapshot = await get(tradesRef);
-
-                let total = 0;
-                if (snapshot.exists()) {
-                    const tradesData = snapshot.val();
-                    // tradesData might be nested by userId if I changed userRepository to `trades/${userId}`
-                    // In userRepository.js: `const tradesRef = ref(rtdb, 'trades/${userId}');`
-                    // So `trades` node contains userIds.
-
-                    Object.values(tradesData).forEach(userTrades => {
-                        Object.values(userTrades).forEach(trade => {
-                            if (trade.total) total += parseFloat(trade.total); // Using total as proxy for profit/volume if profit not there?
-                            // Original code used `data.profit`. 
-                            // My `userRepository.executeTrade` saves `total` (cost). It doesn't save `profit`.
-                            // `bridgeService` returns history with `profit`.
-                            // The Firestore code was likely looking for `profit` field which might not exist in my new `userRepository` implementation?
-                            // Wait, `userRepository` saves: type, asset, amount, price, total, timestamp.
-                            // It does NOT save profit.
-                            // So `cloudProfit` might be 0 unless I change logic.
-                            // However, I should stick to the structure. If the user wants "Realtime", I should connect to what I have.
-                            // I will sum `total` (volume) for now or just keep it as is.
-                            // Actually, let's just fetch and sum `total` as "Volume" or similar, or just leave it as 0 if no profit field.
-                            // But the user wants "everything real time".
-                            // I'll assume `profit` might be added later or just sum `total` for now to show *something*.
-                            // Let's sum `total` (Volume).
-                            if (trade.total) total += parseFloat(trade.total);
-                        });
-                    });
-                }
-                setCloudProfit(total);
-            } catch (e) {
-                console.log("Cloud Analytics: Waiting for data...", e);
-            }
-        };
-        fetchCloudAnalytics();
-    }, []);
+    const handleCopy = (text) => {
+        navigator.clipboard.writeText(text);
+        setCopied(true);
+        showToast("Copied to clipboard", "success");
+        setTimeout(() => setCopied(false), 2000);
+    };
 
     return (
         <div className="p-6 space-y-6 animate-fadeIn pb-24 md:pb-6">
@@ -172,9 +148,9 @@ export const WalletPage = () => {
             </div>
 
             {/* ACTION AREA */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* DEPOSIT / WITHDRAW FORM */}
-                <div className="bg-card rounded-xl border border-white/5 overflow-hidden">
+                <div className="lg:col-span-2 bg-card rounded-xl border border-white/5 overflow-hidden">
                     <div className="flex border-b border-white/5">
                         <button
                             onClick={() => setActiveTab('deposit')}
@@ -204,41 +180,101 @@ export const WalletPage = () => {
 
                     <div className="p-6">
                         {activeTab === 'deposit' ? (
-                            <div className="space-y-4 animate-fadeIn">
-                                <div className="bg-nexus-green/5 border border-nexus-green/20 p-4 rounded-lg mb-6">
-                                    <h4 className="text-nexus-green font-bold flex items-center gap-2">
-                                        <Shield size={16} /> Broker Deposit Instructions
-                                    </h4>
-                                    <p className="text-xs text-nexus-subtext mt-1">
-                                        To fund your live account, please transfer funds directly to your Broker.
-                                        Nexus AI will automatically detect the deposit within 5-10 minutes.
-                                    </p>
+                            <div className="space-y-6 animate-fadeIn">
+                                {/* 1. SELECT BROKER */}
+                                <div>
+                                    <h3 className="text-white font-bold mb-4 flex items-center gap-2">
+                                        <span className="w-6 h-6 rounded-full bg-nexus-green text-black flex items-center justify-center text-xs">1</span>
+                                        Select Broker
+                                    </h3>
+                                    <BrokerSelector
+                                        brokers={brokers}
+                                        selected={selectedBroker}
+                                        onSelect={(b) => {
+                                            setSelectedBroker(b);
+                                            setSelectedMethod(null);
+                                            setPaymentDetails(null);
+                                        }}
+                                    />
                                 </div>
 
-                                <div className="bg-black/40 p-4 rounded border border-white/10">
-                                    <h5 className="text-white font-bold text-sm mb-2">Option 1: Crypto (USDT TRC20)</h5>
-                                    <div className="flex items-center justify-between bg-white/5 p-3 rounded">
-                                        <code className="text-nexus-green text-xs break-all">
-                                            TE7w... (Your Broker Wallet Address)
-                                        </code>
-                                        <button className="text-xs text-nexus-subtext hover:text-white">COPY</button>
+                                {/* 2. SELECT METHOD */}
+                                {selectedBroker && (
+                                    <div className="animate-fadeIn">
+                                        <h3 className="text-white font-bold mb-4 flex items-center gap-2">
+                                            <span className="w-6 h-6 rounded-full bg-nexus-green text-black flex items-center justify-center text-xs">2</span>
+                                            Select Payment Method
+                                        </h3>
+                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                            {selectedBroker.methods.map(method => {
+                                                const details = brokerService.getPaymentDetails(method);
+                                                if (!details) return null;
+                                                const Icon = {
+                                                    Smartphone, CreditCard, Bitcoin, Landmark
+                                                }[details.icon] || CreditCard;
+
+                                                return (
+                                                    <button
+                                                        key={method}
+                                                        onClick={() => handleMethodSelect(method)}
+                                                        className={`p-3 rounded-lg border flex flex-col items-center gap-2 transition-all ${selectedMethod === method
+                                                            ? 'bg-white/10 border-white text-white'
+                                                            : 'bg-black/40 border-white/5 text-nexus-subtext hover:bg-white/5'
+                                                            }`}
+                                                    >
+                                                        <Icon size={20} style={{ color: details.color }} />
+                                                        <span className="text-xs font-bold">{details.title}</span>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
                                     </div>
-                                </div>
+                                )}
 
-                                <div className="bg-black/40 p-4 rounded border border-white/10">
-                                    <h5 className="text-white font-bold text-sm mb-2">Option 2: Bank Wire</h5>
-                                    <p className="text-xs text-nexus-subtext">
-                                        Please login to your Broker's Client Portal to view Wire Instructions.
-                                    </p>
-                                </div>
+                                {/* 3. PAYMENT DETAILS */}
+                                {paymentDetails && (
+                                    <div className="animate-fadeIn bg-black/40 border border-white/10 rounded-xl p-6 mt-6">
+                                        <h3 className="text-white font-bold mb-6 flex items-center gap-2">
+                                            <span className="w-6 h-6 rounded-full bg-nexus-green text-black flex items-center justify-center text-xs">3</span>
+                                            Complete Transaction
+                                        </h3>
 
-                                <button
-                                    onClick={() => window.open('https://www.google.com/search?q=metatrader+broker+login', '_blank')}
-                                    className="w-full bg-nexus-green text-black font-bold py-4 rounded-lg hover:bg-green-400 transition-colors mt-4 flex items-center justify-center gap-2"
-                                >
-                                    <ArrowDownLeft size={20} />
-                                    GO TO BROKER PORTAL
-                                </button>
+                                        <div className="space-y-4">
+                                            {paymentDetails.fields.map(field => (
+                                                <div key={field.name}>
+                                                    <label className="block text-xs text-nexus-subtext mb-1 uppercase font-bold">{field.label}</label>
+                                                    {field.type === 'select' ? (
+                                                        <select className="w-full bg-nexus-black border border-white/10 rounded-lg p-3 text-white outline-none focus:border-nexus-green">
+                                                            {field.options.map(opt => <option key={opt}>{opt}</option>)}
+                                                        </select>
+                                                    ) : (
+                                                        <input
+                                                            type="text"
+                                                            placeholder={field.placeholder}
+                                                            className="w-full bg-nexus-black border border-white/10 rounded-lg p-3 text-white outline-none focus:border-nexus-green font-mono"
+                                                        />
+                                                    )}
+                                                </div>
+                                            ))}
+
+                                            {selectedMethod === 'binance' && (
+                                                <div className="bg-white/5 p-4 rounded-lg flex items-center justify-between border border-white/10 mt-4">
+                                                    <div>
+                                                        <p className="text-xs text-nexus-subtext mb-1">Deposit Address (TRC20)</p>
+                                                        <code className="text-nexus-green font-mono text-sm">TE7w...XyZ9</code>
+                                                    </div>
+                                                    <button onClick={() => handleCopy("TE7w...XyZ9")} className="p-2 hover:bg-white/10 rounded-lg transition-colors">
+                                                        {copied ? <Check size={16} className="text-nexus-green" /> : <Copy size={16} className="text-white" />}
+                                                    </button>
+                                                </div>
+                                            )}
+
+                                            <button className="w-full bg-nexus-green text-black font-bold py-4 rounded-xl hover:bg-[#00DD80] transition-all shadow-[0_0_20px_rgba(0,221,128,0.2)] mt-4 flex items-center justify-center gap-2">
+                                                {paymentDetails.action} <ChevronRight size={18} />
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         ) : (
                             <div className="space-y-4 animate-fadeIn">
@@ -254,8 +290,8 @@ export const WalletPage = () => {
                                 <div>
                                     <label className="block text-xs text-nexus-subtext mb-1">Withdraw From</label>
                                     <select className="w-full bg-nexus-black border border-white/10 rounded p-3 text-white outline-none focus:border-nexus-red">
-                                        <option>Liquid Cash ($750,000.00)</option>
-                                        <option>Crypto Vault ($8,500,000.00)</option>
+                                        <option>Liquid Cash (${balance.cash.toLocaleString()})</option>
+                                        <option>Crypto Vault (${balance.crypto.toLocaleString()})</option>
                                     </select>
                                 </div>
 
@@ -290,7 +326,7 @@ export const WalletPage = () => {
                 </div>
 
                 {/* RECENT TRANSACTIONS */}
-                <div className="bg-card rounded-xl border border-white/5 p-6">
+                <div className="bg-card rounded-xl border border-white/5 p-6 h-fit">
                     <h3 className="text-lg font-bold text-white mb-4">Recent Institutional Transfers</h3>
                     <div className="space-y-4">
                         {history.length > 0 ? (

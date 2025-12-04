@@ -19,7 +19,33 @@ def start_nexus():
     
     time.sleep(5) # Wait for servers to warm up
     
-    # 3. Launch UI
+    # 3. Start Secure Tunnel (God Mode Remote Access)
+    try:
+        import nexus_tunnel
+        import qrcode
+        import io
+        
+        print("\n🚇 INITIALIZING SECURE TUNNEL...")
+        public_url = nexus_tunnel.start_tunnel(3000)
+        
+        if public_url:
+            print(f"\n✅ NEXUS REMOTE ACCESS ONLINE: {public_url}")
+            print("📱 SCAN THIS QR CODE TO CONNECT MOBILE APP:\n")
+            
+            # Generate QR Code
+            qr = qrcode.QRCode()
+            qr.add_data(public_url)
+            qr.make(fit=True)
+            qr.print_ascii()
+            
+            print("\n⚠️  KEEP THIS WINDOW OPEN TO MAINTAIN CONNECTION")
+            
+    except ImportError:
+        print("⚠️  Tunnel modules not found. Run 'pip install pyngrok qrcode' to enable remote access.")
+    except Exception as e:
+        print(f"❌ Tunnel Error: {e}")
+
+    # 4. Launch UI
     print("   > Accessing Command Center...")
     webbrowser.open("http://127.0.0.1:3000")
     
@@ -33,6 +59,8 @@ def start_nexus():
         print("\n🛑 SHUTDOWN SEQUENCE INITIATED...")
         bridge_process.terminate()
         # Node process via shell is harder to kill cleanly in python, but this is a start
+        if 'nexus_tunnel' in sys.modules:
+            nexus_tunnel.close_tunnel()
         print("   Nexus Bridge Terminated.")
         print("   Please manually close the Node terminal if it persists.")
         sys.exit(0)
