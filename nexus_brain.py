@@ -10,11 +10,12 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(level
 logger = logging.getLogger("NexusBrain")
 
 # Initialize Vertex AI
-PROJECT_ID = "nexus-ai-god-mode" # Replace with your actual Project ID if known, else user must set env var
+# PROJECT_ID = "nexus-ai-god-mode" # REMOVED: Rely on ADC
 LOCATION = "us-central1"
 
 try:
-    vertexai.init(project=PROJECT_ID, location=LOCATION)
+    # Initialize without project_id to use Application Default Credentials (ADC)
+    vertexai.init(location=LOCATION)
     model = GenerativeModel("gemini-pro")
     logger.info("🧠 VERTEX AI (GEMINI PRO): CONNECTED")
 except Exception as e:
