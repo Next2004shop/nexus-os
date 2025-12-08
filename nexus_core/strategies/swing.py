@@ -13,10 +13,15 @@ class SwingStrategy(BaseStrategy):
         confidence = 0
         reason = ""
 
+        macd = current.get('macd', 0)
+        macd_signal = current.get('macd_signal', 0)
+        prev_macd = prev.get('macd', 0)
+        prev_macd_signal = prev.get('macd_signal', 0)
+
         # Bullish Reversal
-        if current['macd'] > current['macd_signal'] and prev['macd'] <= prev['macd_signal']:
+        if macd > macd_signal and prev_macd <= prev_macd_signal:
             # Check if near zero line for better quality
-            if -0.001 < current['macd'] < 0.001: 
+            if -0.001 < macd < 0.001:
                 signal = "BUY"
                 confidence = 75
                 reason = "MACD Zero-Line Crossover (Bullish)"
@@ -26,8 +31,8 @@ class SwingStrategy(BaseStrategy):
                 reason = "MACD Crossover (Bullish)"
 
         # Bearish Reversal
-        elif current['macd'] < current['macd_signal'] and prev['macd'] >= prev['macd_signal']:
-            if -0.001 < current['macd'] < 0.001:
+        elif macd < macd_signal and prev_macd >= prev_macd_signal:
+            if -0.001 < macd < 0.001:
                 signal = "SELL"
                 confidence = 75
                 reason = "MACD Zero-Line Crossover (Bearish)"

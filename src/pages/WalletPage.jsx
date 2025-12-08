@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Wallet, ArrowUpRight, ArrowDownLeft, Shield, PieChart, Activity, Building, Smartphone, CreditCard, Bitcoin, Landmark, ChevronRight, Copy, Check } from 'lucide-react';
 import { bridgeService } from '../services/bridgeService';
-import { brokerService } from '../services/BrokerService';
+import { brokerService } from '../services/brokerService';
 import { BrokerSelector } from '../components/banking/BrokerSelector';
 import { useToast } from '../context/ToastContext';
 

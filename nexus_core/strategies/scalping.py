@@ -12,17 +12,23 @@ class ScalpingStrategy(BaseStrategy):
         confidence = 0
         reason = ""
 
+        # Default values if keys missing (safety)
+        rsi = current.get('rsi', 50)
+        close = current.get('close', 0)
+        bb_lower = current.get('bb_lower', 0)
+        bb_upper = current.get('bb_upper', 999999)
+
         # Buy Condition
-        if current['rsi'] < 30 and current['close'] < current['bb_lower']:
+        if rsi < 30 and close < bb_lower:
             signal = "BUY"
             confidence = 85
-            reason = f"Oversold (RSI {current['rsi']:.1f}) + BB Lower Break"
+            reason = f"Oversold (RSI {rsi:.1f}) + BB Lower Break"
         
         # Sell Condition
-        elif current['rsi'] > 70 and current['close'] > current['bb_upper']:
+        elif rsi > 70 and close > bb_upper:
             signal = "SELL"
             confidence = 85
-            reason = f"Overbought (RSI {current['rsi']:.1f}) + BB Upper Break"
+            reason = f"Overbought (RSI {rsi:.1f}) + BB Upper Break"
 
         return {
             "signal": signal,
