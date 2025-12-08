@@ -8,7 +8,35 @@ import time
 import pandas as pd
 import threading
 import os
+import numpy as np
+
+# Nexus Core Imports
 from nexus_security import security
+from nexus_core.engine import NexusEngine
+# Import Strategies
+try:
+    from nexus_core.strategies.trend import TrendStrategy
+except ImportError:
+    TrendStrategy = None
+
+try:
+    from nexus_core.strategies.scalping import ScalpingStrategy
+except ImportError:
+    ScalpingStrategy = None
+
+try:
+    from nexus_core.strategies.swing import SwingStrategy
+except ImportError:
+    SwingStrategy = None
+
+# Import NexusBrain (for AI Chat/Analysis)
+try:
+    from nexus_brain import brain
+except ImportError:
+    logger = logging.getLogger("NexusBridge")
+    logger.error("NexusBrain module not found!")
+    brain = None
+
 
 # --- LOGGING ---
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -31,6 +59,29 @@ WATCHLIST = [
 
 app = Flask(__name__)
 CORS(app)
+
+# Initialize Nexus Engine
+engine = NexusEngine()
+
+# Register Strategies
+if TrendStrategy:
+    try:
+        engine.register_strategy(TrendStrategy())
+    except Exception as e:
+        logger.error(f"Failed to register TrendStrategy: {e}")
+
+if ScalpingStrategy:
+    try:
+        engine.register_strategy(ScalpingStrategy())
+    except Exception as e:
+        logger.error(f"Failed to register ScalpingStrategy: {e}")
+
+if SwingStrategy:
+    try:
+        engine.register_strategy(SwingStrategy())
+    except Exception as e:
+        logger.error(f"Failed to register SwingStrategy: {e}")
+
 
 # Global State
 connection_state = {
@@ -141,41 +192,63 @@ def auto_trader():
                     if rates is None or len(rates) < 50:
                         continue
 
-                    # 3. Analyze
-                    # Convert to list of dicts for brain
-                    price_data = []
+                    # 3. Analyze using Nexus Engine
+                    # Convert rates to list of dicts
+                    raw_data = []
                     for rate in rates:
-                        price_data.append({
+                        raw_data.append({
                             "time": int(rate['time']),
                             "open": float(rate['open']),
-                        # Check if we already have a position to avoid spamming
-                        positions = mt5.positions_get(symbol=symbol)
-                        if positions and len(positions) > 0:
-                            # logger.info(f"Skipping {symbol}: Position already open.")
-                            continue
+                            "high": float(rate['high']),
+                            "low": float(rate['low']),
+                            "close": float(rate['close']),
+                            "tick_volume": int(rate['tick_volume'])
+                        })
 
-                        # Execute
-                        action = mt5.ORDER_TYPE_BUY if analysis['signal'] == "BUY" else mt5.ORDER_TYPE_SELL
-                        price = mt5.symbol_info_tick(symbol).ask if analysis['signal'] == "BUY" else mt5.symbol_info_tick(symbol).bid
-                        
-                        request_trade = {
-                            "action": mt5.TRADE_ACTION_DEAL,
-                            "symbol": symbol,
-                            "volume": 0.01, # Fixed lot for safety
-                            "type": action,
-                            "price": price,
-                            "deviation": DEVIATION,
-                            "magic": MAGIC_NUMBER,
-                            "comment": "Nexus AI Auto",
-                            "type_time": mt5.ORDER_TIME_GTC,
-                            "type_filling": mt5.ORDER_FILLING_IOC,
-                        }
-                        
-                        result = mt5.order_send(request_trade)
-                        if result.retcode == mt5.TRADE_RETCODE_DONE:
-                            logger.info(f"✅ TRADE EXECUTED: {symbol} {analysis['signal']}")
-                        else:
-                            logger.error(f"❌ TRADE FAILED: {result.comment}")
+                    # Pass Account Info for Risk Management
+                    # Update engine's risk manager with real account info
+                    if connection_state["account"]:
+                         engine.update_account_info(connection_state["account"])
+
+                    decision = engine.analyze(symbol, raw_data)
+
+                    if decision['signal'] == "HOLD":
+                        continue
+
+                    # 4. Check if we already have a position to avoid spamming
+                    positions = mt5.positions_get(symbol=symbol)
+                    if positions and len(positions) > 0:
+                        # logger.info(f"Skipping {symbol}: Position already open.")
+                        continue
+
+                    # 5. Execute
+                    logger.info(f"⚡ SIGNAL DETECTED: {symbol} {decision['signal']} ({decision['confidence']}%) - {decision['reason']}")
+
+                    action = mt5.ORDER_TYPE_BUY if decision['signal'] == "BUY" else mt5.ORDER_TYPE_SELL
+                    price = mt5.symbol_info_tick(symbol).ask if decision['signal'] == "BUY" else mt5.symbol_info_tick(symbol).bid
+
+                    # Calculate Lot Size
+                    # Use engine's calculator or fixed for now
+                    lot_size = engine.calculate_position_size(connection_state["account"]["balance"]) if connection_state["account"] else 0.01
+
+                    request_trade = {
+                        "action": mt5.TRADE_ACTION_DEAL,
+                        "symbol": symbol,
+                        "volume": lot_size,
+                        "type": action,
+                        "price": price,
+                        "deviation": DEVIATION,
+                        "magic": MAGIC_NUMBER,
+                        "comment": f"Nexus AI: {decision['reason']}",
+                        "type_time": mt5.ORDER_TIME_GTC,
+                        "type_filling": mt5.ORDER_FILLING_IOC,
+                    }
+
+                    result = mt5.order_send(request_trade)
+                    if result.retcode == mt5.TRADE_RETCODE_DONE:
+                        logger.info(f"✅ TRADE EXECUTED: {symbol} {decision['signal']} @ {price}")
+                    else:
+                        logger.error(f"❌ TRADE FAILED: {result.comment} ({result.retcode})")
 
             time.sleep(60) # Scan every 60 seconds
 
@@ -262,13 +335,16 @@ def place_trade():
 def ai_chat():
     """General AI Chat Endpoint"""
     try:
-        from nexus_brain import brain
-        data = request.json
-        message = data.get('message', '')
-        history = data.get('history', [])
-        
-        response_text = brain.ask_gemini_chat(message, history)
-        return jsonify({"response": response_text})
+        # Use brain if available
+        if brain:
+            data = request.json
+            message = data.get('message', '')
+            history = data.get('history', [])
+
+            response_text = brain.ask_gemini_chat(message, history)
+            return jsonify({"response": response_text})
+        else:
+             return jsonify({"error": "AI Brain not initialized"}), 503
     except Exception as e:
         logger.error(f"Chat Error: {e}")
         return jsonify({"error": str(e)}), 500
@@ -278,7 +354,9 @@ def ai_chat():
 def analyze_symbol():
     """Triggers AI analysis for a specific symbol"""
     try:
-        from nexus_brain import brain
+        if not brain:
+            return jsonify({"error": "AI Brain not initialized"}), 503
+
         data = request.json
         symbol = data.get('symbol', 'EURUSD')
         timeframe_str = data.get('timeframe', 'M15')
@@ -299,7 +377,6 @@ def analyze_symbol():
         if rates is None or len(rates) == 0:
              # Fallback for offline mode testing
              logger.warning(f"No data for {symbol} (MT5 Offline/Unavailable). Using Mock Data.")
-             import numpy as np
              mock_data = []
              base_price = 2000.0 if symbol == "XAUUSD" else 1.1000
              for i in range(100):
@@ -315,6 +392,7 @@ def analyze_symbol():
              result['note'] = "MOCK DATA USED (MT5 Offline)"
              return jsonify(result)
 
+        # Prepare real data for Brain
         price_data = []
         for rate in rates:
             price_data.append({
@@ -325,10 +403,24 @@ def analyze_symbol():
                 "close": float(rate['close']),
                 "tick_volume": int(rate['tick_volume'])
             })
-        
+
+        result = brain.analyze_market(symbol, price_data)
+        return jsonify(result)
+
+    except Exception as e:
+        logger.error(f"Analysis Error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/positions', methods=['GET'])
+@auth.login_required
+def get_positions():
+    """Fetches open positions"""
+    if connection_state["status"] != "CONNECTED":
+        return jsonify({"error": "MT5 Not Connected"}), 503
+
     positions = mt5.positions_get()
     if positions is None:
-        return jsonify({"error": "Could not retrieve positions"}), 500
+        return jsonify([])
 
     positions_list = []
     for pos in positions:
@@ -351,9 +443,9 @@ def get_history():
     start_time = request.args.get('start', int(time.time()) - 86400)
     end_time = request.args.get('end', int(time.time()))
 
-    history = mt5.history_deals_get(start_time, end_time)
+    history = mt5.history_deals_get(int(start_time), int(end_time))
     if history is None:
-        return jsonify({"error": "Could not retrieve history"}), 500
+        return jsonify([])
 
     history_list = []
     for deal in history:
@@ -378,11 +470,22 @@ def get_market_prices():
     for symbol in WATCHLIST:
         # Ensure symbol is selected
         if not mt5.symbol_info(symbol):
-            # Try variations if standard fails (e.g. NAS100 vs USTEC)
             continue
             
         tick = mt5.symbol_info_tick(symbol)
         if tick:
+            prices.append({
+                "symbol": symbol,
+                "bid": tick.bid,
+                "ask": tick.ask,
+                "last": tick.last
+            })
+
+    return jsonify({"status": "ONLINE", "prices": prices})
+
+@app.route('/market/candles', methods=['GET'])
+@auth.login_required
+def get_candles():
     """Fetches OHLC candles for a symbol"""
     if connection_state["status"] != "CONNECTED":
         return jsonify({"error": "MT5 Not Connected"}), 503

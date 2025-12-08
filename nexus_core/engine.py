@@ -1,6 +1,6 @@
 import logging
 import pandas as pd
-from typing import List, Dict
+from typing import List, Dict, Optional
 from .strategies.base_strategy import BaseStrategy
 from .analysis.indicators import TechnicalAnalysis
 from .risk.manager import RiskManager
@@ -23,12 +23,18 @@ class NexusEngine:
         self.active_strategies = []
         self.data_cache = {}
         self.risk_manager = RiskManager()
+        self.account_info = {"balance": 10000, "equity": 10000} # Default/Initial state
         logger.info("🧠 NEXUS CORE ENGINE: INITIALIZED")
 
     def register_strategy(self, strategy: BaseStrategy):
         self.strategies.append(strategy)
         self.active_strategies.append(strategy.name)
         logger.info(f"✅ Strategy Registered: {strategy.name}")
+
+    def update_account_info(self, info: dict):
+        """Updates the account information for risk calculations."""
+        self.account_info = info
+        self.risk_manager.update_account_info(info)
 
     def ingest_data(self, symbol: str, raw_data: List[dict]) -> pd.DataFrame:
         """
@@ -87,11 +93,8 @@ class NexusEngine:
         best_decision = max(decisions, key=lambda x: x['confidence'])
         
         # --- RISK CHECK ---
-        # We need account info for proper risk check. 
-        # For now, we assume a safe state or pass mock data if not provided.
-        # In real flow, context should include account info.
-        mock_account = {"balance": 10000, "equity": 10000} 
-        if not self.risk_manager.check_trade(best_decision, mock_account):
+        # Using real account info
+        if not self.risk_manager.check_trade(best_decision, self.account_info):
             logger.warning("⚠️ Risk Manager VETOED the trade.")
             return {"signal": "HOLD", "confidence": 0, "reason": "Risk Manager Veto"}
 

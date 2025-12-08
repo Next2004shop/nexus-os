@@ -12,14 +12,20 @@ def start_nexus():
     bridge_process = subprocess.Popen([sys.executable, "nexus_bridge.py"], cwd=os.getcwd())
     
     # 2. Start Node Server (The Host)
-    print("   > Launching Nexus Host (Command Center)...")
+    print("   > Launching Nexus Host (Backend API)...")
+    # Using 'node server.cjs' to run the backend server
+    # We use Popen so it runs in background
+    node_server_process = subprocess.Popen(["node", "server.cjs"], cwd=os.getcwd())
+
+    # 3. Start React/Vite (The Frontend - Dev Mode)
+    print("   > Launching Nexus UI (Command Center)...")
     # Assuming 'npm run dev' or 'node server.cjs' depending on dev/prod. 
     # For dev environment as per user state:
-    server_process = subprocess.Popen(["npm", "run", "dev"], cwd=os.getcwd(), shell=True)
+    frontend_process = subprocess.Popen(["npm", "run", "dev"], cwd=os.getcwd(), shell=True)
     
     time.sleep(5) # Wait for servers to warm up
     
-    # 3. Start Secure Tunnel (God Mode Remote Access)
+    # 4. Start Secure Tunnel (God Mode Remote Access)
     try:
         import nexus_tunnel
         import qrcode
@@ -45,7 +51,7 @@ def start_nexus():
     except Exception as e:
         print(f"❌ Tunnel Error: {e}")
 
-    # 4. Launch UI
+    # 5. Launch UI
     print("   > Accessing Command Center...")
     webbrowser.open("http://127.0.0.1:3000")
     
@@ -58,10 +64,12 @@ def start_nexus():
     except KeyboardInterrupt:
         print("\n🛑 SHUTDOWN SEQUENCE INITIATED...")
         bridge_process.terminate()
+        node_server_process.terminate()
         # Node process via shell is harder to kill cleanly in python, but this is a start
         if 'nexus_tunnel' in sys.modules:
             nexus_tunnel.close_tunnel()
         print("   Nexus Bridge Terminated.")
+        print("   Nexus Host Terminated.")
         print("   Please manually close the Node terminal if it persists.")
         sys.exit(0)
 
