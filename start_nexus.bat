@@ -10,6 +10,13 @@ start "Nexus Bridge (Python)" cmd /k ""C:\Users\user\AppData\Local\Programs\Pyth
 :: Wait for Python to initialize
 timeout /t 5
 
-:: Start Node.js Server (Frontend Host)
-echo Starting Node.js Host...
+:: Start Node.js Backend Server (API Host)
+echo Starting Node.js Backend...
+start "Nexus Host (Node)" cmd /k "node server.cjs"
+
+:: Wait for Backend to initialize
+timeout /t 5
+
+:: Start React/Vite (Frontend)
+echo Starting React Frontend...
 "C:\Program Files\nodejs\npm.cmd" run dev
