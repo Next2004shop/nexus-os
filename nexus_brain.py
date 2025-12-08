@@ -1,58 +1,70 @@
 import os
 import logging
 import json
-import vertexai
-from vertexai.preview.generative_models import GenerativeModel, Part
-import vertexai.preview.generative_models as generative_models
+from openai import OpenAI
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Configure Logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("NexusBrain")
 
-# Initialize Vertex AI
-# PROJECT_ID = "nexus-ai-god-mode" # REMOVED: Rely on ADC
-LOCATION = "us-central1"
+# Initialize OpenAI Client
+API_KEY = os.getenv("OPENAI_API_KEY")
+client = None
 
-try:
-    # Initialize without project_id to use Application Default Credentials (ADC)
-    vertexai.init(location=LOCATION)
-    model = GenerativeModel("gemini-pro")
-    logger.info("🧠 VERTEX AI (GEMINI PRO): CONNECTED")
-except Exception as e:
-    logger.error(f"❌ VERTEX AI CONNECTION FAILED: {e}")
-    model = None
+if API_KEY:
+    try:
+        client = OpenAI(api_key=API_KEY)
+        logger.info("🧠 OPENAI (GPT-4): CONNECTED")
+    except Exception as e:
+        logger.error(f"❌ OPENAI CONNECTION FAILED: {e}")
+else:
+    logger.warning("⚠️ OPENAI_API_KEY not found in environment. AI features will be disabled.")
 
 class NexusBrain:
     def __init__(self):
-        self.chat_session = None
-        if model:
-            self.chat_session = model.start_chat()
+        pass
 
     def ask_gemini_chat(self, message: str, history: list = []) -> str:
         """
-        Sends a message to Gemini Pro and returns the response.
+        Sends a message to OpenAI and returns the response.
+        (Kept method name for compatibility with existing calls, or refactor caller)
         """
-        if not model:
-            return "⚠️ Nexus Brain Disconnected. Please check Google Cloud credentials."
+        if not client:
+            return "⚠️ Nexus Brain Disconnected. Please set OPENAI_API_KEY."
 
         try:
-            # Reconstruct history if needed, but for now we just send the message
-            # Gemini SDK manages history in chat_session, but if we want stateless:
-            response = self.chat_session.send_message(message)
-            return response.text
+            # Construct messages from history
+            messages = [{"role": "system", "content": "You are Nexus AI, an advanced trading assistant."}]
+
+            # Simple history reconstruction (can be improved)
+            for msg in history:
+                role = "user" if msg.get('sender') == 'user' else "assistant"
+                messages.append({"role": role, "content": msg.get('text', '')})
+
+            messages.append({"role": "user", "content": message})
+
+            response = client.chat.completions.create(
+                model="gpt-4o", # Using latest flagship
+                messages=messages
+            )
+            return response.choices[0].message.content
         except Exception as e:
             logger.error(f"AI Chat Error: {e}")
             return "⚠️ I'm having trouble thinking right now. Please check my connection."
 
     def analyze_market(self, symbol: str, price_data: list) -> dict:
         """
-        Analyzes market data using Gemini Pro to generate trading signals.
+        Analyzes market data using OpenAI to generate trading signals.
         """
-        if not model:
+        if not client:
             return {
                 "signal": "HOLD",
                 "confidence": 0,
-                "reasoning": "AI Brain Disconnected",
+                "reasoning": "AI Brain Disconnected (Missing API Key)",
                 "direction": "NEUTRAL"
             }
 
@@ -75,15 +87,16 @@ class NexusBrain:
             }}
             """
             
-            response = model.generate_content(prompt)
-            text = response.text.strip()
+            response = client.chat.completions.create(
+                model="gpt-4o",
+                messages=[
+                    {"role": "system", "content": "You are a precise trading algorithm. Output JSON only."},
+                    {"role": "user", "content": prompt}
+                ],
+                response_format={"type": "json_object"}
+            )
             
-            # Clean up response if it contains markdown code blocks
-            if "```json" in text:
-                text = text.split("```json")[1].split("```")[0]
-            elif "```" in text:
-                text = text.split("```")[1].split("```")[0]
-                
+            text = response.choices[0].message.content
             return json.loads(text)
 
         except Exception as e:
@@ -91,7 +104,7 @@ class NexusBrain:
             return {
                 "signal": "HOLD",
                 "confidence": 0,
-                "reasoning": "Analysis Failed",
+                "reasoning": f"Analysis Failed: {str(e)}",
                 "direction": "NEUTRAL"
             }
 

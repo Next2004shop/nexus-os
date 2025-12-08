@@ -7,6 +7,6 @@ pandas
 numpy
 pyngrok
 qrcode
-google-cloud-aiplatform
+openai
 python-dotenv
 requests
