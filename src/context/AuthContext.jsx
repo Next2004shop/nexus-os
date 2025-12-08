@@ -72,8 +72,22 @@ export const AuthProvider = ({ children }) => {
     };
 
     const logout = async () => {
-        localStorage.removeItem('nexus_demo_user');
-        return signOut(auth);
+        try {
+            // 1. Clear Local Storage (Demo User)
+            localStorage.removeItem('nexus_demo_user');
+
+            // 2. Clear State Immediately
+            setCurrentUser(null);
+
+            // 3. Sign Out from Firebase
+            await signOut(auth);
+            return true;
+        } catch (error) {
+            console.error("Logout Error:", error);
+            // Force logout state even if Firebase fails
+            setCurrentUser(null);
+            return false;
+        }
     };
 
     const value = {
