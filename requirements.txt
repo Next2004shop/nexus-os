@@ -1,5 +1,14 @@
+
 MetaTrader5
 flask
 flask-cors
 flask-httpauth
 werkzeug
+feedparser
+google-generativeai
+google-cloud-aiplatform
+beautifulsoup4
+requests
+pydantic
+pytest
+openai

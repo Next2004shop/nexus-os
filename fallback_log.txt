@@ -1,0 +1,25 @@
+Fetching news...
+Found 20 articles.
+Analyzing for M&A opportunities (Vertex AI)...
+Trying region: us-central1...
+  - Testing model: gemini-1.5-flash... Failed (404 Publisher Model `projects/project-bd8c584b-bec...)
+  - Testing model: gemini-1.0-pro... Failed (404 Publisher Model `projects/project-bd8c584b-bec...)
+  - Testing model: gemini-pro... Failed (404 Publisher Model `projects/project-bd8c584b-bec...)
+  - Testing model: text-bison... Failed (404 Publisher Model `projects/project-bd8c584b-bec...)
+Trying region: us-east1...
+  - Testing model: gemini-1.5-flash... Failed (404 Publisher Model `projects/project-bd8c584b-bec...)
+  - Testing model: gemini-1.0-pro... Failed (404 Publisher Model `projects/project-bd8c584b-bec...)
+  - Testing model: gemini-pro... Failed (404 Publisher Model `projects/project-bd8c584b-bec...)
+  - Testing model: text-bison... Failed (404 Publisher Model `publishers/google/models/text...)
+Trying region: us-west1...
+  - Testing model: gemini-1.5-flash... Failed (404 Publisher Model `projects/project-bd8c584b-bec...)
+  - Testing model: gemini-1.0-pro... Failed (404 Publisher Model `projects/project-bd8c584b-bec...)
+  - Testing model: gemini-pro... Failed (404 Publisher Model `projects/project-bd8c584b-bec...)
+  - Testing model: text-bison... Failed (404 Publisher Model `projects/project-bd8c584b-bec...)
+Trying region: europe-west1...
+  - Testing model: gemini-1.5-flash... Failed (404 Publisher Model `projects/project-bd8c584b-bec...)
+  - Testing model: gemini-1.0-pro... Failed (404 Publisher Model `projects/project-bd8c584b-bec...)
+  - Testing model: gemini-pro... Failed (404 Publisher Model `projects/project-bd8c584b-bec...)
+  - Testing model: text-bison... Failed (404 Publisher Model `projects/project-bd8c584b-bec...)
+CRITICAL: Could not find ANY working region/model combination.
+[]

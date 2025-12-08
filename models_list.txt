@@ -1,0 +1,22 @@
+Testing Key Length: 39
+Testing Key Repr: 'AIzaSyBet7k0Q9UKxjXKj3uFHH173Aehmb-2yhk'
+Status Code: 200
+Response: {
+  "models": [
+    {
+      "name": "models/embedding-gecko-001",
+      "version": "001",
+      "displayName": "Embedding Gecko",
+      "description": "Obtain a distributed representation of a text.",
+      "inputTokenLimit": 1024,
+      "outputTokenLimit": 1,
+      "supportedGenerationMethods": [
+        "embedText",
+        "countTextTokens"
+      ]
+    },
+    {
+      "name": "models/gemini-2.5-flash",
+      "version": "001",
+      "displayName": "Gemini 2.5 Flash",
+      "description": "Stabl...

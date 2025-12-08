@@ -1,0 +1,11 @@
+Testing Key Length: 40
+Testing Key Repr: 'AIzaSyCzHZHnR6BNRFid1h7O-EEH32jHUgVlkWYU'
+Status Code: 400
+Response: {
+  "error": {
+    "code": 400,
+    "message": "API key not valid. Please pass a valid API key.",
+    "status": "INVALID_ARGUMENT",
+    "details": [
+      {
+        "@type": "type.googleapis.com/googl...

@@ -1,0 +1,117 @@
+============================= test session starts =============================
+platform win32 -- Python 3.11.9, pytest-9.0.2, pluggy-1.6.0
+rootdir: D:\nexus-ai
+plugins: anyio-4.12.0
+collected 3 items
+
+tests\test_backend_mock.py F..                                           [100%]
+
+================================== FAILURES ===================================
+________________________ test_trade_validation_success ________________________
+
+client = <FlaskClient <Flask 'nexus_bridge'>>
+
+    def test_trade_validation_success(client):
+        nexus_bridge.mt5.symbol_info.return_value = MagicMock(visible=True)
+        nexus_bridge.mt5.symbol_info_tick.return_value = MagicMock(ask=1.1000)
+        nexus_bridge.mt5.order_send.return_value = MagicMock(retcode=nexus_bridge.mt5.TRADE_RETCODE_DONE)
+    
+>       response = client.post('/trade',
+            json={
+                "symbol": "EURUSD",
+                "type": "BUY",
+                "lots": 0.1,
+                "sl": 1.0900,
+                "tp": 1.1100
+            },
+            headers={'Authorization': 'Basic YWRtaW46c2VjdXJlcGFzc3dvcmQ='} # admin:securepassword
+        )
+
+tests\test_backend_mock.py:35: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\user\AppData\Local\Programs\Python\Python311\Lib\site-packages\werkzeug\test.py:1167: in post
+    return self.open(*args, **kw)
+           ^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\user\AppData\Local\Programs\Python\Python311\Lib\site-packages\flask\testing.py:235: in open
+    response = super().open(
+C:\Users\user\AppData\Local\Programs\Python\Python311\Lib\site-packages\werkzeug\test.py:1116: in open
+    response_parts = self.run_wsgi_app(request.environ, buffered=buffered)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\user\AppData\Local\Programs\Python\Python311\Lib\site-packages\werkzeug\test.py:988: in run_wsgi_app
+    rv = run_wsgi_app(self.application, environ, buffered=buffered)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\user\AppData\Local\Programs\Python\Python311\Lib\site-packages\werkzeug\test.py:1264: in run_wsgi_app
+    app_rv = app(environ, start_response)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\user\AppData\Local\Programs\Python\Python311\Lib\site-packages\flask\app.py:1536: in __call__
+    return self.wsgi_app(environ, start_response)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\user\AppData\Local\Programs\Python\Python311\Lib\site-packages\flask\app.py:1514: in wsgi_app
+    response = self.handle_exception(e)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\user\AppData\Local\Programs\Python\Python311\Lib\site-packages\flask_cors\extension.py:176: in wrapped_function
+    return cors_after_request(app.make_response(f(*args, **kwargs)))
+                                                ^^^^^^^^^^^^^^^^^^
+C:\Users\user\AppData\Local\Programs\Python\Python311\Lib\site-packages\flask\app.py:1511: in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\user\AppData\Local\Programs\Python\Python311\Lib\site-packages\flask\app.py:919: in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\user\AppData\Local\Programs\Python\Python311\Lib\site-packages\flask_cors\extension.py:176: in wrapped_function
+    return cors_after_request(app.make_response(f(*args, **kwargs)))
+                                                ^^^^^^^^^^^^^^^^^^
+C:\Users\user\AppData\Local\Programs\Python\Python311\Lib\site-packages\flask\app.py:917: in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\user\AppData\Local\Programs\Python\Python311\Lib\site-packages\flask\app.py:902: in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\user\AppData\Local\Programs\Python\Python311\Lib\site-packages\flask_httpauth.py:174: in decorated
+    return self.ensure_sync(f)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+nexus_bridge.py:319: in place_trade
+    return jsonify({"status": "Trade Executed", "ticket": result.order})
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\user\AppData\Local\Programs\Python\Python311\Lib\site-packages\flask\json\__init__.py:170: in jsonify
+    return current_app.json.response(*args, **kwargs)  # type: ignore[return-value]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\user\AppData\Local\Programs\Python\Python311\Lib\site-packages\flask\json\provider.py:214: in response
+    f"{self.dumps(obj, **dump_args)}\n", mimetype=self.mimetype
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\user\AppData\Local\Programs\Python\Python311\Lib\site-packages\flask\json\provider.py:179: in dumps
+    return json.dumps(obj, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\user\AppData\Local\Programs\Python\Python311\Lib\json\__init__.py:238: in dumps
+    **kw).encode(obj)
+          ^^^^^^^^^^^
+C:\Users\user\AppData\Local\Programs\Python\Python311\Lib\json\encoder.py:200: in encode
+    chunks = self.iterencode(o, _one_shot=True)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\user\AppData\Local\Programs\Python\Python311\Lib\json\encoder.py:258: in iterencode
+    return _iterencode(o, 0)
+           ^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+o = <MagicMock name='mock.order_send().order' id='2779057993616'>
+
+    def _default(o: t.Any) -> t.Any:
+        if isinstance(o, date):
+            return http_date(o)
+    
+        if isinstance(o, (decimal.Decimal, uuid.UUID)):
+            return str(o)
+    
+        if dataclasses and dataclasses.is_dataclass(o):
+            return dataclasses.asdict(o)  # type: ignore[arg-type]
+    
+        if hasattr(o, "__html__"):
+            return str(o.__html__())
+    
+>       raise TypeError(f"Object of type {type(o).__name__} is not JSON serializable")
+E       TypeError: Object of type MagicMock is not JSON serializable
+
+C:\Users\user\AppData\Local\Programs\Python\Python311\Lib\site-packages\flask\json\provider.py:121: TypeError
+=========================== short test summary info ===========================
+FAILED tests/test_backend_mock.py::test_trade_validation_success - TypeError:...
+========================= 1 failed, 2 passed in 2.40s =========================

@@ -12,7 +12,7 @@ class NexusSecurity:
         self.ip_whitelist = ["127.0.0.1", "localhost", "::1"]
         self.request_log = defaultdict(list)
         self.failed_logins = defaultdict(int)
-        self.MAX_REQUESTS_PER_MINUTE = 60
+        self.MAX_REQUESTS_PER_MINUTE = 600
         self.MAX_FAILED_LOGINS = 3
         logger.info("🛡️ NEXUS SECURITY: ONLINE (DEFENSIVE MODE)")
 

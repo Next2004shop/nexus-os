@@ -8,7 +8,15 @@ const morgan = require('morgan');
 const cluster = require('cluster');
 const os = require('os');
 
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3000;
+const BRIDGE_TARGET = process.env.BRIDGE_TARGET || 'http://35.239.252.226:5000';
+const RATE_LIMIT_WINDOW_MS = Number(process.env.RATE_LIMIT_WINDOW_MS || 5 * 60 * 1000); // default 5 minutes
+const RATE_LIMIT_MAX = Number(process.env.RATE_LIMIT_MAX || 300); // default 300 requests / window / IP
+const MAINTENANCE_TOKEN = process.env.MAINTENANCE_TOKEN || '';
+const TRUST_PROXY = process.env.TRUST_PROXY || 'loopback';
+const CSP_ENABLED = process.env.CSP_ENABLED !== 'false';
+const BRIDGE_BASIC_USER = process.env.BRIDGE_BASIC_USER || 'danmutemi2023';
+const BRIDGE_BASIC_PASS = process.env.BRIDGE_BASIC_PASS || '\\-JR0-0bEGRP.IS';
 const numCPUs = os.cpus().length;
 
 if (cluster.isPrimary) {
@@ -26,7 +34,7 @@ if (cluster.isPrimary) {
         cluster.fork();
     }
 
-    cluster.on('exit', (worker, code, signal) => {
+    cluster.on('exit', (worker) => {
         console.log(`⚠️ Worker ${worker.process.pid} died. Auto-Respawning...`);
         cluster.fork(); // Self-Healing: Respawn worker
     });
@@ -36,24 +44,62 @@ if (cluster.isPrimary) {
     const app = express();
 
     // 1. Advanced Security & Optimization
+    app.set('trust proxy', TRUST_PROXY);
     app.use(helmet({
-        contentSecurityPolicy: false,
+        contentSecurityPolicy: CSP_ENABLED ? {
+            directives: {
+                defaultSrc: ["'self'"],
+                connectSrc: ["'self'", BRIDGE_TARGET],
+                imgSrc: ["'self'", 'data:'],
+                scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+                styleSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+                objectSrc: ["'none'"],
+            }
+        } : false,
+        crossOriginEmbedderPolicy: false,
     }));
     app.use(compression());
     app.use(cors());
     app.use(express.json());
     app.use(morgan('tiny')); // Request logging
 
+    // Routes
+    const walletRoutes = require('./src/routes/wallet.cjs');
+    app.use('/api/wallet', walletRoutes);
+
     // Rate Limiting (DDoS Protection)
     const limiter = rateLimit({
-        windowMs: 15 * 60 * 1000, // 15 minutes
-        max: 1000, // Limit each IP to 1000 requests per windowMs
+        windowMs: RATE_LIMIT_WINDOW_MS,
+        max: RATE_LIMIT_MAX,
+        standardHeaders: true,
+        legacyHeaders: false,
         message: { error: "Security Alert: Rate limit exceeded. Cooldown initiated." }
     });
     app.use(limiter);
 
     // 2. Serve Static Files
     app.use(express.static(path.join(__dirname, 'dist')));
+
+    // 2.1 Proxy to Python Bridge (MetaTrader 5)
+    const httpProxy = require('http-proxy');
+    const apiProxy = httpProxy.createProxyServer();
+    apiProxy.on('error', (e, req, res) => {
+        console.error("Bridge Proxy Error:", e.message);
+        if (!res.headersSent) {
+            res.status(502).json({ error: "Bridge Unreachable", details: e.message });
+        }
+    });
+
+    app.all('/api/bridge/*', (req, res) => {
+        // Remove /api/bridge prefix when forwarding to Python (which expects /status, /trade, etc.)
+        req.url = req.url.replace('/api/bridge', '');
+        const headers = {};
+        if (BRIDGE_BASIC_USER && BRIDGE_BASIC_PASS) {
+            const token = Buffer.from(`${BRIDGE_BASIC_USER}:${BRIDGE_BASIC_PASS}`).toString('base64');
+            headers.Authorization = `Basic ${token}`;
+        }
+        apiProxy.web(req, res, { target: BRIDGE_TARGET, changeOrigin: true, headers });
+    });
 
     // 3. "Server Agent" API Endpoint (Enhanced)
     app.get('/api/server-agent/status', (req, res) => {
@@ -90,36 +136,26 @@ if (cluster.isPrimary) {
         });
     });
 
-    // API: Toggle Maintenance Mode (Admin Only - Simulated)
-    app.post('/api/admin/maintenance', (req, res) => {
+    const requireAdminToken = (req, res, next) => {
+        if (!MAINTENANCE_TOKEN) return next(); // allow if not configured
+        if (req.get('x-admin-token') === MAINTENANCE_TOKEN) return next();
+        return res.status(401).json({ error: 'Unauthorized' });
+    };
+
+    // API: Toggle Maintenance Mode (Admin Only)
+    app.post('/api/admin/maintenance', requireAdminToken, (req, res) => {
         const { enabled } = req.body;
         maintenanceMode = enabled;
         console.log(`[SYSTEM] Maintenance Mode set to: ${maintenanceMode}`);
         res.json({ success: true, maintenance: maintenanceMode });
     });
 
-    // 4. NEXUS BRIDGE GATEWAY (Reverse Proxy to Python)
-    // Forwards requests from /api/bridge/* -> http://127.0.0.1:5000/*
-    const httpProxy = require('http-proxy');
-    const apiProxy = httpProxy.createProxyServer();
-
-    app.use('/api/bridge', (req, res) => {
-        console.log(`[GATEWAY] Proxying request: ${req.method} ${req.url} -> Python Bridge`);
-        // req.url is already relative to the mount point in app.use
-        apiProxy.web(req, res, { target: 'http://127.0.0.1:5001' }, (e) => {
-            console.error("[GATEWAY] Bridge Error:", e.message);
-            if (!res.headersSent) {
-                res.status(502).json({ error: "Nexus Bridge Unreachable. Is the Python Core running?" });
-            }
-        });
-    });
-
-    // Serve React App (Catch-All)
-    app.get(/(.*)/, (req, res) => {
+    // Serve React App (Catch all for SPA)
+    app.get('*', (req, res) => {
         res.sendFile(path.join(__dirname, 'dist', 'index.html'));
     });
 
-    app.listen(PORT, '127.0.0.1', () => {
-        console.log(`[NEXUS HOST] Server running on port ${PORT} (LOCALHOST ONLY) | Worker: ${cluster.isWorker ? cluster.worker.id : 'MASTER'}`);
+    app.listen(PORT, () => {
+        console.log(`[NEXUS HOST] Server running on port ${PORT} | Worker: ${cluster.isWorker ? cluster.worker.id : 'MASTER'}`);
     });
 }
