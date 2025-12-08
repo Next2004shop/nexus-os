@@ -3,3 +3,10 @@ flask
 flask-cors
 flask-httpauth
 werkzeug
+pandas
+numpy
+pyngrok
+qrcode
+google-cloud-aiplatform
+python-dotenv
+requests
