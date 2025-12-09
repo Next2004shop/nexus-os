@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Nexus PRO</string>
-    <string name="title_activity_main">Nexus PRO</string>
-    <string name="package_name">com.nexus.mobile</string>
-    <string name="custom_url_scheme">com.nexus.mobile</string>
+    <string name="app_name">nexus-ai</string>
+    <string name="title_activity_main">nexus-ai</string>
+    <string name="package_name">com.danteh.nexusai</string>
+    <string name="custom_url_scheme">com.danteh.nexusai</string>
 </resources>
