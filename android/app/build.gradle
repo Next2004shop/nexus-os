@@ -5,13 +5,13 @@ plugins {
 }
 
 android {
-    namespace "com.nexus.ai"
-    compileSdk 34
+    namespace "com.nexus.mobile"
+    compileSdk 35
 
     defaultConfig {
-        applicationId "com.nexus.ai"
+        applicationId "com.nexus.mobile"
         minSdk 23
-        targetSdk 34
+        targetSdk 35
         versionCode 1
         versionName "1.0.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
