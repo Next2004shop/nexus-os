@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus Trading - Enhanced Interface</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="styles/nexus-enhanced.css">
+
+    <!-- Lightweight Charts Library -->
+    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+</head>
+
+<body>
+    <div class="trading-container">
+        <!-- TOP BAR -->
+        <div class="top-bar">
+            <button class="back-button" onclick="window.history.back()">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+
+            <div class="market-info">
+                <div class="market-pair" id="marketPair">BTC/USD</div>
+                <div class="market-subtitle">BITCOIN SPOT MARKET</div>
+            </div>
+
+            <div class="market-status">
+                <div class="price-display bullish" id="currentPrice">$98,127.06</div>
+                <div class="status-badge open">MARKET OPEN</div>
+                <div class="connection-status">
+                    <div class="connection-dot" id="connectionDot"></div>
+                    <span id="connectionText">CONNECTED</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- MAIN CONTENT GRID -->
+        <div class="main-content">
+            <!-- CHART PANEL -->
+            <div class="chart-panel">
+                <div id="trading-chart"></div>
+                <div class="chart-loading" id="chartLoading" style="display: none;">
+                    <div class="shimmer"></div>
+                    <p style="margin-top: 16px; color: var(--color-text-secondary);">Loading chart data...</p>
+                </div>
+            </div>
+
+            <!-- INTELLIGENCE PANEL -->
+            <div class="intelligence-panel">
+                <div class="nexus-badge">
+                    <div class="nexus-title">
+                        <i class="fas fa-brain"></i> Nexus Intelligence
+                    </div>
+                </div>
+
+                <div class="ai-metrics">
+                    <div class="metric-row">
+                        <span class="metric-label">Direction</span>
+                        <span class="metric-value" id="aiDirection">WAIT</span>
+                    </div>
+
+                    <div class="metric-row">
+                        <span class="metric-label">Smart Money</span>
+                        <span class="metric-value scanning" id="aiSmartMoney">SCANNING...</span>
+                    </div>
+
+                    <div class="metric-row">
+                        <span class="metric-label">Confidence</span>
+                        <span class="metric-value" id="aiConfidence">--</span>
+                    </div>
+
+                    <div class="metric-row">
+                        <span class="metric-label">Risk Rating</span>
+                        <span class="metric-value" id="aiRisk">MEDIUM</span>
+                    </div>
+
+                    <div class="metric-row">
+                        <span class="metric-label">Market Conditions</span>
+                        <span class="metric-value" id="aiMarket">VOLATILE</span>
+                    </div>
+
+                    <div class="metric-row">
+                        <span class="metric-label">Sentiment</span>
+                        <span class="metric-value" id="aiSentiment">NEUTRAL</span>
+                    </div>
+
+                    <div class="scanning-bar"></div>
+
+                    <button class="update-button" onclick="updateAIAnalysis()">
+                        <i class="fas fa-sync-alt"></i> Update Analysis
+                    </button>
+                </div>
+
+                <!-- TRADE PANEL (moved inside intelligence panel for layout) -->
+                <div class="trade-panel">
+                    <div class="trade-inputs">
+                        <div class="input-group">
+                            <label class="input-label">Take Profit</label>
+                            <input type="number" class="trade-input" id="takeProfit" placeholder="0.00" step="0.01">
+                        </div>
+
+                        <div class="input-group">
+                            <label class="input-label">Stop Loss</label>
+                            <input type="number" class="trade-input" id="stopLoss" placeholder="0.00" step="0.01">
+                        </div>
+
+                        <div class="input-group">
+                            <label class="input-label">Amount (Lots)</label>
+                            <input type="number" class="trade-input" id="lotSize" value="0.01" step="0.01" min="0.01">
+                        </div>
+                    </div>
+
+                    <div class="trade-actions">
+                        <button class="action-button btn-buy" onclick="prepareOrder('BUY')">
+                            <i class="fas fa-arrow-up"></i> BUY
+                        </button>
+                        <button class="action-button btn-sell" onclick="prepareOrder('SELL')">
+                            <i class="fas fa-arrow-down"></i> SELL
+                        </button>
+                    </div>
+
+                    <div class="stealth-toggle">
+                        <span class="toggle-label">
+                            <i class="fas fa-user-secret"></i> BURN LOGS (STEALTH)
+                        </span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="stealthMode">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <button class="execute-button" onclick="executeOrder()">
+                        <i class="fas fa-bolt"></i> EXECUTE BUY
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/nexus-chart.js"></script>
+    <script src="js/nexus-ai-intelligence.js"></script>
+    <script src="js/nexus-trade-engine.js"></script>
+
+    <script>
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function () {
+            initializeChart();
+            initializeAI();
+            initializeTrading();
+            startPriceUpdates();
+        });
+
+        // Start real-time price updates
+        function startPriceUpdates() {
+            setInterval(() => {
+                updatePrice();
+            }, 3000); // Update every 3 seconds
+        }
+
+        // Update price with animation
+        function updatePrice() {
+            const priceElement = document.getElementById('currentPrice');
+            const currentPrice = parseFloat(priceElement.textContent.replace('$', '').replace(',', ''));
+
+            // Simulate small price change
+            const change = (Math.random() - 0.5) * 100;
+            const newPrice = currentPrice + change;
+
+            priceElement.textContent = '$' + newPrice.toLocaleString('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+
+            // Update color based on change
+            if (change > 0) {
+                priceElement.className = 'price-display bullish';
+            } else {
+                priceElement.className = 'price-display bearish';
+            }
+        }
+    </script>
+</body>
+
+</html>

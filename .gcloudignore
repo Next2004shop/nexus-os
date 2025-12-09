@@ -1,0 +1,15 @@
+.git
+.gitignore
+.vscode
+node_modules
+nexus-cloud/frontend/node_modules
+nexus-cloud/backend/__pycache__
+nexus-cloud/backend/venv
+nexus-cloud/frontend/.next
+nexus-cloud/frontend/out
+*.pyc
+*.pyo
+*.pyd
+__pycache__
+.env.local
+.env

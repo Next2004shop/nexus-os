@@ -1,0 +1,62 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #000000;
+  --foreground: #ffffff;
+
+  /* Nexus Theme */
+  --nexus-bg: #000000;
+  --nexus-card: rgba(20, 20, 25, 0.6);
+  --nexus-border: rgba(255, 255, 255, 0.08);
+  --nexus-green: #00DD80;
+  --nexus-green-glow: rgba(0, 221, 128, 0.4);
+  --nexus-red: #FF3B30;
+  --nexus-red-glow: rgba(255, 59, 48, 0.4);
+  --nexus-blue: #0A84FF;
+  --nexus-yellow: #FFD60A;
+  --nexus-text: #FFFFFF;
+  --nexus-subtext: #8E8E93;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: Arial, Helvetica, sans-serif;
+  overflow: hidden;
+  /* App-like feel */
+}
+
+@layer utilities {
+  .glass {
+    @apply bg-nexus-card border border-nexus-border backdrop-blur-xl;
+  }
+
+  .text-glow-green {
+    text-shadow: 0 0 10px var(--nexus-green-glow);
+  }
+
+  .text-glow-red {
+    text-shadow: 0 0 10px var(--nexus-red-glow);
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}

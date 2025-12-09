@@ -1,0 +1,625 @@
+/* ============================================
+   NEXUS TRADING UI - ENHANCED STYLE SYSTEM
+   Premium Dark Theme with Glassmorphism
+   ============================================ */
+
+/* === ROOT VARIABLES === */
+:root {
+    /* Colors - Dark Carbon Theme */
+    --color-bg-primary: #0a0e1a;
+    --color-bg-secondary: #12172b;
+    --color-bg-tertiary: #1a2035;
+    --color-bg-panel: rgba(18, 23, 43, 0.6);
+    --color-bg-panel-hover: rgba(18, 23, 43, 0.8);
+
+    /* Neon Accents */
+    --color-neon-cyan: #00f0ff;
+    --color-neon-emerald: #00ff88;
+    --color-neon-purple: #b026ff;
+    --color-neon-yellow: #ffd700;
+
+    /* Market Colors */
+    --color-green: #00ff88;
+    --color-red: #ff3366;
+    --color-yellow: #ffcc00;
+
+    /* Text */
+    --color-text-primary: #ffffff;
+    --color-text-secondary: #a0aec0;
+    --color-text-muted: #64748b;
+
+    /* Borders */
+    --border-thin: 1px solid rgba(0, 240, 255, 0.2);
+    --border-thick: 2px solid rgba(0, 240, 255, 0.4);
+    --border-radius-sm: 8px;
+    --border-radius-md: 12px;
+    --border-radius-lg: 16px;
+
+    /* Shadows & Glows */
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+    --glow-cyan: 0 0 20px rgba(0, 240, 255, 0.5);
+    --glow-emerald: 0 0 20px rgba(0, 255, 136, 0.5);
+    --glow-red: 0 0 20px rgba(255, 51, 102, 0.5);
+
+    /* Blur */
+    --blur-glass: blur(20px);
+
+    /* Spacing */
+    --spacing-xs: 4px;
+    --spacing-sm: 8px;
+    --spacing-md: 16px;
+    --spacing-lg: 24px;
+    --spacing-xl: 32px;
+
+    /* Typography */
+    --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-size-xs: 11px;
+    --font-size-sm: 13px;
+    --font-size-md: 15px;
+    --font-size-lg: 18px;
+    --font-size-xl: 24px;
+    --font-size-xxl: 32px;
+
+    /* Z-index layers */
+    --z-base: 1;
+    --z-panel: 10;
+    --z-overlay: 100;
+    --z-modal: 1000;
+    --z-tooltip: 2000;
+}
+
+/* === RESET & BASE === */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--font-family);
+    background: var(--color-bg-primary);
+    color: var(--color-text-primary);
+    overflow-x: hidden;
+    line-height: 1.6;
+}
+
+/* === UTILITY CLASSES === */
+.glass-panel {
+    background: var(--color-bg-panel);
+    backdrop-filter: var(--blur-glass);
+    -webkit-backdrop-filter: var(--blur-glass);
+    border: var(--border-thin);
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow-md);
+}
+
+.neon-border {
+    border: var(--border-thick);
+    box-shadow: var(--glow-cyan);
+}
+
+.text-glow {
+    text-shadow: 0 0 10px currentColor;
+}
+
+/* === MAIN LAYOUT === */
+.trading-container {
+    width: 100%;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(135deg, #0a0e1a 0%, #12172b 100%);
+}
+
+/* === TOP BAR === */
+.top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-md) var(--spacing-lg);
+    background: var(--color-bg-secondary);
+    border-bottom: var(--border-thin);
+    position: sticky;
+    top: 0;
+    z-index: var(--z-panel);
+    backdrop-filter: var(--blur-glass);
+}
+
+.back-button {
+    background: transparent;
+    border: none;
+    color: var(--color-neon-cyan);
+    font-size: var(--font-size-lg);
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.back-button:hover {
+    transform: translateX(-4px);
+}
+
+.market-info {
+    flex: 1;
+    text-align: center;
+}
+
+.market-pair {
+    font-size: var(--font-size-xl);
+    font-weight: 700;
+    color: var(--color-text-primary);
+    letter-spacing: 1px;
+}
+
+.market-subtitle {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.market-status {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-lg);
+}
+
+.price-display {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    animation: price-pulse 2s infinite;
+}
+
+.price-display.bullish {
+    color: var(--color-green);
+}
+
+.price-display.bearish {
+    color: var(--color-red);
+}
+
+.status-badge {
+    font-size: var(--font-size-xs);
+    padding: 4px 12px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: 1px;
+}
+
+.status-badge.open {
+    background: rgba(0, 255, 136, 0.2);
+    color: var(--color-green);
+    border: 1px solid var(--color-green);
+}
+
+.connection-status {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    font-size: var(--font-size-sm);
+}
+
+.connection-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--color-green);
+    box-shadow: var(--glow-emerald);
+    animation: pulse-dot 2s infinite;
+}
+
+.connection-dot.disconnected {
+    background: var(--color-red);
+    box-shadow: var(--glow-red);
+}
+
+/* === MAIN CONTENT GRID === */
+.main-content {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: var(--spacing-lg);
+    padding: var(--spacing-lg);
+    flex: 1;
+}
+
+/* === CHART PANEL === */
+.chart-panel {
+    background: var(--color-bg-secondary);
+    border: var(--border-thin);
+    border-radius: var(--border-radius-lg);
+    padding: var(--spacing-md);
+    box-shadow: var(--shadow-lg);
+    position: relative;
+    min-height: 500px;
+    display: flex;
+    flex-direction: column;
+}
+
+#trading-chart {
+    flex: 1;
+    width: 100%;
+    min-height: 450px;
+    border-radius: var(--border-radius-md);
+    overflow: hidden;
+}
+
+.chart-loading {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+}
+
+.shimmer {
+    width: 60px;
+    height: 60px;
+    border: 3px solid var(--color-neon-cyan);
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+/* === INTELLIGENCE PANEL === */
+.intelligence-panel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.nexus-badge {
+    background: linear-gradient(135deg, var(--color-neon-cyan), var(--color-neon-purple));
+    padding: var(--spacing-md);
+    border-radius: var(--border-radius-md);
+    text-align: center;
+    box-shadow: var(--glow-cyan);
+    animation: badge-glow 3s infinite;
+}
+
+.nexus-title {
+    font-size: var(--font-size-lg);
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+.ai-metrics {
+    background: var(--color-bg-panel);
+    backdrop-filter: var(--blur-glass);
+    border: var(--border-thin);
+    border-radius: var(--border-radius-md);
+    padding: var(--spacing-md);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.metric-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-sm) 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.metric-row:last-child {
+    border-bottom: none;
+}
+
+.metric-label {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.metric-value {
+    font-size: var(--font-size-md);
+    font-weight: 600;
+    color: var(--color-text-primary);
+}
+
+.metric-value.scanning {
+    color: var(--color-neon-yellow);
+    animation: text-pulse 1.5s infinite;
+}
+
+.scanning-bar {
+    height: 3px;
+    background: linear-gradient(90deg, transparent, var(--color-neon-cyan), transparent);
+    animation: scan 2s linear infinite;
+    margin-top: var(--spacing-sm);
+}
+
+.update-button {
+    margin-top: var(--spacing-md);
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: var(--color-neon-cyan);
+    color: var(--color-bg-primary);
+    border: none;
+    border-radius: var(--border-radius-sm);
+    font-weight: 600;
+    font-size: var(--font-size-sm);
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.update-button:hover {
+    background: var(--color-neon-emerald);
+    box-shadow: var(--glow-emerald);
+    transform: translateY(-2px);
+}
+
+/* === TRADE PANEL === */
+.trade-panel {
+    background: var(--color-bg-panel);
+    backdrop-filter: var(--blur-glass);
+    border: var(--border-thin);
+    border-radius: var(--border-radius-md);
+    padding: var(--spacing-md);
+    margin-top: var(--spacing-lg);
+}
+
+.trade-inputs {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+}
+
+.input-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+}
+
+.input-label {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.trade-input {
+    background: var(--color-bg-secondary);
+    border: var(--border-thin);
+    border-radius: var(--border-radius-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+    color: var(--color-text-primary);
+    font-size: var(--font-size-md);
+    font-family: var(--font-family);
+    transition: all 0.3s;
+}
+
+.trade-input:focus {
+    outline: none;
+    border-color: var(--color-neon-cyan);
+    box-shadow: var(--glow-cyan);
+}
+
+.trade-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+}
+
+.action-button {
+    padding: var(--spacing-md);
+    border: var(--border-thick);
+    border-radius: var(--border-radius-md);
+    font-size: var(--font-size-md);
+    font-weight: 700;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.3s;
+    background: transparent;
+    letter-spacing: 1px;
+}
+
+.btn-buy {
+    color: var(--color-green);
+    border-color: var(--color-green);
+}
+
+.btn-buy:hover {
+    background: var(--color-green);
+    color: var(--color-bg-primary);
+    box-shadow: var(--glow-emerald);
+    transform: translateY(-2px);
+}
+
+.btn-sell {
+    color: var(--color-red);
+    border-color: var(--color-red);
+}
+
+.btn-sell:hover {
+    background: var(--color-red);
+    color: var(--color-bg-primary);
+    box-shadow: var(--glow-red);
+    transform: translateY(-2px);
+}
+
+.stealth-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-sm) 0;
+    margin-bottom: var(--spacing-md);
+}
+
+.toggle-label {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+}
+
+.toggle-switch {
+    position: relative;
+    width: 50px;
+    height: 26px;
+    background: var(--color-bg-secondary);
+    border-radius: 20px;
+    border: var(--border-thin);
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.toggle-switch input {
+    display: none;
+}
+
+.toggle-slider {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 18px;
+    height: 18px;
+    background: var(--color-text-muted);
+    border-radius: 50%;
+    transition: all 0.3s;
+}
+
+.toggle-switch input:checked+.toggle-slider {
+    transform: translateX(24px);
+    background: var(--color-neon-cyan);
+}
+
+.execute-button {
+    width: 100%;
+    padding: var(--spacing-md) var(--spacing-lg);
+    background: linear-gradient(135deg, var(--color-neon-cyan), var(--color-neon-emerald));
+    border: none;
+    border-radius: var(--border-radius-md);
+    color: var(--color-bg-primary);
+    font-size: var(--font-size-lg);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: var(--glow-cyan);
+}
+
+.execute-button:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 0 30px rgba(0, 240, 255, 0.8);
+}
+
+.execute-button:active {
+    transform: translateY(0);
+}
+
+/* === ANIMATIONS === */
+@keyframes price-pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.8;
+    }
+}
+
+@keyframes pulse-dot {
+
+    0%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.7;
+        transform: scale(1.2);
+    }
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes badge-glow {
+
+    0%,
+    100% {
+        box-shadow: var(--glow-cyan);
+    }
+
+    50% {
+        box-shadow: 0 0 30px rgba(176, 38, 255, 0.6);
+    }
+}
+
+@keyframes text-pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+}
+
+@keyframes scan {
+    0% {
+        transform: translateX(-100%);
+    }
+
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+/* === RESPONSIVE DESIGN === */
+@media (max-width: 1024px) {
+    .main-content {
+        grid-template-columns: 1fr;
+    }
+
+    .intelligence-panel {
+        order: 2;
+    }
+
+    .chart-panel {
+        order: 1;
+    }
+}
+
+@media (max-width: 768px) {
+    .top-bar {
+        flex-direction: column;
+        gap: var(--spacing-md);
+    }
+
+    .trade-inputs {
+        grid-template-columns: 1fr;
+    }
+
+    .trade-actions {
+        grid-template-columns: 1fr;
+    }
+
+    .market-pair {
+        font-size: var(--font-size-lg);
+    }
+}
+
+@media (max-width: 480px) {
+    .main-content {
+        padding: var(--spacing-sm);
+    }
+
+    #trading-chart {
+        min-height: 300px;
+    }
+}
