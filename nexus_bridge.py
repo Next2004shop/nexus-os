@@ -672,5 +672,13 @@ if __name__ == '__main__':
     # Start M&A auto-trader
     threading.Thread(target=ma_auto_trader, daemon=True).start()
 
+    print("\n" + "="*60)
+    print("🔓 RESTRICTED MODE DISABLED: NEXUS BRIDGE LISTENING ON ALL INTERFACES")
+    print(f"📡 SERVER IP: 0.0.0.0 (Accessible via Local IP)")
+    print(f"🔑 API KEY: {NEXUS_API_KEY}")
+    print(f"🛡️ JWT SECRET: {NEXUS_JWT_SECRET}")
+    print(f"👤 BASIC AUTH: admin / securepassword")
+    print("="*60 + "\n")
+
     logger.info("🚀 NEXUS BRIDGE UPGRADED (v2.0) LISTENING ON PORT %d...", SERVER_PORT)
-    app.run(host='127.0.0.1', port=SERVER_PORT, threaded=True)
+    app.run(host='0.0.0.0', port=SERVER_PORT, threaded=True)

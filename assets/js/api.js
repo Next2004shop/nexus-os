@@ -1,5 +1,6 @@
 // Nexus API Bridge
-const API_BASE = 'http://localhost:5001';
+// Nexus API Bridge
+const API_BASE = `http://${window.location.hostname}:5001`;
 const AUTH_HEADER = 'Basic ' + btoa('admin:securepassword');
 
 const NexusAPI = {
