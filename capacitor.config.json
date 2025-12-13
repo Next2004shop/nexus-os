@@ -1,9 +1,0 @@
-{
-  "appId": "com.danteh.nexusai",
-  "appName": "nexus-ai",
-  "webDir": "dist",
-  "server": {
-    "androidScheme": "https",
-    "cleartext": true
-  }
-}
