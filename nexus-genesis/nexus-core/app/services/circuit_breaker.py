@@ -15,7 +15,7 @@ Based on Netflix Hystrix patterns adapted for trading systems.
 import logging
 import time
 import asyncio
-from typing import Dict, Any, Optional, Callable, List
+from typing import Dict, Any, Optional, Callable, List, Tuple
 from dataclasses import dataclass, field
 from datetime import datetime, timezone, timedelta
 from enum import Enum

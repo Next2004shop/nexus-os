@@ -27,5 +27,7 @@ apscheduler
 python-jose
 passlib
 bcrypt
+cryptography
+firebase-admin
 
 # Note: MetaTrader5 is Windows-only, handled via separate bridge

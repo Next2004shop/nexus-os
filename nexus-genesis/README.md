@@ -102,7 +102,12 @@ echo -n "YOUR_BINANCE_SECRET" | gcloud secrets create BINANCE_API_SECRET --data-
 echo -n "YOUR_MT5_LOGIN" | gcloud secrets create MT5_LOGIN --data-file=-
 echo -n "YOUR_MT5_PASSWORD" | gcloud secrets create MT5_PASSWORD --data-file=-
 echo -n "YOUR_MT5_SERVER" | gcloud secrets create MT5_SERVER --data-file=-
+echo -n "YOUR_POLYGON_API_KEY" | gcloud secrets create POLYGON_API_KEY --data-file=-
 echo -n "YOUR_USER_ID" | gcloud secrets create NEXUS_MASTER_USER_ID --data-file=-
+
+# Security secrets (generate your own strong keys)
+echo -n "YOUR_32_BYTE_ENCRYPTION_KEY" | gcloud secrets create SECRET_ENCRYPTION_KEY --data-file=-
+echo -n "YOUR_BRIDGE_SIGNING_KEY" | gcloud secrets create MT_BRIDGE_SIGNING_KEY --data-file=-
 ```
 
 ### 3. Deploy
