@@ -1,0 +1,16 @@
+directories:
+  output: dist
+  buildResources: build
+appId: com.nexus.trading
+productName: NEXUS Terminal
+win:
+  target: nsis
+  icon: assets/icon.ico
+mac:
+  target: dmg
+  icon: assets/icon.icns
+linux:
+  target: AppImage
+  icon: assets/icon.png
+files: []
+electronVersion: 28.3.3
