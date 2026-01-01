@@ -23,7 +23,7 @@ steps:
       - '--image'
       - 'us-central1-docker.pkg.dev/$PROJECT_ID/nexus-repo/nexus-core:$COMMIT_SHA'
       - '--region'
-      - '$_REGION'
+      - 'us-central1'
       - '--platform'
       - 'managed'
       # Security: Require authentication for all requests
@@ -63,8 +63,3 @@ images:
 # Build options
 options:
   logging: CLOUD_LOGGING_ONLY
-
-
-# Substitutions (can be overridden)
-substitutions:
-  _REGION: 'us-central1'
