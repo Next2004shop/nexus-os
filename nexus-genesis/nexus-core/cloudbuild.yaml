@@ -1,13 +1,19 @@
 steps:
   # 1. Build the Docker image
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'gcr.io/$PROJECT_ID/nexus-core', '.']
+    args: 
+      - 'build'
+      - '-t'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/nexus-repo/nexus-core:$COMMIT_SHA'
+      - '-t'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/nexus-repo/nexus-core:latest'
+      - '.'
 
   # 2. Push the image to Artifact Registry
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'gcr.io/$PROJECT_ID/nexus-core']
+    args: ['push', '--all-tags', 'us-central1-docker.pkg.dev/$PROJECT_ID/nexus-repo/nexus-core']
 
-  # 3. Deploy to Cloud Run
+  # 3. Deploy to Cloud Run with security configuration
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: gcloud
     args:
@@ -15,21 +21,50 @@ steps:
       - 'deploy'
       - 'nexus-core'
       - '--image'
-      - 'gcr.io/$PROJECT_ID/nexus-core'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/nexus-repo/nexus-core:$COMMIT_SHA'
       - '--region'
       - 'us-central1'
       - '--platform'
       - 'managed'
-      - '--allow-unauthenticated'
+      # Security: Require authentication for all requests
+      - '--no-allow-unauthenticated'
+      # Service account with minimal permissions
+      - '--service-account'
+      - 'nexus-runtime@$PROJECT_ID.iam.gserviceaccount.com'
+      # Secret Manager integration - inject secrets at runtime
+      - '--set-secrets'
+      - 'BINANCE_API_KEY=BINANCE_API_KEY:latest,BINANCE_API_SECRET=BINANCE_API_SECRET:latest,MT5_LOGIN=MT5_LOGIN:latest,MT5_PASSWORD=MT5_PASSWORD:latest,MT5_SERVER=MT5_SERVER:latest,POLYGON_API_KEY=POLYGON_API_KEY:latest'
+      # Resource configuration
       - '--min-instances'
       - '1'
+      - '--max-instances'
+      - '3'
       - '--memory'
       - '2Gi'
       - '--cpu'
-      - '1'
+      - '2'
+      - '--timeout'
+      - '300'
+      # VPC connector for private networking (create separately)
+      # - '--vpc-connector'
+      # - 'nexus-vpc-connector'
+      # Ingress control - internal only for production
+      # - '--ingress'
+      # - 'internal'
+      # Environment variables
+      - '--set-env-vars'
+      - 'GOOGLE_CLOUD_PROJECT=$PROJECT_ID,LOG_LEVEL=INFO,ENVIRONMENT=production'
 
+# Store the image in Artifact Registry
 images:
-  - 'gcr.io/$PROJECT_ID/nexus-core'
+  - 'us-central1-docker.pkg.dev/$PROJECT_ID/nexus-repo/nexus-core:$COMMIT_SHA'
+  - 'us-central1-docker.pkg.dev/$PROJECT_ID/nexus-repo/nexus-core:latest'
 
+# Build options
 options:
   logging: CLOUD_LOGGING_ONLY
+  dynamicSubstitutions: true
+
+# Substitutions (can be overridden)
+substitutions:
+  _REGION: 'us-central1'
