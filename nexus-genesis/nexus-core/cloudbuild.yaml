@@ -23,7 +23,7 @@ steps:
       - '--image'
       - 'us-central1-docker.pkg.dev/$PROJECT_ID/nexus-repo/nexus-core:$COMMIT_SHA'
       - '--region'
-      - 'us-central1'
+      - '$_REGION'
       - '--platform'
       - 'managed'
       # Security: Require authentication for all requests
