@@ -10,7 +10,7 @@ google-cloud-aiplatform
 google-cloud-secret-manager
 google-cloud-firestore
 google-cloud-logging
-google-generativeai
+
 
 # Trading & Market Data
 ccxt

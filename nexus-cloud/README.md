@@ -27,7 +27,7 @@ This is the new cloud-native frontend for Nexus AI, built with **Next.js 14**, *
 -   **Styling**: Tailwind CSS + Custom Nexus Theme
 -   **Icons**: Lucide React
 -   **Charts**: Lightweight Charts (TradingView)
--   **Deployment**: Ready for Google Cloud Run / Vercel
+-   **Deployment**: Google Cloud Run
 
 ## 📁 Structure
 

@@ -11,9 +11,11 @@ Vertex AI integration for:
 AI is advisor only - never places trades directly.
 """
 
-import vertexai
-from vertexai.generative_models import GenerativeModel
-import google.generativeai as genai
+
+# Validating imports are moved to function scope
+# import vertexai
+# from vertexai.generative_models import GenerativeModel
+
 import json
 import logging
 import numpy as np
@@ -40,6 +42,7 @@ def _ensure_vertex_init():
     global _vertex_initialized
     if not _vertex_initialized:
         try:
+            import vertexai
             vertexai.init(project=PROJECT_ID, location=REGION)
             _vertex_initialized = True
             logger.info(f"Vertex AI initialized: project={PROJECT_ID}, region={REGION}")
@@ -436,6 +439,7 @@ def analyze_market(data: Any) -> Dict[str, Any]:
     _ensure_vertex_init()
     
     try:
+        from vertexai.generative_models import GenerativeModel
         model = GenerativeModel(GEMINI_MODEL)
         
         system_instruction = """You are NEXUS, an institutional-grade execution algorithm.
@@ -503,6 +507,7 @@ def detect_regime_ai(ohlcv_summary: Dict[str, Any]) -> Dict[str, Any]:
     _ensure_vertex_init()
     
     try:
+        from vertexai.generative_models import GenerativeModel
         model = GenerativeModel(GEMINI_MODEL)
         
         prompt = f"""Analyze this market summary and determine the current regime:
@@ -613,6 +618,15 @@ class NexusIntelligence:
             result["composite_reason"] = regime.reasoning
         
         return result
+
+
+
+def list_models() -> Dict[str, str]:
+    """List available AI models."""
+    return {
+        "gemini": GEMINI_MODEL,
+        "claude": CLAUDE_MODEL
+    }
 
 
 # Convenience function
