@@ -554,8 +554,221 @@ async def get_recent_orders():
 
 
 # =============================================================================
+# MASTER AI COMMAND INTERFACE
+# =============================================================================
+@app.post("/ai/command")
+async def master_ai_command(
+    command: str = Body(..., embed=True),
+    authorization: Optional[str] = Header(None)
+):
+    """
+    Master AI Command Interface.
+    
+    Send natural language commands to NEXUS.
+    Only the Master can execute sensitive commands.
+    """
+    from app.services.master_ai import get_master_ai
+    from app.services.auth_service import get_auth_service
+    
+    master_ai = get_master_ai()
+    auth_service = get_auth_service()
+    
+    # Determine if user is master
+    is_master = False
+    user_id = "anonymous"
+    
+    if authorization:
+        token = authorization.replace("Bearer ", "")
+        session = auth_service.validate_request(token)
+        if session:
+            is_master = auth_service.is_master(session)
+            user_id = session.user_id
+    
+    # Process command
+    result = await master_ai.process_command(command, user_id, is_master)
+    
+    return result.to_response()
+
+
+@app.get("/ai/status")
+async def master_ai_status():
+    """Get Master AI status."""
+    from app.services.master_ai import get_master_ai
+    
+    master_ai = get_master_ai()
+    
+    return {
+        "online": master_ai.is_online,
+        "trading_paused": master_ai.trading_paused,
+        "stealth_mode": master_ai.stealth_mode,
+        "commands_processed": len(master_ai.command_history),
+        "last_command": master_ai.command_history[-1].to_response() if master_ai.command_history else None
+    }
+
+
+# =============================================================================
+# AUTHENTICATION ENDPOINTS
+# =============================================================================
+@app.post("/auth/login")
+async def login(
+    id_token: str = Body(..., embed=True),
+    device_id: Optional[str] = Body(None),
+    request: Request = None
+):
+    """
+    Login with Firebase ID token.
+    
+    Returns session token for subsequent requests.
+    NO CREDENTIALS RETURNED TO FRONTEND.
+    """
+    from app.services.auth_service import get_auth_service
+    
+    auth_service = get_auth_service()
+    
+    # Get IP address
+    ip_address = None
+    if request:
+        ip_address = request.client.host if request.client else None
+    
+    success, session, message = auth_service.login_with_firebase(
+        id_token=id_token,
+        device_id=device_id,
+        ip_address=ip_address
+    )
+    
+    if not success:
+        raise HTTPException(status_code=401, detail=message)
+    
+    return {
+        "status": "authenticated",
+        "session_token": session.session_token,
+        "session_info": session.to_frontend(),
+        "message": message
+    }
+
+
+@app.post("/auth/logout")
+async def logout(authorization: str = Header(...)):
+    """Logout and invalidate session."""
+    from app.services.auth_service import get_auth_service
+    
+    token = authorization.replace("Bearer ", "")
+    auth_service = get_auth_service()
+    auth_service.logout(token)
+    
+    return {"status": "logged_out"}
+
+
+@app.get("/auth/session")
+async def get_session(authorization: str = Header(...)):
+    """Get current session info."""
+    from app.services.auth_service import get_auth_service
+    
+    token = authorization.replace("Bearer ", "")
+    auth_service = get_auth_service()
+    session = auth_service.validate_request(token)
+    
+    if not session:
+        raise HTTPException(status_code=401, detail="Invalid session")
+    
+    return session.to_frontend()
+
+
+# =============================================================================
+# TRADING ACCOUNT MANAGEMENT
+# =============================================================================
+@app.post("/accounts/register")
+async def register_trading_account(
+    broker: str = Body(...),
+    login: str = Body(...),
+    password: str = Body(...),
+    server: str = Body(...),
+    authorization: str = Header(...)
+):
+    """
+    Register a trading account.
+    
+    Credentials are encrypted and stored server-side only.
+    FRONTEND NEVER SEES CREDENTIALS AGAIN.
+    """
+    from app.services.auth_service import get_auth_service, AuthLevel
+    
+    token = authorization.replace("Bearer ", "")
+    auth_service = get_auth_service()
+    session = auth_service.validate_request(token)
+    
+    if not session:
+        raise HTTPException(status_code=401, detail="Invalid session")
+    
+    if session.auth_level not in [AuthLevel.TRADER, AuthLevel.ADMIN, AuthLevel.MASTER]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    account_id = auth_service.trading_accounts.register_account(
+        user_id=session.user_id,
+        broker=broker,
+        login=login,
+        password=password,
+        server=server
+    )
+    
+    return {
+        "status": "registered",
+        "account_id": account_id,
+        "message": "Trading account registered. Credentials encrypted."
+    }
+
+
+@app.get("/accounts/list")
+async def list_trading_accounts(authorization: str = Header(...)):
+    """List user's trading accounts (safe info only)."""
+    from app.services.auth_service import get_auth_service
+    
+    token = authorization.replace("Bearer ", "")
+    auth_service = get_auth_service()
+    session = auth_service.validate_request(token)
+    
+    if not session:
+        raise HTTPException(status_code=401, detail="Invalid session")
+    
+    accounts = auth_service.trading_accounts.list_user_accounts(session.user_id)
+    
+    return {"accounts": accounts, "count": len(accounts)}
+
+
+# =============================================================================
+# LIVE DATA ENDPOINTS
+# =============================================================================
+@app.get("/data/tick/{symbol}")
+async def get_live_tick(symbol: str):
+    """
+    Get live tick data for symbol.
+    
+    Safe data only - no API keys exposed.
+    """
+    from app.services.live_data import get_live_data
+    
+    manager = get_live_data()
+    data = manager.get_frontend_data(symbol.upper())
+    
+    if not data:
+        return {"symbol": symbol, "status": "no_data"}
+    
+    return data
+
+
+@app.get("/data/health")
+async def get_data_health():
+    """Check live data integrity."""
+    from app.services.live_data import get_live_data
+    
+    manager = get_live_data()
+    return manager.check_data_integrity()
+
+
+# =============================================================================
 # MAIN ENTRY POINT
 # =============================================================================
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8080)
+

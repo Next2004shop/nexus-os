@@ -1,227 +1,155 @@
 # NEXUS SOVEREIGN SYSTEM v3.0
 
-> **IMMUTABLE LAW**: Council Over King - No trade without quorum.
+> **A system that cannot survive destruction does not deserve profit.**
 
-**Architecture**: Ancient Market Laws × Axelrod Game Theory × Netflix Resilience  
-**Decision Engine**: Multi-Agent Council (5 Agents, 3/5 Quorum Required)  
-**Intelligence**: Model Ensemble (Gemini Pro + Rule-Based + Pattern)  
-**Execution**: Dual-Path (MT5 + Binance)  
-**Risk Governor**: Kelly Criterion × Drawdown Enforcement  
-**Security**: Stealth Mode (Encrypted Logs, Self-Purge Capability)
+## System Overview
+
+NEXUS is a **crash-immune, multi-agent private trading intelligence system** that:
+
+- Runs **permanently** on Google Cloud
+- Makes decisions via **5-agent council** (3/5 quorum required)
+- Executes trades via **MetaTrader 5** on secure VM
+- Auto-deploys on every Git push
+- Has a **Master AI** that responds to your commands
+- **Never exposes API keys to frontend**
 
 ---
 
-## System Architecture
+## Architecture
 
-```mermaid
-flowchart TB
-    subgraph Frontend["Control Panel (READ-ONLY)"]
-        UI[Nexus Terminal]
-        Auth[Firebase Admin Auth]
-    end
-    
-    subgraph Council["Multi-Agent Council"]
-        MSA[Market Structure Agent]
-        MOM[Momentum Agent]
-        VOL[Volatility Risk Agent]
-        MAC[Macro Sentiment Agent]
-        EXE[Execution Safety Agent]
-    end
-    
-    subgraph Quorum["Quorum Mechanism"]
-        VOTE[Vote Aggregator]
-        DECISION{3/5 Agree?}
-    end
-    
-    subgraph Cloud["Google Cloud Platform"]
-        CR[Cloud Run]
-        SM[Secret Manager]
-        VA[Vertex AI]
-        FS[Firestore]
-        CL[Cloud Logging]
-    end
-    
-    subgraph Backend["NEXUS Core"]
-        ENS[Model Ensemble]
-        SE[Strategy Engine]
-        RE[Risk Governor]
-        CBR[Circuit Breaker]
-        ST[Stealth Mode]
-    end
-    
-    subgraph Execution["Trade Execution"]
-        MT5[MetaTrader 5]
-        BN[Binance API]
-    end
-    
-    UI --> Auth --> CR
-    CR --> Council
-    
-    MSA --> VOTE
-    MOM --> VOTE
-    VOL --> VOTE
-    MAC --> VOTE
-    EXE --> VOTE
-    
-    VOTE --> DECISION
-    DECISION -->|YES| ENS
-    DECISION -->|NO| HALT[No Trade]
-    ENS --> SE --> RE --> CBR
-    CBR --> MT5
-    CBR --> BN
-    
-    CR --> SM
-    CR --> VA
-    CR --> FS
-    CR --> CL
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                           FRONTEND (READ-ONLY)                          │
+│                     No API keys, No credentials                         │
+└─────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                        GOOGLE CLOUD RUN                                 │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │                    NEXUS CORE (FastAPI)                          │   │
+│  │                                                                   │   │
+│  │  ┌──────────────────────────────────────────────────────────┐   │   │
+│  │  │              MULTI-AGENT COUNCIL (5 Agents)              │   │   │
+│  │  │  MarketStructure │ Momentum │ VolRisk │ Macro │ Safety  │   │   │
+│  │  │                   QUORUM: 3/5 REQUIRED                   │   │   │
+│  │  └──────────────────────────────────────────────────────────┘   │   │
+│  │                              │                                   │   │
+│  │  ┌──────────────────────────────────────────────────────────┐   │   │
+│  │  │              MODEL ENSEMBLE (3 Models)                   │   │   │
+│  │  │        GeminiPro │ RuleBased │ PatternMatcher            │   │   │
+│  │  └──────────────────────────────────────────────────────────┘   │   │
+│  │                              │                                   │   │
+│  │  ┌──────────────────────────────────────────────────────────┐   │   │
+│  │  │              MASTER AI COMMAND CORE                      │   │   │
+│  │  │     "status" "pause" "resume" "explain trade" "kill"     │   │   │
+│  │  └──────────────────────────────────────────────────────────┘   │   │
+│  │                              │                                   │   │
+│  │  ┌──────────────────────────────────────────────────────────┐   │   │
+│  │  │              STEALTH MODE                                │   │   │
+│  │  │   Encrypted Logs │ Response Minimizer │ Self-Purge       │   │   │
+│  │  └──────────────────────────────────────────────────────────┘   │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────────┘
+                                    │
+         ┌──────────────────────────┼──────────────────────────┐
+         │                          │                          │
+         ▼                          ▼                          ▼
+┌─────────────────┐      ┌─────────────────┐      ┌─────────────────┐
+│  SECRET MANAGER │      │   GOOGLE VM     │      │    BINANCE      │
+│  (Credentials)  │      │  (MT5 Bridge)   │      │   (Crypto)      │
+└─────────────────┘      └─────────────────┘      └─────────────────┘
 ```
 
 ---
 
-## Immutable Core Laws
+## Immutable Laws
 
-| # | Law | Implementation |
-|---|-----|----------------|
-| 1 | **No Single Point of Failure** | Multi-agent voting, no master brain, auto-scaling |
-| 2 | **Council Over King** | 5 independent agents, quorum required (3/5) |
-| 3 | **Silence Is Security** | Minimal response data, encrypted logs, stealth mode |
-| 4 | **Preservation > Profit** | 2% max drawdown, Safety Agent has veto power |
-| 5 | **Failure Is Assumed** | Circuit breakers, auto-halt, self-heal, self-purge |
-
----
-
-## Multi-Agent Council
-
-### The Five Agents
-
-| Agent | Role | Weight | Specialty |
-|-------|------|--------|-----------|
-| **Market Structure** | Wyckoff Analysis | 1.2 | Accumulation/Distribution phases |
-| **Momentum** | Force Detection | 1.0 | ROC + RSI momentum scoring |
-| **Volatility Risk** | Storm Warning | 1.3 | ATR percentile, regime detection |
-| **Macro Sentiment** | Tide Reading | 0.9 | MA200 positioning, regime alignment |
-| **Execution Safety** | Gatekeeper | 1.5 | Spread, circuit breakers, anomalies |
-
-### Quorum Rules
-
-- **Minimum Agreement**: 3 out of 5 agents must agree on direction
-- **Weighted Voting**: Agents have different weights based on expertise
-- **Safety Veto**: Execution Safety Agent can veto any trade
-- **Position Sizing**: Lower consensus = reduced position size
-
-### Trade Execution Flow
-
-```
-1. Stealth Mode Check     → System operational?
-2. Agent Council          → 3/5 quorum required
-3. Model Ensemble         → AI + Rule-based consensus
-4. Ancient Logic          → Cycle alignment check
-5. Risk Governor          → Drawdown & position limits
-6. Circuit Breaker        → API & price stability check
-7. Execution              → Dual-path (MT5 + Binance)
-```
-
----
-
-## Core Modules
-
-### Multi-Agent Council (`agent_council.py`) 🆕
-Five independent trading agents with quorum voting:
-- **MarketStructureAgent**: Wyckoff accumulation/distribution patterns
-- **MomentumAgent**: Price momentum + volume confirmation
-- **VolatilityRiskAgent**: ATR-based risk assessment (veto power on extreme vol)
-- **MacroSentimentAgent**: MA50/200 positioning and regime alignment
-- **ExecutionSafetyAgent**: Pre-trade safety validation (has veto power)
-
-### Model Ensemble (`model_ensemble.py`) 🆕
-Multiple AI models vote on market direction:
-- **GeminiPro**: Vertex AI regime detection and analysis
-- **RuleBased**: Classical technical analysis scoring
-- **PatternMatcher**: Historical pattern similarity
-
-### Stealth Mode (`stealth_mode.py`) 🆕
-Security and obfuscation features:
-- Encrypted audit logging
-- Response minimization
-- Order timing randomization
-- Access anomaly detection
-- Self-purge capability
-
-### Strategy Engine (`strategy_engine.py`)
-Five ancient market principles:
-- **TrendFollower**: EMA crossovers (9/21/50) with momentum confirmation
-- **MeanReversion**: Bollinger Bands + RSI divergence detection
-- **LiquiditySweep**: Volume spike detection at swing levels
-- **TimeCycles**: London/NY session alignment
-- **FearGreed**: Contrarian sentiment oscillator
-
-### Intelligence Module (`intelligence.py`)
-- **RegimeDetector**: ADX-based trend/range/volatile classification
-- **VolatilityClustering**: GARCH-like persistence analysis
-- **AnomalyDetector**: Flash crash and volume spike detection
-- **AI Analysis**: Gemini Pro market assessment
-
-### Risk Governor (`risk_governor.py`)
-Axelrod discipline enforcement:
-- 2% max drawdown hard limit
-- 5% max position size
-- Kelly Criterion position sizing
-- Correlation limits across positions
-- Firestore state persistence
-- Emergency shutdown capability
-
-### Execution Engine (`execution.py`)
-Institutional-grade execution:
-- MT5 primary execution path
-- Binance secondary/failover
-- Slippage control (0.1% max)
-- Order tracking and reconciliation
-- Circuit breaker protection
-
-### Circuit Breaker (`circuit_breaker.py`)
-Netflix Hystrix patterns:
-- API failure tracking (3 failures = halt)
-- Price movement breaker (5% in 15 min)
-- Connectivity monitoring
-- Global halt capability
+| # | Law | Enforcement |
+|---|-----|-------------|
+| 1 | **NO API KEYS ON FRONTEND** | Backend-only connectors, Secret Manager |
+| 2 | **Council Over King** | 5 agents vote, 3/5 quorum required |
+| 3 | **Silence Is Security** | Encrypted logs, minimal responses |
+| 4 | **Preservation > Profit** | 2% max drawdown, Safety Agent veto |
+| 5 | **Failure Is Assumed** | Auto-heal, auto-restart, self-purge |
+| 6 | **Only One Master** | You control everything |
 
 ---
 
 ## Quick Start
 
-### 1. Environment Setup
-```powershell
-# Set Google Cloud credentials
-$env:GOOGLE_APPLICATION_CREDENTIALS="path\to\serviceAccountKey.json"
+### 1. Prerequisites
 
-# Set project
-gcloud config set project nexus-dyron-777
+```bash
+# Google Cloud CLI
+gcloud auth login
+gcloud config set project YOUR_PROJECT_ID
+
+# Enable APIs
+gcloud services enable \
+  run.googleapis.com \
+  secretmanager.googleapis.com \
+  aiplatform.googleapis.com \
+  firestore.googleapis.com
 ```
 
-### 2. Install Dependencies
-```powershell
+### 2. Store Secrets
+
+```bash
+# Store trading credentials in Secret Manager
+echo -n "YOUR_BINANCE_API_KEY" | gcloud secrets create BINANCE_API_KEY --data-file=-
+echo -n "YOUR_BINANCE_SECRET" | gcloud secrets create BINANCE_API_SECRET --data-file=-
+echo -n "YOUR_MT5_LOGIN" | gcloud secrets create MT5_LOGIN --data-file=-
+echo -n "YOUR_MT5_PASSWORD" | gcloud secrets create MT5_PASSWORD --data-file=-
+echo -n "YOUR_MT5_SERVER" | gcloud secrets create MT5_SERVER --data-file=-
+echo -n "YOUR_USER_ID" | gcloud secrets create NEXUS_MASTER_USER_ID --data-file=-
+```
+
+### 3. Deploy
+
+```bash
 cd nexus-genesis/nexus-core
-python -m venv venv
-.\venv\Scripts\Activate
-pip install -r requirements.txt
+gcloud builds submit --config cloudbuild.yaml .
 ```
 
-### 3. Configure Secrets
-Add these secrets to Google Secret Manager:
-- `BINANCE_API_KEY`
-- `BINANCE_API_SECRET`
-- `MT5_LOGIN`
-- `MT5_PASSWORD`
-- `MT5_SERVER`
-- `POLYGON_API_KEY`
+### 4. Verify
 
-### 4. Launch System
-```powershell
-# Development mode
-uvicorn app.main:app --reload --port 8080
+```bash
+SERVICE_URL=$(gcloud run services describe nexus-core --region us-central1 --format 'value(status.url)')
+TOKEN=$(gcloud auth print-identity-token)
 
-# Or use dev script
-.\dev.ps1
+# Health check
+curl -H "Authorization: Bearer $TOKEN" "$SERVICE_URL/health"
+
+# System status
+curl -H "Authorization: Bearer $TOKEN" "$SERVICE_URL/status"
+```
+
+---
+
+## Master AI Commands
+
+Talk to NEXUS via the `/ai/command` endpoint:
+
+| Command | Action |
+|---------|--------|
+| `status` | Full system status report |
+| `pause` | Halt all trading |
+| `resume` | Resume trading |
+| `explain trade` | Explain last trade decision |
+| `risk` | Risk summary |
+| `stealth` | Enable stealth mode |
+| `kill` | Emergency shutdown |
+| `buy EURUSD` | Execute buy order |
+| `sell BTCUSD` | Execute sell order |
+| `close all` | Close all positions |
+
+**Example:**
+```bash
+curl -X POST "$SERVICE_URL/ai/command" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"command": "status"}'
 ```
 
 ---
@@ -232,99 +160,160 @@ uvicorn app.main:app --reload --port 8080
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/health` | GET | System health check |
-| `/status` | GET | Comprehensive system status |
-| `/risk-status` | GET | Current risk metrics |
+| `/status` | GET | Full system status |
+| `/risk-status` | GET | Risk metrics |
 
-### Analysis (Advisory Only)
+### Trading
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/analyze` | POST | AI market analysis |
-| `/analyze/full` | POST | Full strategy + intelligence analysis |
-
-### Execution
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/trade` | POST | Execute trade (governor-approved) |
+| `/trade` | POST | Execute trade (requires council quorum) |
 | `/kill` | POST | Emergency kill switch |
-| `/resume` | POST | Resume trading (requires admin key) |
+| `/resume` | POST | Resume after halt |
 
-### Dashboard (READ-ONLY)
+### Master AI
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/dashboard/equity-curve` | GET | Equity and P&L data |
-| `/dashboard/positions` | GET | Open positions |
-| `/dashboard/orders` | GET | Recent order history |
+| `/ai/command` | POST | Send command to Master AI |
+| `/ai/status` | GET | Master AI status |
+
+### Authentication
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/auth/login` | POST | Login with Firebase token |
+| `/auth/logout` | POST | Logout session |
+| `/auth/session` | GET | Get session info |
+
+### Trading Accounts
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/accounts/register` | POST | Register trading account |
+| `/accounts/list` | GET | List accounts (safe info) |
+
+### Live Data
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/data/tick/{symbol}` | GET | Get live tick |
+| `/data/health` | GET | Data integrity check |
 
 ---
 
-## Deployment
+## Trade Execution Flow
 
-### Google Cloud Run
-```powershell
-# One-time setup
-gcloud artifacts repositories create nexus-repo \
-    --repository-format=docker \
-    --location=us-central1
+```
+1. Stealth Mode Check     → System operational?
+2. Agent Council          → 3/5 quorum required
+3. Model Ensemble         → AI + Rule-based consensus
+4. Ancient Logic          → Cycle alignment
+5. Risk Governor          → Drawdown & position limits
+6. Circuit Breaker        → API & price stability
+7. MT Bridge Execution    → Signed trade instruction
+```
 
-# Create service account
-gcloud iam service-accounts create nexus-runtime \
-    --display-name="NEXUS Runtime Service Account"
+A trade is **REJECTED** if any step fails.
 
-# Grant permissions
-gcloud projects add-iam-policy-binding nexus-dyron-777 \
-    --member="serviceAccount:nexus-runtime@nexus-dyron-777.iam.gserviceaccount.com" \
-    --role="roles/secretmanager.secretAccessor"
+---
 
-gcloud projects add-iam-policy-binding nexus-dyron-777 \
-    --member="serviceAccount:nexus-runtime@nexus-dyron-777.iam.gserviceaccount.com" \
-    --role="roles/aiplatform.user"
+## File Structure
 
-# Deploy
-gcloud builds submit --config cloudbuild.yaml .
+```
+nexus-genesis/
+├── .github/
+│   └── workflows/
+│       └── deploy.yml          # GitOps CI/CD
+├── nexus-core/
+│   ├── app/
+│   │   ├── main.py             # FastAPI application
+│   │   └── services/
+│   │       ├── agent_council.py    # 5-agent voting council
+│   │       ├── model_ensemble.py   # AI model voting
+│   │       ├── master_ai.py        # Command interface
+│   │       ├── auth_service.py     # Authentication
+│   │       ├── live_data.py        # Real-time data
+│   │       ├── mt_bridge.py        # MetaTrader bridge
+│   │       ├── stealth_mode.py     # Security features
+│   │       ├── risk_governor.py    # Risk management
+│   │       └── circuit_breaker.py  # Failure protection
+│   ├── tests/
+│   ├── cloudbuild.yaml         # Deployment config
+│   ├── Dockerfile
+│   └── requirements.txt
+├── infrastructure/
+│   └── vm_startup.ps1          # VM auto-start script
+└── README.md
 ```
 
 ---
 
-## Testing
+## Emergency Procedures
 
-```powershell
-# Run all tests
-pytest -v --cov=app/services
+### Kill Switch
+```bash
+curl -X POST "$SERVICE_URL/kill" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"symbol": null, "purge": false}'
+```
 
-# Test brain connection
-python test_brain.py
+### Resume After Halt
+```bash
+curl -X POST "$SERVICE_URL/resume" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"admin_key": "YOUR_ADMIN_KEY"}'
+```
 
-# Stress test risk governor
-python stress_test.py
+### Rollback Deployment
+```bash
+# Via GitHub Actions
+gh workflow run deploy.yml -f force_deploy=rollback
+
+# Or manually
+gcloud run services update-traffic nexus-core \
+  --region us-central1 \
+  --to-revisions PREVIOUS_REVISION=100
 ```
 
 ---
 
 ## Security Model
 
-See [SECURITY.md](SECURITY.md) for complete security documentation.
-
-**Key Principles:**
-- Zero secrets in code or frontend
-- All secrets via Secret Manager
-- Service account with minimal IAM
-- Authenticated Cloud Run access
-- Complete audit logging
-
----
-
-## Disaster Recovery
-
-See [DISASTER_RECOVERY.md](DISASTER_RECOVERY.md) for recovery procedures.
-
-**Quick Recovery:**
-1. Trigger kill switch: `POST /kill`
-2. Review Firestore state
-3. Clear circuit breakers
-4. Resume with admin key: `POST /resume`
+1. **Zero Secrets in Code** - All credentials in Secret Manager
+2. **Backend-Only Data** - Frontend only receives safe data
+3. **Encrypted Credentials** - Trading passwords encrypted at rest
+4. **Session Tokens** - Short-lived, invalidated on suspicious activity
+5. **Signed Trade Instructions** - HMAC-signed messages to MT bridge
+6. **Anomaly Detection** - Rate limiting and access pattern monitoring
+7. **Self-Purge** - Emergency data destruction capability
 
 ---
 
-## License
+## Status
 
-Private and Confidential. Unauthorized use prohibited.
+| Component | Status |
+|-----------|--------|
+| Multi-Agent Council | ✅ Implemented |
+| Model Ensemble | ✅ Implemented |
+| Master AI | ✅ Implemented |
+| Authentication | ✅ Implemented |
+| Live Data | ✅ Implemented |
+| MT Bridge | ✅ Implemented |
+| GitOps Pipeline | ✅ Implemented |
+| VM Auto-Start | ✅ Implemented |
+| Stealth Mode | ✅ Implemented |
+| Self-Healing | ✅ Implemented |
+
+---
+
+## Support
+
+This is a private system. All issues should be resolved via the Master AI:
+
+```bash
+curl -X POST "$SERVICE_URL/ai/command" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{"command": "help"}'
+```
+
+---
+
+> **"Live data without control is chaos. Control without secrecy is death. Nexus survives by silence, redundancy, and discipline."**
