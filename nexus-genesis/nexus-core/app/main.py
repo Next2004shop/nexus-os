@@ -111,7 +111,8 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:3000",
         "http://localhost:5173",
-        "https://nexus-terminal.web.app"  # Production frontend
+        "https://nexus-terminal.web.app",  # Firebase hosting
+        "https://nexus-frontend-5fyoxvonna-uc.a.run.app"  # Cloud Run frontend
     ],
     allow_credentials=True,
     allow_methods=["*"],
