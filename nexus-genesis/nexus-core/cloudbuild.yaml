@@ -1,3 +1,7 @@
+# NEXUS Sovereign System - Cloud Build Configuration
+# Architecture: Multi-Agent Council × Netflix-Grade Resilience
+# Version: 3.0.0
+
 steps:
   # 1. Build the Docker image
   - name: 'gcr.io/cloud-builders/docker'
@@ -13,7 +17,7 @@ steps:
   - name: 'gcr.io/cloud-builders/docker'
     args: ['push', '--all-tags', 'us-central1-docker.pkg.dev/$PROJECT_ID/nexus-repo/nexus-core']
 
-  # 3. Deploy to Cloud Run with security configuration
+  # 3. Deploy to Cloud Run with Netflix-grade configuration
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: gcloud
     args:
@@ -26,34 +30,69 @@ steps:
       - 'us-central1'
       - '--platform'
       - 'managed'
-      # Security: Require authentication for all requests
+      
+      # =========================================
+      # SECURITY CONFIGURATION
+      # =========================================
+      # Require authentication for all requests
       - '--no-allow-unauthenticated'
       # Service account with minimal permissions
       - '--service-account'
       - 'nexus-runtime@$PROJECT_ID.iam.gserviceaccount.com'
-      # Secret Manager integration - inject secrets at runtime
+      
+      # =========================================
+      # SECRET MANAGER INTEGRATION
+      # =========================================
       - '--set-secrets'
       - 'BINANCE_API_KEY=BINANCE_API_KEY:latest,BINANCE_API_SECRET=BINANCE_API_SECRET:latest,MT5_LOGIN=MT5_LOGIN:latest,MT5_PASSWORD=MT5_PASSWORD:latest,MT5_SERVER=MT5_SERVER:latest,POLYGON_API_KEY=POLYGON_API_KEY:latest'
-      # Resource configuration
+      
+      # =========================================
+      # NETFLIX-GRADE SCALING CONFIGURATION
+      # =========================================
+      # Always keep 1 instance warm (no cold starts for trading)
       - '--min-instances'
       - '1'
+      # Scale up to 10 instances under load
       - '--max-instances'
-      - '3'
+      - '10'
+      # Concurrency: requests per instance before scaling
+      - '--concurrency'
+      - '80'
+      
+      # =========================================
+      # RESOURCE ALLOCATION
+      # =========================================
       - '--memory'
       - '2Gi'
       - '--cpu'
       - '2'
+      # Disable CPU throttling for consistent performance
+      - '--cpu-boost'
+      - '--no-cpu-throttling'
+      # Request timeout (5 minutes for complex analysis)
       - '--timeout'
       - '300'
-      # VPC connector for private networking (create separately)
-      # - '--vpc-connector'
-      # - 'nexus-vpc-connector'
-      # Ingress control - internal only for production
-      # - '--ingress'
-      # - 'internal'
-      # Environment variables
+      
+      # =========================================
+      # HEALTH CHECKS & PROBES
+      # =========================================
+      # Startup probe: wait for system to initialize
+      - '--startup-cpu-boost'
+      # Liveness check path
+      - '--command=/health'
+      
+      # =========================================
+      # ENVIRONMENT CONFIGURATION
+      # =========================================
       - '--set-env-vars'
-      - 'GOOGLE_CLOUD_PROJECT=$PROJECT_ID,LOG_LEVEL=INFO,ENVIRONMENT=production'
+      - 'GOOGLE_CLOUD_PROJECT=$PROJECT_ID,LOG_LEVEL=INFO,ENVIRONMENT=production,NEXUS_VERSION=3.0.0,COUNCIL_QUORUM=0.6'
+      
+      # =========================================
+      # REVISION MANAGEMENT
+      # =========================================
+      # Traffic routing (100% to new revision)
+      - '--revision-suffix'
+      - 'v3-council-${SHORT_SHA}'
 
 # Store the image in Artifact Registry
 images:
@@ -63,3 +102,12 @@ images:
 # Build options
 options:
   logging: CLOUD_LOGGING_ONLY
+  machineType: 'E2_HIGHCPU_8'  # Faster builds
+
+# Substitutions
+substitutions:
+  _NEXUS_VERSION: '3.0.0'
+
+# Build timeout
+timeout: '1200s'
+

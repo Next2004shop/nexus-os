@@ -1,9 +1,13 @@
-# NEXUS SOVEREIGN SYSTEM
+# NEXUS SOVEREIGN SYSTEM v3.0
 
-**Architecture**: Ancient Market Cycles × Axelrod Game Theory  
-**Intelligence**: Gemini Pro (Vertex AI)  
+> **IMMUTABLE LAW**: Council Over King - No trade without quorum.
+
+**Architecture**: Ancient Market Laws × Axelrod Game Theory × Netflix Resilience  
+**Decision Engine**: Multi-Agent Council (5 Agents, 3/5 Quorum Required)  
+**Intelligence**: Model Ensemble (Gemini Pro + Rule-Based + Pattern)  
 **Execution**: Dual-Path (MT5 + Binance)  
-**Risk Governor**: Kelly Criterion × Drawdown Enforcement
+**Risk Governor**: Kelly Criterion × Drawdown Enforcement  
+**Security**: Stealth Mode (Encrypted Logs, Self-Purge Capability)
 
 ---
 
@@ -16,6 +20,19 @@ flowchart TB
         Auth[Firebase Admin Auth]
     end
     
+    subgraph Council["Multi-Agent Council"]
+        MSA[Market Structure Agent]
+        MOM[Momentum Agent]
+        VOL[Volatility Risk Agent]
+        MAC[Macro Sentiment Agent]
+        EXE[Execution Safety Agent]
+    end
+    
+    subgraph Quorum["Quorum Mechanism"]
+        VOTE[Vote Aggregator]
+        DECISION{3/5 Agree?}
+    end
+    
     subgraph Cloud["Google Cloud Platform"]
         CR[Cloud Run]
         SM[Secret Manager]
@@ -25,34 +42,110 @@ flowchart TB
     end
     
     subgraph Backend["NEXUS Core"]
+        ENS[Model Ensemble]
         SE[Strategy Engine]
         RE[Risk Governor]
-        EX[Execution Layer]
-        SC[Scheduler]
-        CB[Circuit Breaker]
+        CBR[Circuit Breaker]
+        ST[Stealth Mode]
     end
     
-    subgraph External["External Systems"]
+    subgraph Execution["Trade Execution"]
         MT5[MetaTrader 5]
         BN[Binance API]
-        PG[Polygon.io]
     end
     
     UI --> Auth --> CR
+    CR --> Council
+    
+    MSA --> VOTE
+    MOM --> VOTE
+    VOL --> VOTE
+    MAC --> VOTE
+    EXE --> VOTE
+    
+    VOTE --> DECISION
+    DECISION -->|YES| ENS
+    DECISION -->|NO| HALT[No Trade]
+    ENS --> SE --> RE --> CBR
+    CBR --> MT5
+    CBR --> BN
+    
     CR --> SM
     CR --> VA
     CR --> FS
     CR --> CL
-    
-    SE --> RE --> EX
-    EX --> MT5
-    EX --> BN
-    SE <--> PG
+```
+
+---
+
+## Immutable Core Laws
+
+| # | Law | Implementation |
+|---|-----|----------------|
+| 1 | **No Single Point of Failure** | Multi-agent voting, no master brain, auto-scaling |
+| 2 | **Council Over King** | 5 independent agents, quorum required (3/5) |
+| 3 | **Silence Is Security** | Minimal response data, encrypted logs, stealth mode |
+| 4 | **Preservation > Profit** | 2% max drawdown, Safety Agent has veto power |
+| 5 | **Failure Is Assumed** | Circuit breakers, auto-halt, self-heal, self-purge |
+
+---
+
+## Multi-Agent Council
+
+### The Five Agents
+
+| Agent | Role | Weight | Specialty |
+|-------|------|--------|-----------|
+| **Market Structure** | Wyckoff Analysis | 1.2 | Accumulation/Distribution phases |
+| **Momentum** | Force Detection | 1.0 | ROC + RSI momentum scoring |
+| **Volatility Risk** | Storm Warning | 1.3 | ATR percentile, regime detection |
+| **Macro Sentiment** | Tide Reading | 0.9 | MA200 positioning, regime alignment |
+| **Execution Safety** | Gatekeeper | 1.5 | Spread, circuit breakers, anomalies |
+
+### Quorum Rules
+
+- **Minimum Agreement**: 3 out of 5 agents must agree on direction
+- **Weighted Voting**: Agents have different weights based on expertise
+- **Safety Veto**: Execution Safety Agent can veto any trade
+- **Position Sizing**: Lower consensus = reduced position size
+
+### Trade Execution Flow
+
+```
+1. Stealth Mode Check     → System operational?
+2. Agent Council          → 3/5 quorum required
+3. Model Ensemble         → AI + Rule-based consensus
+4. Ancient Logic          → Cycle alignment check
+5. Risk Governor          → Drawdown & position limits
+6. Circuit Breaker        → API & price stability check
+7. Execution              → Dual-path (MT5 + Binance)
 ```
 
 ---
 
 ## Core Modules
+
+### Multi-Agent Council (`agent_council.py`) 🆕
+Five independent trading agents with quorum voting:
+- **MarketStructureAgent**: Wyckoff accumulation/distribution patterns
+- **MomentumAgent**: Price momentum + volume confirmation
+- **VolatilityRiskAgent**: ATR-based risk assessment (veto power on extreme vol)
+- **MacroSentimentAgent**: MA50/200 positioning and regime alignment
+- **ExecutionSafetyAgent**: Pre-trade safety validation (has veto power)
+
+### Model Ensemble (`model_ensemble.py`) 🆕
+Multiple AI models vote on market direction:
+- **GeminiPro**: Vertex AI regime detection and analysis
+- **RuleBased**: Classical technical analysis scoring
+- **PatternMatcher**: Historical pattern similarity
+
+### Stealth Mode (`stealth_mode.py`) 🆕
+Security and obfuscation features:
+- Encrypted audit logging
+- Response minimization
+- Order timing randomization
+- Access anomaly detection
+- Self-purge capability
 
 ### Strategy Engine (`strategy_engine.py`)
 Five ancient market principles:
