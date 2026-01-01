@@ -1,0 +1,42 @@
+{
+    "name": "nexus-desktop",
+    "version": "1.0.0",
+    "description": "NEXUS Trading Command Terminal - Desktop Application",
+    "main": "main.js",
+    "scripts": {
+        "start": "electron .",
+        "build": "electron-builder",
+        "build:win": "electron-builder --win",
+        "build:mac": "electron-builder --mac",
+        "build:linux": "electron-builder --linux"
+    },
+    "build": {
+        "appId": "com.nexus.trading",
+        "productName": "NEXUS Terminal",
+        "directories": {
+            "output": "dist"
+        },
+        "win": {
+            "target": "nsis",
+            "icon": "assets/icon.ico"
+        },
+        "mac": {
+            "target": "dmg",
+            "icon": "assets/icon.icns"
+        },
+        "linux": {
+            "target": "AppImage",
+            "icon": "assets/icon.png"
+        }
+    },
+    "author": "NEXUS Systems",
+    "license": "UNLICENSED",
+    "private": true,
+    "devDependencies": {
+        "electron": "^28.0.0",
+        "electron-builder": "^24.9.1"
+    },
+    "dependencies": {
+        "electron-updater": "^6.1.7"
+    }
+}
