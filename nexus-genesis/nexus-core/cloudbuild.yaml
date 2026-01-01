@@ -8,7 +8,7 @@ steps:
     args: 
       - 'build'
       - '-t'
-      - 'us-central1-docker.pkg.dev/$PROJECT_ID/nexus-repo/nexus-core:$COMMIT_SHA'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/nexus-repo/nexus-core:$BUILD_ID'
       - '-t'
       - 'us-central1-docker.pkg.dev/$PROJECT_ID/nexus-repo/nexus-core:latest'
       - '.'
@@ -25,7 +25,7 @@ steps:
       - 'deploy'
       - 'nexus-core'
       - '--image'
-      - 'us-central1-docker.pkg.dev/$PROJECT_ID/nexus-repo/nexus-core:$COMMIT_SHA'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/nexus-repo/nexus-core:$BUILD_ID'
       - '--region'
       - 'us-central1'
       - '--platform'
@@ -96,7 +96,7 @@ steps:
 
 # Store the image in Artifact Registry
 images:
-  - 'us-central1-docker.pkg.dev/$PROJECT_ID/nexus-repo/nexus-core:$COMMIT_SHA'
+  - 'us-central1-docker.pkg.dev/$PROJECT_ID/nexus-repo/nexus-core:$BUILD_ID'
   - 'us-central1-docker.pkg.dev/$PROJECT_ID/nexus-repo/nexus-core:latest'
 
 # Build options

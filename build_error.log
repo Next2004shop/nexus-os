@@ -1,0 +1,3 @@
+Creating temporary archive of 31 file(s) totalling 341.0 KiB before compression.
+Uploading tarball of [.] to [gs://nexus-dyron-777_cloudbuild/source/1767276371.75641-b04f1004ee32415a93531e80d690c237.tgz]
+ERROR: (gcloud.builds.submit) INVALID_ARGUMENT: invalid build: invalid image name "us-central1-docker.pkg.dev/nexus-dyron-777/nexus-repo/nexus-core:": could not parse reference: us-central1-docker.pkg.dev/nexus-dyron-777/nexus-repo/nexus-core:
