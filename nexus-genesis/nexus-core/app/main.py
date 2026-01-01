@@ -15,12 +15,14 @@ All frontend access is READ-ONLY.
 """
 
 import logging
-from fastapi import FastAPI, HTTPException, Body, Depends, Header, Request
+import asyncio
+import json
+from uuid import uuid4
+from fastapi import FastAPI, HTTPException, Body, Depends, Header, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from typing import Dict, Any, Optional, List
 from datetime import datetime, timezone
-import asyncio
 
 from app.services import intelligence
 from app.services import execution
@@ -30,6 +32,8 @@ from app.services import scheduler
 from app.services import strategy_engine
 from app.services import circuit_breaker
 from app.services import market_data
+from app.services.live_data import get_live_data, initialize_live_data
+from app.services.ws_manager import get_ws_manager
 
 # New Multi-Agent Council and Ensemble imports
 from app.services.agent_council import get_council, require_quorum, Vote
@@ -83,8 +87,33 @@ async def startup_event():
     # Initialize Stealth Mode
     stealth = get_stealth_mode()
     logger.info(f"Stealth Mode: {stealth.get_status()}")
+
+    # Initialize Live Data and register WebSocket callback
+    manager = await initialize_live_data()
+    ws_hub = get_ws_manager()
+    
+    async def ws_tick_callback(tick):
+        await ws_hub.broadcast_tick(tick.to_frontend())
+    
+    manager.callbacks.append(ws_tick_callback)
+    logger.info("Live Data WebSocket callback registered")
+
+    # Start system status broadcaster
+    asyncio.create_task(status_broadcaster())
     
     logger.info("NEXUS SOVEREIGN SYSTEM ONLINE")
+
+
+async def status_broadcaster():
+    """Broadcast system status every 2 seconds."""
+    ws_hub = get_ws_manager()
+    while True:
+        try:
+            status = await system_status()
+            await ws_hub.broadcast_status(status)
+        except Exception as e:
+            logger.error(f"Status broadcast error: {e}")
+        await asyncio.sleep(2)
 
 
 @app.on_event("shutdown")
@@ -104,16 +133,44 @@ async def shutdown_event():
 
 
 # =============================================================================
+# WEBSOCKET ENDPOINTS
+# =============================================================================
+@app.websocket("/ws/nexus")
+async def websocket_endpoint(websocket: WebSocket):
+    """
+    NEXUS Command WebSocket Hub.
+    Broadcasts real-time ticks and system state.
+    """
+    manager = get_ws_manager()
+    connection_id = str(uuid4())
+    await manager.connect(websocket, connection_id)
+    
+    try:
+        while True:
+            data = await websocket.receive_text()
+            message = json.loads(data)
+            
+            # Handle client commands (e.g., SUBSCRIBE)
+            if message.get("type") == "SUBSCRIBE":
+                symbols = message.get("symbols", [])
+                await manager.subscribe(connection_id, symbols)
+                
+            elif message.get("type") == "PING":
+                await websocket.send_text(json.dumps({"type": "PONG"}))
+                
+    except WebSocketDisconnect:
+        manager.disconnect(connection_id)
+    except Exception as e:
+        logger.error(f"WebSocket error for {connection_id}: {e}")
+        manager.disconnect(connection_id)
+
+
+# =============================================================================
 # CORS CONFIGURATION
 # =============================================================================
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://localhost:5173",
-        "https://nexus-terminal.web.app",  # Firebase hosting
-        "https://nexus-frontend-5fyoxvonna-uc.a.run.app"  # Cloud Run frontend
-    ],
+    allow_origins=["*"],  # Sovereing choice: allow all for cloud flexibility
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
