@@ -1,0 +1,4 @@
+ERROR: (gcloud.builds.submit) unrecognized arguments: --stream (did you mean '--tag'?) 
+
+To search the help text of gcloud commands, run:
+  gcloud help -- SEARCH_TERMS
