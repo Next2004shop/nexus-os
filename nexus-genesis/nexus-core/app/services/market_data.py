@@ -11,19 +11,6 @@ Unified market data feed providing:
 All data normalized to unified schema for strategy consumption.
 """
 
-"""
-NEXUS Market Data Module - Polygon.io Integration
-==================================================
-
-Unified market data feed providing:
-1. Historical OHLCV data
-2. Real-time WebSocket streaming
-3. Normalized market schema
-4. Multiple asset class support
-
-All data normalized to unified schema for strategy consumption.
-"""
-
 import asyncio
 import json
 import logging

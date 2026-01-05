@@ -12,20 +12,6 @@ Implements automatic shutdown triggers:
 Based on Netflix Hystrix patterns adapted for trading systems.
 """
 
-"""
-NEXUS Circuit Breaker - Automatic Protection System
-====================================================
-
-Implements automatic shutdown triggers:
-1. Consecutive API failures (3 failures = halt)
-2. Extreme price movements (> 5 ATR in 15 minutes)
-3. Connectivity loss (> 60 seconds)
-4. Manual kill switch
-5. Scheduled maintenance windows
-
-Based on Netflix Hystrix patterns adapted for trading systems.
-"""
-
 import asyncio
 import functools
 import logging

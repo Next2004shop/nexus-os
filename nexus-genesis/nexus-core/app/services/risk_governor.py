@@ -14,22 +14,6 @@ Based on Axelrod's game theory principles:
 - Defection (break limits) leads to capital destruction
 """
 
-"""
-NEXUS Risk Governor - Axelrod Discipline Module
-================================================
-
-Implements institutional-grade risk management:
-1. Max drawdown enforcement with Firestore persistence
-2. Position size governance with Kelly Criterion
-3. Correlation limits across positions
-4. Emergency shutdown with audit logging
-5. Circuit breaker integration
-
-Based on Axelrod's game theory principles:
-- Cooperation (follow rules) yields long-term survival
-- Defection (break limits) leads to capital destruction
-"""
-
 import json
 import logging
 from dataclasses import dataclass, field

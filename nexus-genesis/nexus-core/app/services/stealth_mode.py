@@ -12,20 +12,6 @@ Implements stealth and self-protection features:
 5. Anomaly detection on access patterns
 """
 
-"""
-NEXUS Stealth Mode - Security & Obfuscation Module
-==================================================
-
-Ancient Vault Doctrine: Silence is Security.
-
-Implements stealth and self-protection features:
-1. Encrypted audit logs
-2. Minimal response metadata
-3. Randomized order timing
-4. Self-purge on critical breach
-5. Anomaly detection on access patterns
-"""
-
 import base64
 import hashlib
 import hmac

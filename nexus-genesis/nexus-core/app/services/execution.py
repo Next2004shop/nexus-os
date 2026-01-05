@@ -12,20 +12,6 @@ Implements institutional-grade order execution:
 AI signals are advisory only - this module handles actual execution.
 """
 
-"""
-NEXUS Execution Engine - Dual-Path Trading System
-==================================================
-
-Implements institutional-grade order execution:
-1. Primary execution via MetaTrader 5
-2. Secondary execution via Binance Spot API
-3. Slippage control and monitoring
-4. Order tracking and reconciliation
-5. Circuit breaker integration
-
-AI signals are advisory only - this module handles actual execution.
-"""
-
 import asyncio
 import logging
 import sys
