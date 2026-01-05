@@ -49,6 +49,7 @@ function createWindow() {
 
     // Show when ready
     mainWindow.once('ready-to-show', () => {
+        mainWindow.webContents.openDevTools();
         mainWindow.show();
     });
 
@@ -120,8 +121,13 @@ app.whenReady().then(() => {
     createWindow();
     createTray();
 
-    // Check for updates
-    autoUpdater.checkForUpdatesAndNotify();
+    // Check for updates (Safe Mode)
+    try {
+        // autoUpdater.checkForUpdatesAndNotify();
+        console.log('[NEXUS] Updater disabled for stability.');
+    } catch (err) {
+        console.error('[NEXUS] Updater error:', err);
+    }
 });
 
 app.on('window-all-closed', () => {
@@ -138,7 +144,19 @@ app.on('activate', () => {
     }
 });
 
-// Auto-updater events
+// Global Error Handlers (Prevents "Crushing")
+process.on('uncaughtException', (error) => {
+    console.error('[NEXUS] CRITICAL ERROR:', error);
+    // Prevent app quit
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('[NEXUS] UNHANDLED REJECTION:', reason);
+    // Prevent app quit
+});
+
+// Auto-updater events (Listeners preserved but inactive)
+/* 
 autoUpdater.on('update-available', () => {
     mainWindow.webContents.send('update-available');
 });
@@ -146,7 +164,7 @@ autoUpdater.on('update-available', () => {
 autoUpdater.on('update-downloaded', () => {
     mainWindow.webContents.send('update-downloaded');
 });
-
-// IPC handlers
+*/
+/* ipcMain handlers remain... */
 ipcMain.handle('get-backend-url', () => BACKEND_URL);
 ipcMain.handle('get-app-version', () => app.getVersion());
