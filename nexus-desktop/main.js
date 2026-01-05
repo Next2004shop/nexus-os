@@ -69,28 +69,33 @@ function createWindow() {
 }
 
 function createTray() {
-    tray = new Tray(path.join(__dirname, 'assets', 'tray-icon.png'));
+    try {
+        const iconPath = path.join(__dirname, 'assets', 'tray-icon.png');
+        tray = new Tray(iconPath);
 
-    const contextMenu = Menu.buildFromTemplate([
-        { label: 'Open NEXUS', click: () => mainWindow.show() },
-        { type: 'separator' },
-        { label: 'System Status', click: () => checkSystemStatus() },
-        { label: 'Emergency Kill', click: () => emergencyKill() },
-        { type: 'separator' },
-        {
-            label: 'Quit', click: () => {
-                app.isQuitting = true;
-                app.quit();
+        const contextMenu = Menu.buildFromTemplate([
+            { label: 'Open NEXUS', click: () => mainWindow.show() },
+            { type: 'separator' },
+            { label: 'System Status', click: () => checkSystemStatus() },
+            { label: 'Emergency Kill', click: () => emergencyKill() },
+            { type: 'separator' },
+            {
+                label: 'Quit', click: () => {
+                    app.isQuitting = true;
+                    app.quit();
+                }
             }
-        }
-    ]);
+        ]);
 
-    tray.setToolTip('NEXUS Terminal - Trading Active');
-    tray.setContextMenu(contextMenu);
+        tray.setToolTip('NEXUS Terminal - Trading Active');
+        tray.setContextMenu(contextMenu);
 
-    tray.on('click', () => {
-        mainWindow.show();
-    });
+        tray.on('click', () => {
+            mainWindow.show();
+        });
+    } catch (e) {
+        console.warn('[NEXUS] System Tray init failed (Icon missing). Running in detached mode.');
+    }
 }
 
 async function checkSystemStatus() {
@@ -119,7 +124,11 @@ async function emergencyKill() {
 // App lifecycle
 app.whenReady().then(() => {
     createWindow();
-    createTray();
+    try {
+        createTray();
+    } catch (e) {
+        console.warn("[NEXUS] Tray icon failed to load (Non-Critical):", e);
+    }
 
     // Check for updates (Safe Mode)
     try {
@@ -160,7 +169,7 @@ process.on('unhandledRejection', (reason, promise) => {
 autoUpdater.on('update-available', () => {
     mainWindow.webContents.send('update-available');
 });
-
+ 
 autoUpdater.on('update-downloaded', () => {
     mainWindow.webContents.send('update-downloaded');
 });
