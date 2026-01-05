@@ -14,43 +14,76 @@ IMMUTABLE LAW: Council Over King - No trade without quorum.
 All frontend access is READ-ONLY.
 """
 
-import logging
+"""
+NEXUS Sovereign System - FastAPI Main Application
+==================================================
+
+Central nervous system orchestrating:
+1. Multi-Agent Council decision making (5 agents, quorum required)
+2. Model Ensemble voting (AI + rule-based consensus)
+3. Trade execution (with council + governor approval)
+4. Risk status and monitoring
+5. Emergency controls with stealth mode
+6. Health and heartbeat
+
+IMMUTABLE LAW: Council Over King - No trade without quorum.
+All frontend access is READ-ONLY.
+"""
+
 import asyncio
 import json
+import logging
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
 from uuid import uuid4
-from fastapi import FastAPI, HTTPException, Body, Depends, Header, Request, WebSocket, WebSocketDisconnect
+
+from fastapi import (
+    Body,
+    Depends,
+    FastAPI,
+    Header,
+    HTTPException,
+    Request,
+    WebSocket,
+    WebSocketDisconnect
+)
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from typing import Dict, Any, Optional, List
-from datetime import datetime, timezone
 
-from app.services import intelligence
-from app.services import execution
-from app.services import risk_governor
-from app.services import ancient_logic
-from app.services import scheduler
-from app.services import strategy_engine
-from app.services import circuit_breaker
-from app.services import market_data
+from app.services import (
+    ancient_logic,
+    circuit_breaker,
+    execution,
+    intelligence,
+    market_data,
+    risk_governor,
+    scheduler,
+    strategy_engine
+)
+from app.services.agent_council import Vote, get_council, require_quorum
 from app.services.live_data import get_live_data, initialize_live_data
+from app.services.model_ensemble import ensemble_predict, get_ensemble
+from app.services.stealth_mode import get_stealth_mode
 from app.services.ws_manager import get_ws_manager
 
-# New Multi-Agent Council and Ensemble imports
-from app.services.agent_council import get_council, require_quorum, Vote
-from app.services.model_ensemble import get_ensemble, ensemble_predict
-from app.services.stealth_mode import get_stealth_mode
+# =============================================================================
+# LOGGING CONFIGURATION
+# =============================================================================
 
-# Configure central logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger("nexus.nervous_system")
 
+# =============================================================================
+# FASTAPI APPLICATION
+# =============================================================================
+
 app = FastAPI(
     title="NEXUS SOVEREIGN SYSTEM",
     description="Private Trading System - Ancient Laws × Axelrod Discipline × Multi-Agent Council",
-    version="3.0.0"  # Version bump for council integration
+    version="3.0.0"
 )
 
 

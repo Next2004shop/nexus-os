@@ -12,19 +12,33 @@ Implements institutional-grade order execution:
 AI signals are advisory only - this module handles actual execution.
 """
 
-import ccxt
+"""
+NEXUS Execution Engine - Dual-Path Trading System
+==================================================
+
+Implements institutional-grade order execution:
+1. Primary execution via MetaTrader 5
+2. Secondary execution via Binance Spot API
+3. Slippage control and monitoring
+4. Order tracking and reconciliation
+5. Circuit breaker integration
+
+AI signals are advisory only - this module handles actual execution.
+"""
+
+import asyncio
 import logging
 import sys
-import asyncio
-from typing import Dict, Any, Optional, List, Tuple
+import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-import uuid
+from typing import Any, Dict, List, Optional, Tuple
 
-from . import vault
-from .circuit_breaker import get_breaker, CircuitOpenError, with_circuit_breaker
-from . import risk_governor
+import ccxt
+
+from . import risk_governor, vault
+from .circuit_breaker import CircuitOpenError, get_breaker, with_circuit_breaker
 
 logger = logging.getLogger("nexus.execution")
 

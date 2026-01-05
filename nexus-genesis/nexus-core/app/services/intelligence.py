@@ -11,18 +11,14 @@ Vertex AI integration for:
 AI is advisor only - never places trades directly.
 """
 
-
-# Validating imports are moved to function scope
-# import vertexai
-# from vertexai.generative_models import GenerativeModel
-
 import json
 import logging
-import numpy as np
-import pandas as pd
-from typing import Dict, Any, Optional, List, Tuple
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
+
+import numpy as np
+import pandas as pd
 
 # Configure logging
 logger = logging.getLogger("nexus.brain")

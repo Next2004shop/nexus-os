@@ -11,16 +11,30 @@ Unified market data feed providing:
 All data normalized to unified schema for strategy consumption.
 """
 
-import logging
+"""
+NEXUS Market Data Module - Polygon.io Integration
+==================================================
+
+Unified market data feed providing:
+1. Historical OHLCV data
+2. Real-time WebSocket streaming
+3. Normalized market schema
+4. Multiple asset class support
+
+All data normalized to unified schema for strategy consumption.
+"""
+
 import asyncio
-import aiohttp
-import pandas as pd
-import numpy as np
-from typing import Dict, Any, Optional, List, Callable
-from dataclasses import dataclass, field
-from datetime import datetime, timezone, timedelta
-from enum import Enum
 import json
+import logging
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta, timezone
+from enum import Enum
+from typing import Any, Callable, Dict, List, Optional
+
+import aiohttp
+import numpy as np
+import pandas as pd
 
 from .vault import get_secret
 

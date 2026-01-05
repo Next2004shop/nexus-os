@@ -1,11 +1,33 @@
-import sys
+"""
+NEXUS Vault - Secret Management Module
+========================================
+
+Google Secret Manager integration for secure credential storage.
+All API keys and sensitive data fetched at runtime from Secret Manager.
+
+IMMUTABLE LAW: No secrets in code. All secrets from Secret Manager.
+"""
+
 import logging
-from google.cloud import secretmanager
+import sys
+from typing import Dict, Optional
+
 from google.api_core.exceptions import GoogleAPICallError
+from google.cloud import secretmanager
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger("nexus.vault")
+
+
+# =============================================================================
+# CONFIGURATION
+# =============================================================================
+
+PROJECT_ID = "nexus-dyron-777"
 
 # Initialize Secret Manager Client
 try:
@@ -14,7 +36,10 @@ except Exception as e:
     logger.critical(f"Failed to initialize Secret Manager Client: {e}")
     sys.exit(1)
 
-PROJECT_ID = "nexus-dyron-777"
+
+# =============================================================================
+# SECRET RETRIEVAL
+# =============================================================================
 
 def get_secret(secret_id: str, version_id: str = "latest") -> str:
     """

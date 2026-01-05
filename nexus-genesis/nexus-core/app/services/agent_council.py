@@ -14,14 +14,31 @@ Implements the "Council Over King" principle from Ancient × Axelrod × Netflix 
 IMMUTABLE LAW: No trade executes without quorum (3/5 agents agreeing).
 """
 
+"""
+NEXUS Agent Council - Multi-Agent Decision System
+==================================================
+
+Implements the "Council Over King" principle from Ancient × Axelrod × Netflix doctrine.
+
+5 Independent Agents:
+1. MarketStructureAgent - Wyckoff accumulation/distribution patterns
+2. MomentumAgent - Price momentum + volume confirmation
+3. VolatilityRiskAgent - ATR-based risk assessment
+4. MacroSentimentAgent - Market sentiment and regime analysis
+5. ExecutionSafetyAgent - Pre-trade safety validation
+
+IMMUTABLE LAW: No trade executes without quorum (3/5 agents agreeing).
+"""
+
 import logging
+from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
+
 import numpy as np
 import pandas as pd
-from typing import Dict, Any, Optional, List, Tuple
-from dataclasses import dataclass, field
-from enum import Enum
-from datetime import datetime, timezone
-from abc import ABC, abstractmethod
 
 logger = logging.getLogger("nexus.agent_council")
 

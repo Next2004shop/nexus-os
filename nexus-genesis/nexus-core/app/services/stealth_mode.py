@@ -12,19 +12,33 @@ Implements stealth and self-protection features:
 5. Anomaly detection on access patterns
 """
 
-import logging
+"""
+NEXUS Stealth Mode - Security & Obfuscation Module
+==================================================
+
+Ancient Vault Doctrine: Silence is Security.
+
+Implements stealth and self-protection features:
+1. Encrypted audit logs
+2. Minimal response metadata
+3. Randomized order timing
+4. Self-purge on critical breach
+5. Anomaly detection on access patterns
+"""
+
+import base64
 import hashlib
 import hmac
-import base64
+import json
+import logging
 import os
 import random
 import time
-from typing import Dict, Any, Optional, List, Callable
 from dataclasses import dataclass, field
-from datetime import datetime, timezone, timedelta
-from threading import Lock
+from datetime import datetime, timedelta, timezone
 from functools import wraps
-import json
+from threading import Lock
+from typing import Any, Callable, Dict, List, Optional
 
 logger = logging.getLogger("nexus.stealth")
 

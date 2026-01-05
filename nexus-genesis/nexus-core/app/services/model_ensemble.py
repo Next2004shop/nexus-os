@@ -13,13 +13,29 @@ If models disagree → reduce position size
 If models conflict strongly → HALT trading
 """
 
+"""
+NEXUS Model Ensemble - Voting AI System
+========================================
+
+Netflix Doctrine: Multiple models vote, no single brain rules.
+
+Implements ensemble voting for AI predictions:
+1. Primary: Gemini Pro for regime detection
+2. Secondary: Rule-based system for signal validation
+3. Fallback: Historical pattern matching
+
+If models disagree → reduce position size
+If models conflict strongly → HALT trading
+"""
+
 import logging
-import numpy as np
-from typing import Dict, Any, Optional, List, Tuple
-from dataclasses import dataclass, field
-from enum import Enum
-from datetime import datetime, timezone
 from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
+
+import numpy as np
 
 logger = logging.getLogger("nexus.model_ensemble")
 
