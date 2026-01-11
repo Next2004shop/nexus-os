@@ -76,10 +76,8 @@ steps:
       # =========================================
       # HEALTH CHECKS & PROBES
       # =========================================
-      # Startup probe: wait for system to initialize
-      - '--startup-cpu-boost'
-      # Liveness check path
-      - '--command=/health'
+      # CPU boost during startup for faster initialization
+      - '--cpu-boost'
       
       # =========================================
       # ENVIRONMENT CONFIGURATION
