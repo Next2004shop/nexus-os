@@ -12,6 +12,9 @@ google-cloud-firestore
 google-cloud-logging
 
 
+# Telegram Integration
+python-telegram-bot
+
 # Trading & Market Data
 ccxt
 aiohttp

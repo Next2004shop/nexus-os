@@ -65,6 +65,7 @@ from app.services.live_data import get_live_data, initialize_live_data
 from app.services.model_ensemble import ensemble_predict, get_ensemble
 from app.services.stealth_mode import get_stealth_mode
 from app.services.ws_manager import get_ws_manager
+from app.services.telegram_bot import get_telegram_service
 
 # =============================================================================
 # LOGGING CONFIGURATION
@@ -134,6 +135,10 @@ async def startup_event():
     # Start system status broadcaster
     asyncio.create_task(status_broadcaster())
     
+    # Start Telegram Bot
+    telegram = get_telegram_service()
+    await telegram.start()
+
     logger.info("NEXUS SOVEREIGN SYSTEM ONLINE")
 
 
