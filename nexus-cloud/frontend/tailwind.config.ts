@@ -25,8 +25,8 @@ const config: Config = {
                 },
             },
             fontFamily: {
-                sans: ["var(--font-inter)", "sans-serif"],
-                mono: ["var(--font-jetbrains)", "monospace"],
+                sans: ["Inter", "system-ui", "-apple-system", "sans-serif"],
+                mono: ["JetBrains Mono", "ui-monospace", "SFMono-Regular", "monospace"],
             },
             backgroundImage: {
                 "nexus-gradient": "radial-gradient(circle at 10% 20%, rgba(0, 221, 128, 0.05) 0%, transparent 40%), radial-gradient(circle at 90% 80%, rgba(10, 132, 255, 0.05) 0%, transparent 40%)",
