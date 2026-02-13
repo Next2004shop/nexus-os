@@ -6,6 +6,7 @@ from .circuit_breaker import get_manager as get_circuit_breaker, with_circuit_br
 from .intelligence import list_models, analyze_market, NexusIntelligence
 from .vault import get_secret
 from .ancient_logic import check_cycle
+from .sovereign_pipeline import execute_sovereign_pipeline
 from .scheduler import start_scheduler
 
 __all__ = [
@@ -32,5 +33,6 @@ __all__ = [
     "NexusIntelligence",
     "get_secret",
     "check_cycle",
+    "execute_sovereign_pipeline",
     "start_scheduler"
 ]
