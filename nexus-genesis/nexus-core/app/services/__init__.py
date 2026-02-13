@@ -11,6 +11,9 @@ from .scheduler import start_scheduler
 from .execution_lock import get_execution_lock, ExecutionLock
 from .watchdog import get_watchdog, Watchdog, SystemMode
 from .env_validator import validate_environment
+from .ai_intent_schema import TradingIntent, validate_intent_json, IntentType, ConfidenceGate
+from .ai_audit_logger import get_ai_audit_logger, AIAuditLogger
+from .ai_decision_layer import get_ai_decision_engine, AIDecisionEngine, AISystemMode
 
 __all__ = [
     "StrategyOrchestrator",
@@ -44,4 +47,13 @@ __all__ = [
     "Watchdog",
     "SystemMode",
     "validate_environment",
+    "TradingIntent",
+    "validate_intent_json",
+    "IntentType",
+    "ConfidenceGate",
+    "get_ai_audit_logger",
+    "AIAuditLogger",
+    "get_ai_decision_engine",
+    "AIDecisionEngine",
+    "AISystemMode",
 ]

@@ -42,6 +42,11 @@ from app.services.stealth_mode import get_stealth_mode
 from app.services.sovereign_pipeline import execute_sovereign_pipeline
 from app.services.watchdog import get_watchdog
 from app.services.env_validator import validate_environment
+from app.services.ai_decision_layer import (
+    get_ai_decision_engine, get_conversation_memory,
+    AISystemMode, fallback_response, LLM_TIMEOUT_SECS,
+)
+from app.services.ai_audit_logger import get_ai_audit_logger
 
 # Configure central logging
 logging.basicConfig(
@@ -53,7 +58,7 @@ logger = logging.getLogger("nexus.nervous_system")
 app = FastAPI(
     title="NEXUS SOVEREIGN SYSTEM",
     description="Private Trading System - Ancient Laws × Axelrod Discipline × Multi-Agent Council",
-    version="3.1.0"  # Phase 2: execution hardening
+    version="3.2.0"  # Phase 3: AI decision hardening
 )
 
 
@@ -562,6 +567,109 @@ async def master_ai_status():
         "commands_processed": len(master_ai.command_history),
         "last_command": master_ai.command_history[-1].to_response() if master_ai.command_history else None
     }
+
+
+# =============================================================================
+# AI DECISION LAYER ENDPOINTS (Phase 3)
+# =============================================================================
+@app.post("/ai/trade-intent")
+async def ai_trade_intent(
+    raw_prompt: str = Body(...),
+    ai_response_text: str = Body(...),
+    human_confirmed: bool = Body(False),
+    authorization: Optional[str] = Header(None),
+):
+    """
+    Process an AI-generated trading intent through the 3-layer architecture.
+
+    Layer 2: Parses + validates strict JSON schema.
+    Layer 3: Routes through deterministic execution engine.
+
+    AI CANNOT override risk governor, lot limits, or system mode.
+    If AI response is malformed → safe fallback (no trade).
+    """
+    from app.services.auth_service import get_auth_service
+
+    user_id = "anonymous"
+    if authorization:
+        token = authorization.replace("Bearer ", "")
+        auth_service = get_auth_service()
+        session = auth_service.validate_request(token)
+        if session:
+            user_id = session.user_id
+
+    engine = get_ai_decision_engine()
+
+    try:
+        result = await asyncio.wait_for(
+            engine.process_ai_output(
+                raw_prompt=raw_prompt,
+                ai_response_text=ai_response_text,
+                user_id=user_id,
+                human_confirmed=human_confirmed,
+            ),
+            timeout=LLM_TIMEOUT_SECS + 60,  # pipeline timeout is separate
+        )
+        return result
+    except asyncio.TimeoutError:
+        logger.error("AI trade-intent processing timed out")
+        return fallback_response("Processing timed out")
+    except Exception as e:
+        logger.error(f"AI trade-intent error: {e}", exc_info=True)
+        return fallback_response(f"Internal error: {type(e).__name__}")
+
+
+@app.post("/ai/mode")
+async def set_ai_mode(
+    mode: str = Body(..., embed=True),
+    authorization: Optional[str] = Header(None),
+):
+    """
+    Set AI system mode.
+
+    Modes: ANALYSIS, MANUAL_TRADE, AUTO, SAFE, EMERGENCY
+    Only Master auth can change mode.
+    """
+    from app.services.auth_service import get_auth_service
+
+    # Require master auth for mode changes
+    if authorization:
+        token = authorization.replace("Bearer ", "")
+        auth_service = get_auth_service()
+        session = auth_service.validate_request(token)
+        if not session or not auth_service.is_master(session):
+            raise HTTPException(status_code=403, detail="Only Master can change AI mode")
+    else:
+        raise HTTPException(status_code=401, detail="Authorization required")
+
+    engine = get_ai_decision_engine()
+    ok, message = engine.set_mode(mode.upper())
+
+    if not ok:
+        raise HTTPException(status_code=400, detail=message)
+
+    return {"status": "MODE_CHANGED", "mode": engine.get_mode(), "message": message}
+
+
+@app.get("/ai/mode")
+async def get_ai_mode():
+    """Get current AI system mode."""
+    engine = get_ai_decision_engine()
+    return {"mode": engine.get_mode()}
+
+
+@app.get("/ai/audit")
+async def get_ai_audit(n: int = 20):
+    """Get recent AI audit trail entries."""
+    audit = get_ai_audit_logger()
+    return {"entries": audit.get_recent(n), "stats": audit.get_stats()}
+
+
+@app.get("/ai/audit/stats")
+async def get_ai_audit_stats():
+    """Get AI audit statistics summary."""
+    audit = get_ai_audit_logger()
+    return audit.get_stats()
 
 
 # =============================================================================
