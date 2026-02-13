@@ -16,6 +16,7 @@ import ccxt
 import logging
 import sys
 import asyncio
+import threading
 from typing import Dict, Any, Optional, List, Tuple
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -102,53 +103,61 @@ class ExecutionConfig:
 class OrderTracker:
     """
     Tracks all orders for reconciliation and audit.
+    Thread-safe: all mutations protected by a lock.
     """
-    
+
     def __init__(self):
         self._orders: Dict[str, OrderResult] = {}
         self._pending_orders: List[str] = []
-    
+        self._lock = threading.Lock()
+
     def record_order(self, order: OrderResult):
-        """Record an order."""
-        self._orders[order.order_id] = order
-        if order.status == OrderStatus.PENDING:
-            self._pending_orders.append(order.order_id)
+        """Record an order (thread-safe)."""
+        with self._lock:
+            self._orders[order.order_id] = order
+            if order.status == OrderStatus.PENDING:
+                self._pending_orders.append(order.order_id)
         logger.info(f"Order recorded: {order.order_id} - {order.side} {order.quantity} {order.symbol}")
-    
+
     def update_order(self, order_id: str, updates: Dict[str, Any]):
-        """Update an existing order."""
-        if order_id in self._orders:
-            order = self._orders[order_id]
-            for key, value in updates.items():
-                if hasattr(order, key):
-                    setattr(order, key, value)
-            
-            # Remove from pending if filled/failed
-            if order.status in [OrderStatus.FILLED, OrderStatus.FAILED, OrderStatus.CANCELLED]:
-                if order_id in self._pending_orders:
-                    self._pending_orders.remove(order_id)
-    
+        """Update an existing order (thread-safe)."""
+        with self._lock:
+            if order_id in self._orders:
+                order = self._orders[order_id]
+                for key, value in updates.items():
+                    if hasattr(order, key):
+                        setattr(order, key, value)
+
+                # Remove from pending if filled/failed
+                if order.status in [OrderStatus.FILLED, OrderStatus.FAILED, OrderStatus.CANCELLED]:
+                    if order_id in self._pending_orders:
+                        self._pending_orders.remove(order_id)
+
     def get_order(self, order_id: str) -> Optional[OrderResult]:
-        """Get order by ID."""
-        return self._orders.get(order_id)
-    
+        """Get order by ID (thread-safe)."""
+        with self._lock:
+            return self._orders.get(order_id)
+
     def get_pending_orders(self) -> List[OrderResult]:
-        """Get all pending orders."""
-        return [self._orders[oid] for oid in self._pending_orders if oid in self._orders]
-    
+        """Get all pending orders (thread-safe)."""
+        with self._lock:
+            return [self._orders[oid] for oid in self._pending_orders if oid in self._orders]
+
     def get_orders_by_symbol(self, symbol: str) -> List[OrderResult]:
-        """Get all orders for a symbol."""
-        return [o for o in self._orders.values() if o.symbol == symbol]
-    
+        """Get all orders for a symbol (thread-safe)."""
+        with self._lock:
+            return [o for o in self._orders.values() if o.symbol == symbol]
+
     def calculate_total_slippage(self) -> float:
-        """Calculate total slippage across all filled orders."""
-        total = 0.0
-        count = 0
-        for order in self._orders.values():
-            if order.status == OrderStatus.FILLED and order.slippage is not None:
-                total += order.slippage
-                count += 1
-        return total / count if count > 0 else 0.0
+        """Calculate total slippage across all filled orders (thread-safe)."""
+        with self._lock:
+            total = 0.0
+            count = 0
+            for order in self._orders.values():
+                if order.status == OrderStatus.FILLED and order.slippage is not None:
+                    total += order.slippage
+                    count += 1
+            return total / count if count > 0 else 0.0
 
 
 # Global tracker

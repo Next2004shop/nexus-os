@@ -40,6 +40,8 @@ from app.services.agent_council import get_council, require_quorum, Vote
 from app.services.model_ensemble import get_ensemble, ensemble_predict
 from app.services.stealth_mode import get_stealth_mode
 from app.services.sovereign_pipeline import execute_sovereign_pipeline
+from app.services.watchdog import get_watchdog
+from app.services.env_validator import validate_environment
 
 # Configure central logging
 logging.basicConfig(
@@ -51,8 +53,24 @@ logger = logging.getLogger("nexus.nervous_system")
 app = FastAPI(
     title="NEXUS SOVEREIGN SYSTEM",
     description="Private Trading System - Ancient Laws × Axelrod Discipline × Multi-Agent Council",
-    version="3.0.0"  # Version bump for council integration
+    version="3.1.0"  # Phase 2: execution hardening
 )
+
+
+# =============================================================================
+# GLOBAL ERROR HANDLER
+# =============================================================================
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """Catch-all handler — prevents process crash on unhandled errors."""
+    logger.error(
+        f"UNHANDLED_EXCEPTION: {request.method} {request.url.path} — {exc}",
+        exc_info=True,
+    )
+    return JSONResponse(
+        status_code=500,
+        content={"status": "INTERNAL_ERROR", "detail": "An unexpected error occurred"},
+    )
 
 
 # =============================================================================
@@ -69,7 +87,16 @@ async def startup_event():
     logger.info("Execution: Dual-Path (MT5 + Binance)")
     logger.info("Security: Stealth Mode Active")
     logger.info("=" * 60)
-    
+
+    # Phase 2: Environment validation
+    env_ok, env_issues = validate_environment()
+    if not env_ok:
+        logger.critical("ENV_VALIDATION_FAILED — starting in SAFE mode (no live trading)")
+        watchdog = get_watchdog()
+        watchdog.enter_safe_mode("Environment validation failed on startup")
+    else:
+        logger.info("ENV_VALIDATION_PASSED")
+
     # Start the Heartbeat Scheduler
     scheduler.start_scheduler()
     
@@ -225,6 +252,12 @@ async def system_status():
 async def get_risk_status():
     """Get current risk status for frontend display."""
     return risk_governor.get_risk_status()
+
+
+@app.get("/watchdog")
+async def watchdog_status():
+    """Get watchdog system state (mode, failures, desync, broker)."""
+    return get_watchdog().get_state().to_dict()
 
 
 # =============================================================================

@@ -8,6 +8,9 @@ from .vault import get_secret
 from .ancient_logic import check_cycle
 from .sovereign_pipeline import execute_sovereign_pipeline
 from .scheduler import start_scheduler
+from .execution_lock import get_execution_lock, ExecutionLock
+from .watchdog import get_watchdog, Watchdog, SystemMode
+from .env_validator import validate_environment
 
 __all__ = [
     "StrategyOrchestrator",
@@ -34,5 +37,11 @@ __all__ = [
     "get_secret",
     "check_cycle",
     "execute_sovereign_pipeline",
-    "start_scheduler"
+    "start_scheduler",
+    "get_execution_lock",
+    "ExecutionLock",
+    "get_watchdog",
+    "Watchdog",
+    "SystemMode",
+    "validate_environment",
 ]

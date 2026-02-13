@@ -16,6 +16,8 @@ Based on Axelrod's game theory principles:
 
 import logging
 import asyncio
+import math
+import threading
 from typing import Dict, Any, Tuple, Optional, List
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -147,18 +149,21 @@ class FirestoreStateManager:
         return False
 
 
-# Global state manager
+# Global state manager with threading lock
 _state_manager = FirestoreStateManager()
+_state_lock = threading.Lock()
 
 
 def _get_state() -> RiskState:
-    """Get current risk state."""
-    return _state_manager.load_state()
+    """Get current risk state (thread-safe)."""
+    with _state_lock:
+        return _state_manager.load_state()
 
 
 def _save_state(state: RiskState):
-    """Save risk state."""
-    _state_manager.save_state(state)
+    """Save risk state (thread-safe)."""
+    with _state_lock:
+        _state_manager.save_state(state)
 
 
 # =============================================================================
@@ -295,8 +300,19 @@ def validate_trade(
     Returns:
         (is_allowed, reason_message)
     """
+    # ── 0. Input validation ──────────────────────────────────────
+    if not symbol or not isinstance(symbol, str):
+        return False, "INVALID_SYMBOL"
+    if not isinstance(quantity, (int, float)) or math.isnan(quantity) or math.isinf(quantity) or quantity <= 0:
+        return False, f"INVALID_QUANTITY: {quantity}"
+    if not isinstance(price, (int, float)) or math.isnan(price) or math.isinf(price) or price <= 0:
+        return False, f"INVALID_PRICE: {price}"
+    if not isinstance(strategy_confidence, (int, float)) or math.isnan(strategy_confidence):
+        return False, f"INVALID_CONFIDENCE: {strategy_confidence}"
+    strategy_confidence = max(0.0, min(1.0, strategy_confidence))
+
     state = _get_state()
-    
+
     # 1. Trading Enabled Check
     if not state.trading_enabled:
         return False, "TRADING_DISABLED_BY_GOVERNOR"
