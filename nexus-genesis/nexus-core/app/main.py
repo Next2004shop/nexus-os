@@ -48,6 +48,17 @@ from app.services.ai_decision_layer import (
 )
 from app.services.ai_audit_logger import get_ai_audit_logger
 
+# Phase 4 imports
+from app.services.broker_validator import validate_broker_connection, get_frequency_guard
+from app.services.capital_protection import (
+    get_daily_tracker, get_floating_guard, get_equity_monitor, get_black_swan,
+)
+from app.services.heartbeat_monitor import (
+    get_heartbeat, get_watchdog_thread, get_graceful_shutdown,
+    install_crash_handler,
+)
+from app.services.telegram_reporter import get_telegram_reporter
+
 # Configure central logging
 logging.basicConfig(
     level=logging.INFO,
@@ -58,7 +69,7 @@ logger = logging.getLogger("nexus.nervous_system")
 app = FastAPI(
     title="NEXUS SOVEREIGN SYSTEM",
     description="Private Trading System - Ancient Laws × Axelrod Discipline × Multi-Agent Council",
-    version="3.2.0"  # Phase 3: AI decision hardening
+    version="4.0.0"  # Phase 4: live deployment safety
 )
 
 
@@ -93,6 +104,9 @@ async def startup_event():
     logger.info("Security: Stealth Mode Active")
     logger.info("=" * 60)
 
+    # Phase 4: Install crash handler
+    install_crash_handler()
+
     # Phase 2: Environment validation
     env_ok, env_issues = validate_environment()
     if not env_ok:
@@ -102,21 +116,48 @@ async def startup_event():
     else:
         logger.info("ENV_VALIDATION_PASSED")
 
+    # Phase 4: Broker connection validation
+    broker_ok, broker_issues, broker_info = validate_broker_connection()
+    if not broker_ok and broker_issues and "MT5_NOT_AVAILABLE" not in broker_issues[0]:
+        logger.critical(f"BROKER_VALIDATION_FAILED: {broker_issues}")
+        watchdog = get_watchdog()
+        watchdog.enter_safe_mode(f"Broker validation failed: {'; '.join(broker_issues)}")
+        # Send Telegram emergency alert
+        try:
+            reporter = get_telegram_reporter()
+            asyncio.create_task(reporter.send_emergency_alert(
+                "BROKER_VALIDATION_FAILED", "; ".join(broker_issues)
+            ))
+        except Exception:
+            pass
+    else:
+        logger.info(f"BROKER_VALIDATION: {broker_info.broker_name or 'mock/paper'} "
+                     f"({broker_info.account_type or 'N/A'})")
+
+    # Phase 4: Initialize capital protection
+    daily_tracker = get_daily_tracker()
+    try:
+        risk_status = risk_governor.get_risk_status()
+        daily_tracker.initialize(risk_status["equity"]["current"])
+    except Exception:
+        daily_tracker.initialize(10000.0)
+    logger.info("Capital protection initialized (daily cap, floating DD, equity monitor, black swan)")
+
     # Start the Heartbeat Scheduler
     scheduler.start_scheduler()
-    
+
     # Initialize circuit breaker manager
     cb_manager = circuit_breaker.get_manager()
     cb_manager.connectivity.heartbeat("nexus_core")
-    
+
     # Initialize Multi-Agent Council
     council = get_council()
     logger.info(f"Agent Council initialized with {len(council.agents)} agents")
-    
+
     # Initialize Model Ensemble
     ensemble = get_ensemble()
     logger.info(f"Model Ensemble initialized with {len(ensemble.models)} models")
-    
+
     # Initialize Stealth Mode
     stealth = get_stealth_mode()
     logger.info(f"Stealth Mode: {stealth.get_status()}")
@@ -124,17 +165,35 @@ async def startup_event():
     # Initialize Live Data and register WebSocket callback
     manager = await initialize_live_data()
     ws_hub = get_ws_manager()
-    
+
     async def ws_tick_callback(tick):
         await ws_hub.broadcast_tick(tick.to_frontend())
-    
+
     manager.callbacks.append(ws_tick_callback)
     logger.info("Live Data WebSocket callback registered")
 
     # Start system status broadcaster
     asyncio.create_task(status_broadcaster())
-    
-    logger.info("NEXUS SOVEREIGN SYSTEM ONLINE")
+
+    # Phase 4: Start heartbeat logger + watchdog thread
+    heartbeat = get_heartbeat()
+    heartbeat.start()
+    watchdog_thread = get_watchdog_thread()
+    watchdog_thread.start()
+
+    # Phase 4: Start Telegram daily summary scheduler
+    telegram = get_telegram_reporter()
+    telegram.start_daily_summary_scheduler()
+
+    # Phase 4: Install graceful shutdown handler
+    shutdown_handler = get_graceful_shutdown()
+    shutdown_handler.register_callback(lambda: heartbeat.stop())
+    shutdown_handler.register_callback(lambda: watchdog_thread.stop())
+    shutdown_handler.register_callback(lambda: telegram.stop())
+    shutdown_handler.register_callback(lambda: logger.critical("NEXUS STATE SAVED — SHUTDOWN COMPLETE"))
+    shutdown_handler.install_signal_handlers()
+
+    logger.info("NEXUS SOVEREIGN SYSTEM ONLINE (v4.0.0 — Live Deployment Safety)")
 
 
 async def status_broadcaster():
@@ -151,18 +210,33 @@ async def status_broadcaster():
 
 @app.on_event("shutdown")
 async def shutdown_event():
-    """Cleanup on shutdown."""
-    logger.info("NEXUS CORE SHUTTING DOWN...")
-    
+    """Graceful cleanup on shutdown."""
+    logger.critical("NEXUS CORE SHUTTING DOWN...")
+
+    # Phase 4: Notify Telegram
+    try:
+        reporter = get_telegram_reporter()
+        await reporter.send_emergency_alert("SYSTEM_SHUTDOWN", "Nexus is shutting down gracefully")
+    except Exception:
+        pass
+
+    # Phase 4: Stop background threads
+    try:
+        get_heartbeat().stop()
+        get_watchdog_thread().stop()
+        get_telegram_reporter().stop()
+    except Exception:
+        pass
+
     # Cleanup market data connections
     provider = market_data.get_provider()
     await provider.close()
-    
+
     # Shutdown execution engine
     engine = execution.get_engine()
     engine.shutdown()
-    
-    logger.info("NEXUS CORE OFFLINE")
+
+    logger.critical("NEXUS CORE OFFLINE")
 
 
 # =============================================================================
@@ -263,6 +337,51 @@ async def get_risk_status():
 async def watchdog_status():
     """Get watchdog system state (mode, failures, desync, broker)."""
     return get_watchdog().get_state().to_dict()
+
+
+# =============================================================================
+# CAPITAL PROTECTION ENDPOINTS (Phase 4)
+# =============================================================================
+@app.get("/capital/daily")
+async def capital_daily_status():
+    """Get daily P&L and loss cap status."""
+    return get_daily_tracker().get_daily_summary()
+
+
+@app.get("/capital/floating")
+async def capital_floating_dd():
+    """Get floating drawdown status."""
+    guard = get_floating_guard()
+    blocked, reason = guard.should_block_new_trades()
+    return {"blocked": blocked, "reason": reason}
+
+
+@app.get("/capital/equity-curve")
+async def capital_equity_curve():
+    """Get equity curve monitor status and risk multiplier."""
+    return get_equity_monitor().get_status()
+
+
+@app.get("/capital/black-swan")
+async def capital_black_swan():
+    """Get black swan detector status."""
+    return get_black_swan().get_status()
+
+
+@app.get("/capital/frequency")
+async def capital_frequency():
+    """Get trade frequency guard stats."""
+    return get_frequency_guard().get_stats()
+
+
+@app.get("/heartbeat")
+async def heartbeat_status():
+    """Get heartbeat logger and watchdog thread status."""
+    return {
+        "heartbeat": get_heartbeat().get_status(),
+        "watchdog_thread": get_watchdog_thread().get_status(),
+        "telegram": get_telegram_reporter().get_status(),
+    }
 
 
 # =============================================================================

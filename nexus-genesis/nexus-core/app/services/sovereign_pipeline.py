@@ -1,27 +1,15 @@
 """
-NEXUS Sovereign Pipeline - Shared 6-Stage Execution Gate
-=========================================================
+NEXUS Sovereign Pipeline - Shared Execution Gate
+==================================================
 
-Extracted from /trade endpoint to enforce the same safety gates
-for ALL trade paths: HTTP API, scheduler heartbeat, and future
-Telegram commands.
+ALL trade paths (HTTP API, scheduler, AI decision layer, Telegram)
+flow through this single gate.
 
 IMMUTABLE LAW: No trade without council quorum (3/5 agents agree).
 
-Stages:
-1. Stealth Mode check (system operational?)
-2. Multi-Agent Council deliberation (QUORUM REQUIRED)
-3. Model Ensemble prediction validation
-4. Ancient Logic cycle check
-5. Risk Governor validation
-6. Circuit Breaker check + Execution via dual-path engine
-
-Hardening (Phase 2):
-- Pipeline-wide timeout (PIPELINE_TIMEOUT_SECS)
-- Input validation before entering pipeline
-- Per-symbol execution lock (prevents duplicate trades)
-- Watchdog integration (execution tracking + failure counting)
-- Re-validation guard between risk check and execution
+Phase 2 — execution hardening (timeout, locks, watchdog)
+Phase 4 — capital protection (spread, margin, frequency, daily cap,
+          floating DD, black swan, slippage, Telegram)
 """
 
 import asyncio
@@ -35,6 +23,16 @@ from app.services.model_ensemble import get_ensemble
 from app.services.stealth_mode import get_stealth_mode
 from app.services.execution_lock import get_execution_lock
 from app.services.watchdog import get_watchdog
+
+# Phase 4 imports
+from app.services.broker_validator import (
+    check_spread, check_slippage, check_margin,
+    estimate_required_margin, get_frequency_guard,
+)
+from app.services.capital_protection import (
+    get_daily_tracker, get_floating_guard, get_equity_monitor,
+    get_black_swan, auto_adjust_lots, MAX_LOT_LIMIT,
+)
 
 logger = logging.getLogger("nexus.sovereign_pipeline")
 
@@ -78,21 +76,19 @@ async def execute_sovereign_pipeline(
     market_context: Dict[str, Any],
 ) -> Dict[str, Any]:
     """
-    The Sovereign Execution Flow: Stealth -> Council -> Ensemble -> AncientLogic -> Governor -> CircuitBreaker -> Execute.
+    The Sovereign Execution Flow.
 
-    Args:
-        symbol: Trading symbol (e.g. "BTCUSD")
-        side: "BUY" or "SELL"
-        quantity: Base position size (will be adjusted by council + ensemble)
-        market_context: Dict with ohlcv, regime, momentum, volatility, bid, ask,
-                        price, cycle, signal, atr_data, anomaly
+    Pre-flight:
+      Input validation → Watchdog → Daily loss cap → Floating DD →
+      Black swan → Trade frequency → Execution lock
 
-    Returns:
-        Dict with 'status' key -- one of:
-            EXECUTED, REJECTED_SYSTEM_PURGE, REJECTED_BY_COUNCIL,
-            REJECTED_BY_ENSEMBLE, REJECTED_BY_GOVERNOR,
-            REJECTED_BY_CIRCUIT_BREAKER, FAILED, REJECTED_INPUT,
-            REJECTED_WATCHDOG, REJECTED_LOCK, TIMEOUT
+    Pipeline:
+      Stealth → Council → Ensemble → Ancient Logic →
+      Risk Governor → Spread filter → Margin check →
+      Circuit Breaker → Re-validate → Execute → Slippage check
+
+    Post-execution:
+      Telegram notification → Audit logging
     """
     # ── PRE-FLIGHT: Input validation ──────────────────────────────
     input_err = _validate_inputs(symbol, side, quantity, market_context)
@@ -108,6 +104,32 @@ async def execute_sovereign_pipeline(
         mode = watchdog.get_mode().value
         logger.warning(f"PIPELINE_BLOCKED_BY_WATCHDOG: system mode={mode}")
         return {"status": "REJECTED_WATCHDOG", "reason": f"System mode is {mode}", "stage": "WATCHDOG"}
+
+    # ── PRE-FLIGHT: Daily loss cap ────────────────────────────────
+    daily_tracker = get_daily_tracker()
+    if daily_tracker.is_cap_hit():
+        logger.warning("PIPELINE_BLOCKED: daily loss cap already hit")
+        return {"status": "REJECTED_DAILY_CAP", "reason": "Daily loss cap hit — no new trades", "stage": "DAILY_CAP"}
+
+    # ── PRE-FLIGHT: Floating drawdown ─────────────────────────────
+    floating_guard = get_floating_guard()
+    blocked, float_reason = floating_guard.should_block_new_trades()
+    if blocked:
+        logger.warning(f"PIPELINE_BLOCKED: {float_reason}")
+        return {"status": "REJECTED_FLOATING_DD", "reason": float_reason, "stage": "FLOATING_DD"}
+
+    # ── PRE-FLIGHT: Black swan ────────────────────────────────────
+    black_swan = get_black_swan()
+    if black_swan.is_triggered():
+        logger.warning("PIPELINE_BLOCKED: black swan event active")
+        return {"status": "REJECTED_BLACK_SWAN", "reason": "Black swan event detected — system paused", "stage": "BLACK_SWAN"}
+
+    # ── PRE-FLIGHT: Trade frequency ───────────────────────────────
+    freq_guard = get_frequency_guard()
+    freq_ok, freq_reason = freq_guard.check(symbol)
+    if not freq_ok:
+        logger.warning(f"PIPELINE_RATE_LIMITED: {freq_reason}")
+        return {"status": "REJECTED_FREQUENCY", "reason": freq_reason, "stage": "TRADE_FREQUENCY"}
 
     # ── PRE-FLIGHT: Execution lock ────────────────────────────────
     elock = get_execution_lock()
@@ -125,6 +147,11 @@ async def execute_sovereign_pipeline(
             timeout=PIPELINE_TIMEOUT_SECS,
         )
         trade_executed = result.get("status") == "EXECUTED"
+
+        # Record trade in frequency guard if executed
+        if trade_executed:
+            freq_guard.record_trade(symbol)
+
         return result
     except asyncio.TimeoutError:
         logger.error(f"PIPELINE_TIMEOUT: {symbol} exceeded {PIPELINE_TIMEOUT_SECS}s")
@@ -226,6 +253,16 @@ async def _run_pipeline(
     # Further adjust quantity based on ensemble agreement
     adjusted_quantity *= ensemble_decision.position_modifier
 
+    # ── STEP 2b: EQUITY CURVE RISK ADJUSTMENT (Phase 4) ──────────
+    equity_monitor = get_equity_monitor()
+    risk_multiplier = equity_monitor.get_risk_multiplier()
+    if risk_multiplier < 1.0:
+        adjusted_quantity = auto_adjust_lots(0, adjusted_quantity, risk_multiplier)
+        logger.info(f"Equity curve risk adjustment: multiplier={risk_multiplier:.2f}, qty={adjusted_quantity}")
+
+    # Cap at absolute lot limit
+    adjusted_quantity = min(adjusted_quantity, MAX_LOT_LIMIT)
+
     # ── STEP 3: ANCIENT LOGIC OVERRIDE ───────────────────────────
     market_context["signal"] = side
     cycle_ok, cycle_msg = ancient_logic.check_cycle(market_context)
@@ -255,6 +292,38 @@ async def _run_pipeline(
             "stage": "RISK_GOVERNOR",
         }
 
+    # ── STEP 4b: SPREAD FILTER (Phase 4) ─────────────────────────
+    bid = market_context.get("bid", 0.0)
+    ask = market_context.get("ask", 0.0)
+    atr_val = atr_data.get("current_atr") if atr_data else None
+
+    if bid > 0 and ask > 0:
+        spread_ok, spread_reason = check_spread(bid, ask, price, atr_val)
+        if not spread_ok:
+            logger.warning(f"REJECTED BY SPREAD FILTER: {spread_reason}")
+            watchdog.execution_finished(symbol, success=False)
+            return {
+                "status": "REJECTED_SPREAD",
+                "reason": spread_reason,
+                "stage": "SPREAD_FILTER",
+            }
+
+    # ── STEP 4c: MARGIN CHECK (Phase 4) ──────────────────────────
+    risk_state = risk_governor._get_state()
+    leverage = int(market_context.get("leverage", 100))
+    if price > 0 and risk_state.current_equity > 0:
+        req_margin = estimate_required_margin(symbol, adjusted_quantity, price, leverage)
+        free_margin = risk_state.current_equity * 0.8  # conservative estimate
+        margin_ok, margin_reason = check_margin(free_margin, req_margin)
+        if not margin_ok:
+            logger.warning(f"REJECTED BY MARGIN CHECK: {margin_reason}")
+            watchdog.execution_finished(symbol, success=False)
+            return {
+                "status": "REJECTED_MARGIN",
+                "reason": margin_reason,
+                "stage": "MARGIN_CHECK",
+            }
+
     # ── STEP 5: CIRCUIT BREAKER CHECK ────────────────────────────
     cb_manager = circuit_breaker.get_manager()
     trading_allowed, cb_reason = cb_manager.is_trading_allowed()
@@ -268,7 +337,6 @@ async def _run_pipeline(
         }
 
     # ── STEP 5b: RE-VALIDATE trading_enabled right before execution ──
-    # Guards against state change between step 4 and step 6.
     final_state = risk_governor._get_state()
     if not final_state.trading_enabled:
         logger.warning("REJECTED: trading_enabled flipped between validation and execution")
@@ -293,6 +361,36 @@ async def _run_pipeline(
             "error": result.error,
             "stage": "EXECUTION",
         }
+
+    # ── STEP 6b: POST-EXECUTION SLIPPAGE CHECK (Phase 4) ─────────
+    if result.slippage is not None and result.requested_price and result.filled_price:
+        from app.services.broker_validator import check_slippage
+        slip_ok, slip_pct, slip_reason = check_slippage(result.requested_price, result.filled_price)
+        if not slip_ok:
+            logger.warning(f"SLIPPAGE_ALERT: {slip_reason} — trade executed but flagged")
+            # Trade already executed — log alert, don't reject
+            stealth.log_event("SLIPPAGE_ALERT", {
+                "symbol": symbol, "slippage_pct": slip_pct, "reason": slip_reason,
+            }, sensitivity="HIGH")
+
+    # ── STEP 7: POST-EXECUTION NOTIFICATIONS (Phase 4) ───────────
+    # Telegram trade open notification (fire-and-forget)
+    try:
+        from app.services.telegram_reporter import get_telegram_reporter
+        reporter = get_telegram_reporter()
+        if reporter.is_enabled:
+            asyncio.create_task(reporter.notify_trade_open(
+                symbol=symbol,
+                side=side,
+                lot_size=adjusted_quantity,
+                entry_price=result.filled_price or price,
+                stop_loss=market_context.get("stop_loss"),
+                take_profit=market_context.get("take_profit"),
+                risk_pct=market_context.get("risk_pct", 1.0),
+                confidence=confidence,
+            ))
+    except Exception as e:
+        logger.error(f"Telegram notification error: {e}")
 
     # Log successful execution
     stealth.log_event("TRADE_EXECUTED", {

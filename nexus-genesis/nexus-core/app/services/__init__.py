@@ -14,6 +14,10 @@ from .env_validator import validate_environment
 from .ai_intent_schema import TradingIntent, validate_intent_json, IntentType, ConfidenceGate
 from .ai_audit_logger import get_ai_audit_logger, AIAuditLogger
 from .ai_decision_layer import get_ai_decision_engine, AIDecisionEngine, AISystemMode
+from .broker_validator import validate_broker_connection, get_frequency_guard
+from .capital_protection import get_daily_tracker, get_black_swan, get_equity_monitor
+from .heartbeat_monitor import get_heartbeat, get_watchdog_thread, get_graceful_shutdown
+from .telegram_reporter import get_telegram_reporter
 
 __all__ = [
     "StrategyOrchestrator",
@@ -56,4 +60,13 @@ __all__ = [
     "get_ai_decision_engine",
     "AIDecisionEngine",
     "AISystemMode",
+    "validate_broker_connection",
+    "get_frequency_guard",
+    "get_daily_tracker",
+    "get_black_swan",
+    "get_equity_monitor",
+    "get_heartbeat",
+    "get_watchdog_thread",
+    "get_graceful_shutdown",
+    "get_telegram_reporter",
 ]
