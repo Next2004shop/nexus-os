@@ -59,6 +59,19 @@ from app.services.heartbeat_monitor import (
 )
 from app.services.telegram_reporter import get_telegram_reporter
 
+# Phase 5 imports
+from app.services.market_regime import get_regime_store
+from app.services.confluence_engine import (
+    analyze_timeframe, calculate_confluence, TimeframeRole,
+    get_confluence_context_for_ai,
+)
+from app.services.news_awareness import get_news_calendar
+from app.services.performance_memory import get_performance_memory
+from app.services.self_audit import get_self_audit
+from app.services.intelligence_context import (
+    build_intelligence_context, build_full_ai_prompt,
+)
+
 # Configure central logging
 logging.basicConfig(
     level=logging.INFO,
@@ -69,7 +82,7 @@ logger = logging.getLogger("nexus.nervous_system")
 app = FastAPI(
     title="NEXUS SOVEREIGN SYSTEM",
     description="Private Trading System - Ancient Laws × Axelrod Discipline × Multi-Agent Council",
-    version="4.0.0"  # Phase 4: live deployment safety
+    version="5.0.0"  # Phase 5: intelligence edge
 )
 
 
@@ -193,7 +206,10 @@ async def startup_event():
     shutdown_handler.register_callback(lambda: logger.critical("NEXUS STATE SAVED — SHUTDOWN COMPLETE"))
     shutdown_handler.install_signal_handlers()
 
-    logger.info("NEXUS SOVEREIGN SYSTEM ONLINE (v4.0.0 — Live Deployment Safety)")
+    # Phase 5: Log intelligence layer status
+    logger.info("Intelligence modules loaded: regime, confluence, news, memory, self-audit")
+
+    logger.info("NEXUS SOVEREIGN SYSTEM ONLINE (v5.0.0 — Intelligence Edge)")
 
 
 async def status_broadcaster():
@@ -382,6 +398,91 @@ async def heartbeat_status():
         "watchdog_thread": get_watchdog_thread().get_status(),
         "telegram": get_telegram_reporter().get_status(),
     }
+
+
+# =============================================================================
+# INTELLIGENCE ENDPOINTS (Phase 5)
+# =============================================================================
+@app.get("/intelligence/regimes")
+async def intelligence_regimes():
+    """Get all current market regime classifications."""
+    return get_regime_store().get_all()
+
+
+@app.get("/intelligence/regime/{symbol}")
+async def intelligence_regime_symbol(symbol: str):
+    """Get regime classification for a specific symbol."""
+    store = get_regime_store()
+    state = store.get(symbol.upper())
+    if state is None:
+        return {"symbol": symbol, "regime": "UNKNOWN", "message": "No regime classified"}
+    return state.to_dict()
+
+
+@app.get("/intelligence/news")
+async def intelligence_news():
+    """Get all scheduled economic events."""
+    return {"events": get_news_calendar().get_all_events_dict()}
+
+
+@app.get("/intelligence/news/{symbol}")
+async def intelligence_news_symbol(symbol: str):
+    """Check news blackout status for a symbol."""
+    cal = get_news_calendar()
+    in_blackout, event = cal.is_in_blackout_window(symbol.upper())
+    return {
+        "symbol": symbol.upper(),
+        "in_blackout": in_blackout,
+        "event": event.to_dict() if event else None,
+        "context": cal.get_news_context_for_ai(symbol.upper()),
+    }
+
+
+@app.get("/intelligence/performance")
+async def intelligence_performance():
+    """Get all asset performance profiles."""
+    return get_performance_memory().get_all_profiles()
+
+
+@app.get("/intelligence/performance/{symbol}")
+async def intelligence_performance_symbol(symbol: str):
+    """Get performance profile for a specific asset."""
+    profile = get_performance_memory().get_profile(symbol.upper())
+    if profile is None:
+        return {"symbol": symbol, "message": "No performance data"}
+    return profile.to_dict()
+
+
+@app.get("/intelligence/context/{symbol}")
+async def intelligence_context(symbol: str):
+    """Get full intelligence context for a symbol (as AI would see it)."""
+    return {"symbol": symbol.upper(), "context": build_intelligence_context(symbol.upper())}
+
+
+@app.get("/intelligence/audit")
+async def intelligence_audit():
+    """Get recent trade audits."""
+    return {"audits": get_self_audit().get_recent_audits()}
+
+
+@app.get("/intelligence/review/daily")
+async def intelligence_daily_review():
+    """Get or generate daily review."""
+    audit = get_self_audit()
+    review = audit.get_latest_daily_review()
+    if review is None:
+        review = audit.generate_daily_review().to_dict()
+    return review
+
+
+@app.get("/intelligence/review/weekly")
+async def intelligence_weekly_review():
+    """Get or generate weekly report."""
+    audit = get_self_audit()
+    report = audit.get_latest_weekly_report()
+    if report is None:
+        report = audit.generate_weekly_report().to_dict()
+    return report
 
 
 # =============================================================================

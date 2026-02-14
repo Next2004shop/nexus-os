@@ -39,6 +39,7 @@ from app.services.ai_intent_schema import (
     validate_intent_json,
 )
 from app.services.ai_audit_logger import get_ai_audit_logger
+from app.services.intelligence_context import build_trade_analysis_context
 
 logger = logging.getLogger("nexus.ai_decision")
 
@@ -471,6 +472,9 @@ class AIDecisionEngine:
         side = intent.direction.value.upper()  # "BUY" or "SELL"
         quantity = intent.lot_size if intent.lot_size else 0.01  # minimum default
 
+        # Phase 5: Enrich market context with intelligence data
+        intel_ctx = build_trade_analysis_context(intent.asset, side)
+
         market_context = {
             "ai_confidence": intent.confidence_score,
             "ai_risk_level": intent.risk_level.value,
@@ -478,6 +482,11 @@ class AIDecisionEngine:
             "stop_loss": intent.stop_loss,
             "take_profit": intent.take_profit,
             "source": "ai_decision_layer",
+            # Phase 5 intelligence enrichment
+            "regime": intel_ctx.get("regime"),
+            "news_blackout": intel_ctx.get("news_blackout", False),
+            "confidence_adjustment": intel_ctx.get("confidence_adjustment", 1.0),
+            "frequency_hint": intel_ctx.get("frequency_hint", "NORMAL"),
         }
 
         try:

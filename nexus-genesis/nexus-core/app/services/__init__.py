@@ -18,6 +18,12 @@ from .broker_validator import validate_broker_connection, get_frequency_guard
 from .capital_protection import get_daily_tracker, get_black_swan, get_equity_monitor
 from .heartbeat_monitor import get_heartbeat, get_watchdog_thread, get_graceful_shutdown
 from .telegram_reporter import get_telegram_reporter
+from .market_regime import get_regime_store, classify_regime, Regime
+from .confluence_engine import calculate_confluence, analyze_timeframe
+from .news_awareness import get_news_calendar
+from .performance_memory import get_performance_memory
+from .self_audit import get_self_audit
+from .intelligence_context import build_intelligence_context
 
 __all__ = [
     "StrategyOrchestrator",
@@ -69,4 +75,13 @@ __all__ = [
     "get_watchdog_thread",
     "get_graceful_shutdown",
     "get_telegram_reporter",
+    "get_regime_store",
+    "classify_regime",
+    "Regime",
+    "calculate_confluence",
+    "analyze_timeframe",
+    "get_news_calendar",
+    "get_performance_memory",
+    "get_self_audit",
+    "build_intelligence_context",
 ]

@@ -34,6 +34,10 @@ from app.services.capital_protection import (
     get_black_swan, auto_adjust_lots, MAX_LOT_LIMIT,
 )
 
+# Phase 5 imports
+from app.services.news_awareness import get_news_calendar
+from app.services.market_regime import get_regime_store, Regime
+
 logger = logging.getLogger("nexus.sovereign_pipeline")
 
 # Maximum time the entire pipeline may run before being aborted
@@ -123,6 +127,20 @@ async def execute_sovereign_pipeline(
     if black_swan.is_triggered():
         logger.warning("PIPELINE_BLOCKED: black swan event active")
         return {"status": "REJECTED_BLACK_SWAN", "reason": "Black swan event detected — system paused", "stage": "BLACK_SWAN"}
+
+    # ── PRE-FLIGHT: News blackout (Phase 5) ─────────────────────
+    news_cal = get_news_calendar()
+    in_blackout, news_event = news_cal.is_in_blackout_window(symbol)
+    if in_blackout:
+        event_name = news_event.name if news_event else "unknown"
+        logger.warning(f"PIPELINE_BLOCKED: news blackout for {symbol} ({event_name})")
+        return {"status": "REJECTED_NEWS_BLACKOUT", "reason": f"News blackout: {event_name}", "stage": "NEWS_FILTER"}
+
+    # ── PRE-FLIGHT: Regime requirement (Phase 5) ──────────────────
+    regime_store = get_regime_store()
+    if not regime_store.has_regime(symbol):
+        logger.warning(f"PIPELINE_BLOCKED: no regime classified for {symbol}")
+        return {"status": "REJECTED_NO_REGIME", "reason": f"No regime data for {symbol} — classify before trading", "stage": "REGIME_CHECK"}
 
     # ── PRE-FLIGHT: Trade frequency ───────────────────────────────
     freq_guard = get_frequency_guard()
