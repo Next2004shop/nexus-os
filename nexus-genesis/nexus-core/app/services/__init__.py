@@ -31,6 +31,13 @@ from .session_intelligence import get_session_tracker, check_session_suitability
 from .trade_lifecycle import get_lifecycle_manager
 from .system_health import get_health_guard
 from .weekly_report import generate_weekly_intelligence_report, format_report_for_telegram
+from .health_monitor import get_health_monitor
+from .auto_recovery import get_auto_recovery, SubsystemType
+from .capital_guard import get_capital_guard
+from .execution_verifier import get_execution_verifier
+from .structured_logger import initialize_structured_logging
+from .fail_safe import get_fail_safe
+from .performance_metrics import get_performance_metrics_engine
 
 __all__ = [
     "StrategyOrchestrator",
@@ -101,4 +108,12 @@ __all__ = [
     "get_health_guard",
     "generate_weekly_intelligence_report",
     "format_report_for_telegram",
+    "get_health_monitor",
+    "get_auto_recovery",
+    "SubsystemType",
+    "get_capital_guard",
+    "get_execution_verifier",
+    "initialize_structured_logging",
+    "get_fail_safe",
+    "get_performance_metrics_engine",
 ]

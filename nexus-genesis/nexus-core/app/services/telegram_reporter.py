@@ -28,6 +28,7 @@ TELEGRAM_CHAT_ID = os.environ.get("NEXUS_TELEGRAM_CHAT_ID", "")
 TELEGRAM_API_URL = "https://api.telegram.org/bot{token}/sendMessage"
 DAILY_SUMMARY_HOUR = 23
 DAILY_SUMMARY_MINUTE = 59
+PERIODIC_SUMMARY_INTERVAL_HOURS = 4  # send summary every 4 hours
 
 
 # =============================================================================
@@ -49,6 +50,8 @@ class TelegramReporter:
         self._message_count = 0
         self._lock = threading.Lock()
         self._daily_summary_thread: Optional[threading.Thread] = None
+        self._periodic_thread: Optional[threading.Thread] = None
+        self._command_thread: Optional[threading.Thread] = None
         self._running = False
 
         if self._enabled:
@@ -206,10 +209,183 @@ class TelegramReporter:
         text += f"<b>Time:</b> <code>{datetime.now(timezone.utc).strftime('%H:%M:%S UTC')}</code>"
         return await self.send_message(text)
 
+    # ── Periodic Summary (every 4 hours) ────────────────────────────────
+
+    async def send_periodic_summary(self) -> bool:
+        """Send 4-hour periodic summary with key metrics."""
+        try:
+            # Gather data
+            equity = 0.0
+            daily_pnl = 0.0
+            open_positions = 0
+            risk_exposure = 0.0
+            system_mode = "UNKNOWN"
+            health_status = "UNKNOWN"
+
+            try:
+                from app.services import risk_governor
+                risk = risk_governor.get_risk_status()
+                equity = risk.get("equity", {}).get("current", 0)
+                daily_pnl = risk.get("total_pnl_pct", 0)
+                open_positions = risk.get("open_positions_count", 0)
+                risk_exposure = risk.get("drawdown", {}).get("current", 0)
+            except Exception:
+                pass
+
+            try:
+                from app.services.watchdog import get_watchdog
+                system_mode = get_watchdog().get_mode().value
+            except Exception:
+                pass
+
+            try:
+                from app.services.health_monitor import get_health_monitor
+                result = get_health_monitor().get_latest_result()
+                health_status = result.get("overall_status", "UNKNOWN") if result else "NO_DATA"
+            except Exception:
+                pass
+
+            pnl_sign = "+" if daily_pnl >= 0 else ""
+            pnl_emoji = "📈" if daily_pnl >= 0 else "📉"
+
+            text = (
+                f"<b>📊 PERIODIC REPORT</b>\n\n"
+                f"Equity: <code>${equity:,.2f}</code>\n"
+                f"Daily P/L: <code>{pnl_sign}{daily_pnl:.2f}%</code> {pnl_emoji}\n"
+                f"Open Positions: <code>{open_positions}</code>\n"
+                f"Risk Exposure: <code>{risk_exposure:.2f}%</code>\n"
+                f"System Mode: <code>{system_mode}</code>\n"
+                f"Health: <code>{health_status}</code>\n"
+                f"Time: <code>{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}</code>"
+            )
+            return await self.send_message(text)
+        except Exception as e:
+            logger.error(f"Periodic summary error: {e}")
+            return False
+
+    # ── Command Handlers (/status, /health) ───────────────────────────
+
+    def generate_status_report(self) -> str:
+        """Generate full diagnostic report for /status command."""
+        lines = ["<b>📋 NEXUS STATUS REPORT</b>\n"]
+
+        # System mode
+        try:
+            from app.services.watchdog import get_watchdog
+            mode = get_watchdog().get_mode().value
+            lines.append(f"Mode: <code>{mode}</code>")
+        except Exception:
+            lines.append("Mode: <code>UNKNOWN</code>")
+
+        # Equity and P&L
+        try:
+            from app.services import risk_governor
+            risk = risk_governor.get_risk_status()
+            eq = risk.get("equity", {})
+            lines.append(f"\n<b>Capital:</b>")
+            lines.append(f"  Equity: <code>${eq.get('current', 0):,.2f}</code>")
+            lines.append(f"  Peak: <code>${eq.get('peak', 0):,.2f}</code>")
+            lines.append(f"  Drawdown: <code>{risk.get('drawdown', {}).get('current', 0):.2f}%</code>")
+            lines.append(f"  P&L: <code>{risk.get('total_pnl_pct', 0):+.2f}%</code>")
+        except Exception:
+            pass
+
+        # Daily stats
+        try:
+            from app.services.capital_protection import get_daily_tracker
+            daily = get_daily_tracker().get_daily_summary()
+            lines.append(f"\n<b>Today:</b>")
+            lines.append(f"  Trades: <code>{daily.get('trades_today', 0)}</code>")
+            lines.append(f"  Win Rate: <code>{daily.get('win_rate', 0):.0f}%</code>")
+            lines.append(f"  P&L: <code>{daily.get('daily_pnl_pct', 0):+.2f}%</code>")
+            lines.append(f"  Cap Hit: <code>{daily.get('cap_hit', False)}</code>")
+        except Exception:
+            pass
+
+        # Open positions
+        try:
+            from app.services import risk_governor
+            state = risk_governor._get_state()
+            pos_count = len(state.open_positions)
+            lines.append(f"\n<b>Positions:</b> <code>{pos_count}</code>")
+            for sym, pos in list(state.open_positions.items())[:5]:
+                lines.append(f"  {sym}: <code>{pos.get('side', '?')} {pos.get('quantity', '?')}</code>")
+        except Exception:
+            pass
+
+        # Performance metrics
+        try:
+            from app.services.performance_metrics import get_performance_metrics_engine
+            metrics = get_performance_metrics_engine().get_metrics()
+            if metrics.get("total_trades", 0) > 0:
+                lines.append(f"\n<b>Performance:</b>")
+                lines.append(f"  Win Rate: <code>{metrics.get('win_rate_pct', 0):.1f}%</code>")
+                lines.append(f"  Profit Factor: <code>{metrics.get('profit_factor', 0):.2f}</code>")
+                lines.append(f"  R:R Ratio: <code>{metrics.get('risk_reward_ratio', 0):.2f}</code>")
+        except Exception:
+            pass
+
+        lines.append(f"\n<code>{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}</code>")
+        return "\n".join(lines)
+
+    def generate_health_report(self) -> str:
+        """Generate infrastructure health report for /health command."""
+        lines = ["<b>🏥 NEXUS HEALTH REPORT</b>\n"]
+
+        try:
+            from app.services.health_monitor import get_health_monitor
+            result = get_health_monitor().get_latest_result()
+            if result:
+                status = result.get("overall_status", "UNKNOWN")
+                status_emoji = {"HEALTHY": "✅", "DEGRADED": "⚠️", "CRITICAL": "🚨"}.get(status, "❓")
+                lines.append(f"Status: {status_emoji} <code>{status}</code>")
+                lines.append(f"MT5: <code>{'Connected' if result.get('mt5_connected') else 'DISCONNECTED'}</code>")
+                lines.append(f"Memory: <code>{result.get('memory_mb', 0):.0f}MB</code>")
+                lines.append(f"Disk: <code>{result.get('disk_free_mb', 0):.0f}MB free</code>")
+                lines.append(f"Exec Latency: <code>{result.get('execution_latency_avg_ms', 0):.0f}ms</code>")
+                lines.append(f"API Latency: <code>{result.get('api_latency_avg_ms', 0):.0f}ms</code>")
+                lines.append(f"Position Sync: <code>{'OK' if result.get('position_sync_ok') else 'DESYNC'}</code>")
+                lines.append(f"Registry: <code>{'OK' if result.get('state_registry_ok') else 'ERROR'}</code>")
+
+                issues = result.get("issues", [])
+                if issues:
+                    lines.append(f"\n<b>Issues ({len(issues)}):</b>")
+                    for issue in issues[:5]:
+                        lines.append(f"  ⚠️ <code>{issue}</code>")
+            else:
+                lines.append("No health data available yet.")
+        except Exception as e:
+            lines.append(f"Error fetching health: <code>{e}</code>")
+
+        # Fail-safe status
+        try:
+            from app.services.fail_safe import get_fail_safe
+            fs = get_fail_safe().get_status()
+            lines.append(f"\n<b>Fail-Safe:</b>")
+            lines.append(f"  Frozen: <code>{fs.get('frozen', False)}</code>")
+            if fs.get("frozen"):
+                lines.append(f"  Reason: <code>{fs.get('freeze_reason', '')}</code>")
+        except Exception:
+            pass
+
+        lines.append(f"\n<code>{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}</code>")
+        return "\n".join(lines)
+
+    async def handle_command(self, command: str) -> bool:
+        """Handle incoming Telegram commands."""
+        cmd = command.strip().lower()
+        if cmd == "/status":
+            report = self.generate_status_report()
+            return await self.send_message(report)
+        elif cmd == "/health":
+            report = self.generate_health_report()
+            return await self.send_message(report)
+        return False
+
     # ── Daily Summary Scheduler ──────────────────────────────────────────
 
     def start_daily_summary_scheduler(self) -> None:
-        """Start background thread that sends daily summary at 23:59 UTC."""
+        """Start background threads for daily summary and periodic reports."""
         if self._running:
             return
         self._running = True
@@ -218,10 +394,26 @@ class TelegramReporter:
         )
         self._daily_summary_thread.start()
 
+        # Start periodic summary thread
+        self._periodic_thread = threading.Thread(
+            target=self._periodic_summary_loop, daemon=True, name="nexus-telegram-periodic"
+        )
+        self._periodic_thread.start()
+
+        # Start command listener thread
+        self._command_thread = threading.Thread(
+            target=self._command_listener_loop, daemon=True, name="nexus-telegram-commands"
+        )
+        self._command_thread.start()
+
     def stop(self) -> None:
         self._running = False
         if self._daily_summary_thread:
             self._daily_summary_thread.join(timeout=5)
+        if self._periodic_thread:
+            self._periodic_thread.join(timeout=5)
+        if self._command_thread:
+            self._command_thread.join(timeout=5)
 
     def _daily_summary_loop(self) -> None:
         """Wait until 23:59 UTC each day and send summary."""
@@ -258,6 +450,54 @@ class TelegramReporter:
                     logger.error(f"Daily summary send error: {e}")
 
             time.sleep(30)  # check every 30 seconds
+
+    def _periodic_summary_loop(self) -> None:
+        """Send periodic summary every 4 hours."""
+        while self._running:
+            try:
+                loop = asyncio.new_event_loop()
+                loop.run_until_complete(self.send_periodic_summary())
+                loop.close()
+                logger.info("Periodic summary sent")
+            except Exception as e:
+                logger.error(f"Periodic summary error: {e}")
+            # Sleep for 4 hours
+            for _ in range(PERIODIC_SUMMARY_INTERVAL_HOURS * 3600):
+                if not self._running:
+                    return
+                time.sleep(1)
+
+    def _command_listener_loop(self) -> None:
+        """Poll Telegram for /status and /health commands."""
+        if not self._enabled:
+            return
+
+        last_update_id = 0
+        while self._running:
+            try:
+                import urllib.request
+                import json as json_mod
+                url = f"https://api.telegram.org/bot{self._token}/getUpdates?offset={last_update_id + 1}&timeout=10"
+                req = urllib.request.Request(url)
+                resp = urllib.request.urlopen(req, timeout=15)
+                data = json_mod.loads(resp.read())
+
+                if data.get("ok"):
+                    for update in data.get("result", []):
+                        update_id = update.get("update_id", 0)
+                        if update_id > last_update_id:
+                            last_update_id = update_id
+                        msg = update.get("message", {})
+                        text = msg.get("text", "")
+                        chat_id = str(msg.get("chat", {}).get("id", ""))
+                        # Only respond to our configured chat
+                        if chat_id == self._chat_id and text.startswith("/"):
+                            loop = asyncio.new_event_loop()
+                            loop.run_until_complete(self.handle_command(text))
+                            loop.close()
+            except Exception:
+                pass  # Silent — don't spam logs for polling failures
+            time.sleep(5)
 
     def get_status(self) -> Dict[str, Any]:
         with self._lock:

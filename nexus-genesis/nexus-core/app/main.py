@@ -83,6 +83,15 @@ from app.services.trade_lifecycle import get_lifecycle_engine
 from app.services.system_health import get_health_guard
 from app.services.weekly_report import generate_weekly_intelligence_report, format_report_for_telegram
 
+# Phase 7 imports
+from app.services.health_monitor import get_health_monitor
+from app.services.auto_recovery import get_auto_recovery, SubsystemType
+from app.services.capital_guard import get_capital_guard
+from app.services.execution_verifier import get_execution_verifier
+from app.services.structured_logger import initialize_structured_logging
+from app.services.fail_safe import get_fail_safe
+from app.services.performance_metrics import get_performance_metrics_engine
+
 # Configure central logging
 logging.basicConfig(
     level=logging.INFO,
@@ -93,7 +102,7 @@ logger = logging.getLogger("nexus.nervous_system")
 app = FastAPI(
     title="NEXUS SOVEREIGN SYSTEM",
     description="Private Trading System - Ancient Laws × Axelrod Discipline × Multi-Agent Council",
-    version="6.0.0"  # Phase 6: scalable growth
+    version="7.0.0"  # Phase 7: institutional hardening
 )
 
 
@@ -238,7 +247,37 @@ async def startup_event():
         logger.info("Capital tier: defaulting to STABLE")
 
     logger.info("Phase 6 modules loaded: tiers, distribution, dynamic lots, sessions, lifecycle, health")
-    logger.info("NEXUS SOVEREIGN SYSTEM ONLINE (v6.0.0 — Scalable Growth)")
+
+    # Phase 7: Initialize structured logging
+    initialize_structured_logging()
+    logger.info("Structured logging initialized (system.log, trades.log, errors.log, health.log)")
+
+    # Phase 7: Start health monitor (60s comprehensive checks)
+    health_monitor = get_health_monitor()
+    health_monitor.register_alert_callback(lambda r: _telegram_health_alert(r))
+    health_monitor.start()
+    logger.info("Health monitor started (60s interval, 3-failure escalation)")
+
+    # Phase 7: Start capital guard
+    capital_guard = get_capital_guard()
+    capital_guard.start()
+    logger.info("Capital guard started (3% disable, 5% critical)")
+
+    # Phase 7: Start fail-safe protocol monitor
+    fail_safe = get_fail_safe()
+    fail_safe.start()
+    logger.info("Fail-safe protocol monitor started")
+
+    # Phase 7: Register shutdown callbacks for new modules
+    shutdown_handler.register_callback(lambda: health_monitor.stop())
+    shutdown_handler.register_callback(lambda: capital_guard.stop())
+    shutdown_handler.register_callback(lambda: fail_safe.stop())
+    shutdown_handler.register_callback(lambda: get_performance_metrics_engine().force_save())
+
+    logger.info("Phase 7 modules loaded: health_monitor, auto_recovery, capital_guard, "
+                "execution_verifier, structured_logger, fail_safe, performance_metrics")
+    logger.info("NEXUS SOVEREIGN SYSTEM ONLINE (v7.0.0 — Institutional Hardening)")
+    logger.info("MODE: PHASE 7 OBSERVATION — paper execution, full monitoring, full logging")
 
 
 async def status_broadcaster():
@@ -253,6 +292,21 @@ async def status_broadcaster():
         await asyncio.sleep(2)
 
 
+def _telegram_health_alert(result) -> None:
+    """Send Telegram alert on health anomaly (callback for health monitor)."""
+    try:
+        reporter = get_telegram_reporter()
+        issues = result.issues if hasattr(result, "issues") else []
+        status = result.overall_status if hasattr(result, "overall_status") else "UNKNOWN"
+        if issues:
+            reporter.send_emergency_sync(
+                f"HEALTH ALERT: {status}\n\n"
+                f"Issues:\n" + "\n".join(f"• {i}" for i in issues[:5])
+            )
+    except Exception:
+        pass
+
+
 @app.on_event("shutdown")
 async def shutdown_event():
     """Graceful cleanup on shutdown."""
@@ -265,12 +319,16 @@ async def shutdown_event():
     except Exception:
         pass
 
-    # Phase 4 + 6: Stop background threads
+    # Phase 4 + 6 + 7: Stop background threads
     try:
         get_heartbeat().stop()
         get_watchdog_thread().stop()
         get_telegram_reporter().stop()
         get_health_guard().stop()
+        get_health_monitor().stop()
+        get_capital_guard().stop()
+        get_fail_safe().stop()
+        get_performance_metrics_engine().force_save()
     except Exception:
         pass
 
@@ -574,6 +632,89 @@ async def scaling_health():
 async def scaling_weekly_report():
     """Generate full weekly intelligence report."""
     return generate_weekly_intelligence_report()
+
+
+# =============================================================================
+# INSTITUTIONAL HARDENING ENDPOINTS (Phase 7)
+# =============================================================================
+@app.get("/hardening/health")
+async def hardening_health():
+    """Get comprehensive health monitor status."""
+    return get_health_monitor().get_full_diagnostic()
+
+
+@app.get("/hardening/recovery")
+async def hardening_recovery():
+    """Get auto-recovery engine status."""
+    return get_auto_recovery().get_status()
+
+
+@app.post("/hardening/recovery/{subsystem}")
+async def hardening_trigger_recovery(subsystem: str):
+    """Manually trigger recovery for a subsystem."""
+    try:
+        sub = SubsystemType(subsystem.upper())
+    except ValueError:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unknown subsystem: {subsystem}. Valid: MT5, API, TELEGRAM, DATA_FEED"
+        )
+    recovered, message = get_auto_recovery().attempt_recovery(sub)
+    return {"recovered": recovered, "message": message}
+
+
+@app.get("/hardening/capital-guard")
+async def hardening_capital_guard():
+    """Get capital guard status."""
+    return get_capital_guard().get_status()
+
+
+@app.get("/hardening/verifier")
+async def hardening_verifier():
+    """Get execution verifier status."""
+    return get_execution_verifier().get_status()
+
+
+@app.get("/hardening/fail-safe")
+async def hardening_fail_safe():
+    """Get fail-safe protocol status."""
+    return get_fail_safe().get_status()
+
+
+@app.post("/hardening/fail-safe/reset")
+async def hardening_fail_safe_reset(
+    reason: str = Body(..., embed=True),
+    authorization: Optional[str] = Header(None),
+):
+    """
+    Manual fail-safe reset. Requires operator authorization.
+    No autonomous resume — human override only.
+    """
+    from app.services.auth_service import get_auth_service
+
+    if authorization:
+        token = authorization.replace("Bearer ", "")
+        auth_service = get_auth_service()
+        session = auth_service.validate_request(token)
+        if not session or not auth_service.is_master(session):
+            raise HTTPException(status_code=403, detail="Only Master can reset fail-safe")
+    else:
+        raise HTTPException(status_code=401, detail="Authorization required")
+
+    get_fail_safe().manual_reset(reason)
+    return {"status": "RESET", "reason": reason}
+
+
+@app.get("/hardening/metrics")
+async def hardening_metrics():
+    """Get performance metrics."""
+    return get_performance_metrics_engine().get_metrics()
+
+
+@app.get("/hardening/metrics/per-symbol")
+async def hardening_metrics_per_symbol():
+    """Get per-symbol performance metrics."""
+    return get_performance_metrics_engine().get_per_symbol_metrics()
 
 
 # =============================================================================

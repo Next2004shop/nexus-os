@@ -46,6 +46,11 @@ from app.services.position_distribution import get_distribution_engine
 from app.services.session_intelligence import check_session_suitability
 from app.services.dynamic_lots import calculate_dynamic_lot
 
+# Phase 7 imports
+from app.services.fail_safe import get_fail_safe
+from app.services.execution_verifier import get_execution_verifier
+from app.services.capital_guard import get_capital_guard
+
 logger = logging.getLogger("nexus.sovereign_pipeline")
 
 # Maximum time the entire pipeline may run before being aborted
@@ -116,6 +121,20 @@ async def execute_sovereign_pipeline(
         mode = watchdog.get_mode().value
         logger.warning(f"PIPELINE_BLOCKED_BY_WATCHDOG: system mode={mode}")
         return {"status": "REJECTED_WATCHDOG", "reason": f"System mode is {mode}", "stage": "WATCHDOG"}
+
+    # ── PRE-FLIGHT: Fail-safe protocol (Phase 7) ─────────────────
+    fail_safe = get_fail_safe()
+    fs_blocked, fs_reason = fail_safe.should_block_trade()
+    if fs_blocked:
+        logger.warning(f"PIPELINE_BLOCKED_BY_FAIL_SAFE: {fs_reason}")
+        return {"status": "REJECTED_FAIL_SAFE", "reason": fs_reason, "stage": "FAIL_SAFE"}
+
+    # ── PRE-FLIGHT: Capital guard (Phase 7) ────────────────────
+    cap_guard = get_capital_guard()
+    cg_blocked, cg_reason = cap_guard.should_block_new_trades()
+    if cg_blocked:
+        logger.warning(f"PIPELINE_BLOCKED_BY_CAPITAL_GUARD: {cg_reason}")
+        return {"status": "REJECTED_CAPITAL_GUARD", "reason": cg_reason, "stage": "CAPITAL_GUARD"}
 
     # ── PRE-FLIGHT: Daily loss cap ────────────────────────────────
     daily_tracker = get_daily_tracker()
@@ -205,6 +224,23 @@ async def execute_sovereign_pipeline(
             freq_guard.record_trade(symbol)
             dist_engine.register_position(symbol, side)
             tier_engine.record_trade()
+            fail_safe.record_execution_success()
+
+            # Phase 7: Post-execution verification
+            try:
+                verifier = get_execution_verifier()
+                ticket = result.get("order", {}).get("ticket")
+                verifier.verify_trade(
+                    trade_id=result.get("order", {}).get("order_id", "unknown"),
+                    symbol=symbol,
+                    expected_side=side,
+                    expected_lot=quantity,
+                    expected_sl=market_context.get("stop_loss"),
+                    expected_tp=market_context.get("take_profit"),
+                    ticket=ticket,
+                )
+            except Exception as e:
+                logger.error(f"Execution verification error: {e}")
 
         return result
     except asyncio.TimeoutError:
@@ -409,6 +445,12 @@ async def _run_pipeline(
         stealth.log_event("TRADE_FAILED", {
             "symbol": symbol, "error": result.error
         }, sensitivity="HIGH")
+        # Phase 7: Record execution failure in fail-safe
+        try:
+            from app.services.fail_safe import get_fail_safe
+            get_fail_safe().record_execution_failure(symbol, result.error or "unknown")
+        except Exception:
+            pass
         watchdog.execution_finished(symbol, success=False)
         return {
             "status": "FAILED",
