@@ -24,6 +24,13 @@ from .news_awareness import get_news_calendar
 from .performance_memory import get_performance_memory
 from .self_audit import get_self_audit
 from .intelligence_context import build_intelligence_context
+from .capital_tiers import get_tier_engine, CapitalTier
+from .position_distribution import get_distribution_engine
+from .dynamic_lots import calculate_dynamic_lot
+from .session_intelligence import get_session_tracker, check_session_suitability
+from .trade_lifecycle import get_lifecycle_manager
+from .system_health import get_health_guard
+from .weekly_report import generate_weekly_intelligence_report, format_report_for_telegram
 
 __all__ = [
     "StrategyOrchestrator",
@@ -84,4 +91,14 @@ __all__ = [
     "get_performance_memory",
     "get_self_audit",
     "build_intelligence_context",
+    "get_tier_engine",
+    "CapitalTier",
+    "get_distribution_engine",
+    "calculate_dynamic_lot",
+    "get_session_tracker",
+    "check_session_suitability",
+    "get_lifecycle_manager",
+    "get_health_guard",
+    "generate_weekly_intelligence_report",
+    "format_report_for_telegram",
 ]

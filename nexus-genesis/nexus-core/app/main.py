@@ -72,6 +72,17 @@ from app.services.intelligence_context import (
     build_intelligence_context, build_full_ai_prompt,
 )
 
+# Phase 6 imports
+from app.services.capital_tiers import get_tier_engine
+from app.services.position_distribution import get_distribution_engine
+from app.services.dynamic_lots import calculate_dynamic_lot, get_lot_config
+from app.services.session_intelligence import (
+    get_current_session, get_session_tracker, check_session_suitability,
+)
+from app.services.trade_lifecycle import get_lifecycle_engine
+from app.services.system_health import get_health_guard
+from app.services.weekly_report import generate_weekly_intelligence_report, format_report_for_telegram
+
 # Configure central logging
 logging.basicConfig(
     level=logging.INFO,
@@ -82,7 +93,7 @@ logger = logging.getLogger("nexus.nervous_system")
 app = FastAPI(
     title="NEXUS SOVEREIGN SYSTEM",
     description="Private Trading System - Ancient Laws × Axelrod Discipline × Multi-Agent Council",
-    version="5.0.0"  # Phase 5: intelligence edge
+    version="6.0.0"  # Phase 6: scalable growth
 )
 
 
@@ -209,7 +220,25 @@ async def startup_event():
     # Phase 5: Log intelligence layer status
     logger.info("Intelligence modules loaded: regime, confluence, news, memory, self-audit")
 
-    logger.info("NEXUS SOVEREIGN SYSTEM ONLINE (v5.0.0 — Intelligence Edge)")
+    # Phase 6: Start system health guard + initialize tier engine
+    health_guard = get_health_guard()
+    health_guard.start()
+    logger.info("System health guard started")
+
+    # Initialize capital tier from current equity
+    try:
+        tier_engine = get_tier_engine()
+        risk_status = risk_governor.get_risk_status()
+        eq = risk_status["equity"]["current"]
+        init_eq = risk_status["equity"]["initial"]
+        peak_eq = risk_status["equity"]["peak"]
+        tier_state = tier_engine.classify(eq, init_eq, peak_eq)
+        logger.info(f"Capital tier: {tier_state.tier.value}")
+    except Exception:
+        logger.info("Capital tier: defaulting to STABLE")
+
+    logger.info("Phase 6 modules loaded: tiers, distribution, dynamic lots, sessions, lifecycle, health")
+    logger.info("NEXUS SOVEREIGN SYSTEM ONLINE (v6.0.0 — Scalable Growth)")
 
 
 async def status_broadcaster():
@@ -236,11 +265,12 @@ async def shutdown_event():
     except Exception:
         pass
 
-    # Phase 4: Stop background threads
+    # Phase 4 + 6: Stop background threads
     try:
         get_heartbeat().stop()
         get_watchdog_thread().stop()
         get_telegram_reporter().stop()
+        get_health_guard().stop()
     except Exception:
         pass
 
@@ -483,6 +513,67 @@ async def intelligence_weekly_review():
     if report is None:
         report = audit.generate_weekly_report().to_dict()
     return report
+
+
+# =============================================================================
+# SCALING & GROWTH ENDPOINTS (Phase 6)
+# =============================================================================
+@app.get("/scaling/tier")
+async def scaling_tier():
+    """Get current capital tier and configuration."""
+    engine = get_tier_engine()
+    try:
+        risk = risk_governor.get_risk_status()
+        eq = risk["equity"]["current"]
+        init_eq = risk["equity"]["initial"]
+        peak_eq = risk["equity"]["peak"]
+        state = engine.classify(eq, init_eq, peak_eq)
+        return state.to_dict()
+    except Exception:
+        return {"tier": engine.get_current_tier().value}
+
+
+@app.get("/scaling/distribution")
+async def scaling_distribution():
+    """Get position distribution status."""
+    return get_distribution_engine().get_status()
+
+
+@app.get("/scaling/lots")
+async def scaling_lots():
+    """Get dynamic lot configuration."""
+    return get_lot_config()
+
+
+@app.get("/scaling/session")
+async def scaling_session():
+    """Get current market session and suitability."""
+    session = get_current_session()
+    return {
+        "current_session": session.value,
+        "performance": get_session_tracker().get_performance(),
+        "context": get_session_tracker().get_session_context_for_ai(),
+    }
+
+
+@app.get("/scaling/lifecycle")
+async def scaling_lifecycle():
+    """Get trade lifecycle management status."""
+    return get_lifecycle_engine().get_status()
+
+
+@app.get("/scaling/health")
+async def scaling_health():
+    """Get system health diagnostics."""
+    guard = get_health_guard()
+    report = guard.get_latest_report()
+    return report or {"status": "NO_DATA", "message": "Health check not yet run"}
+
+
+@app.get("/scaling/weekly-report")
+async def scaling_weekly_report():
+    """Generate full weekly intelligence report."""
+    return generate_weekly_intelligence_report()
 
 
 # =============================================================================

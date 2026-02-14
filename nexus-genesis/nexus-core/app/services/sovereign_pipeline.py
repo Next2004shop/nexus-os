@@ -10,6 +10,8 @@ IMMUTABLE LAW: No trade without council quorum (3/5 agents agree).
 Phase 2 — execution hardening (timeout, locks, watchdog)
 Phase 4 — capital protection (spread, margin, frequency, daily cap,
           floating DD, black swan, slippage, Telegram)
+Phase 5 — intelligence (regime, news, confluence)
+Phase 6 — scaling (tiers, distribution, sessions, dynamic lots, lifecycle)
 """
 
 import asyncio
@@ -37,6 +39,12 @@ from app.services.capital_protection import (
 # Phase 5 imports
 from app.services.news_awareness import get_news_calendar
 from app.services.market_regime import get_regime_store, Regime
+
+# Phase 6 imports
+from app.services.capital_tiers import get_tier_engine
+from app.services.position_distribution import get_distribution_engine
+from app.services.session_intelligence import check_session_suitability
+from app.services.dynamic_lots import calculate_dynamic_lot
 
 logger = logging.getLogger("nexus.sovereign_pipeline")
 
@@ -142,6 +150,32 @@ async def execute_sovereign_pipeline(
         logger.warning(f"PIPELINE_BLOCKED: no regime classified for {symbol}")
         return {"status": "REJECTED_NO_REGIME", "reason": f"No regime data for {symbol} — classify before trading", "stage": "REGIME_CHECK"}
 
+    # ── PRE-FLIGHT: Capital tier daily limit (Phase 6) ──────────
+    tier_engine = get_tier_engine()
+    tier_ok, tier_reason = tier_engine.can_trade()
+    if not tier_ok:
+        logger.warning(f"PIPELINE_TIER_LIMITED: {tier_reason}")
+        return {"status": "REJECTED_TIER_LIMIT", "reason": tier_reason, "stage": "CAPITAL_TIER"}
+
+    # ── PRE-FLIGHT: Tier asset restriction (Phase 6) ──────────────
+    asset_ok, asset_reason = tier_engine.check_asset_allowed(symbol)
+    if not asset_ok:
+        logger.warning(f"PIPELINE_TIER_ASSET: {asset_reason}")
+        return {"status": "REJECTED_TIER_ASSET", "reason": asset_reason, "stage": "CAPITAL_TIER"}
+
+    # ── PRE-FLIGHT: Position distribution (Phase 6) ───────────────
+    dist_engine = get_distribution_engine()
+    dist_ok, dist_reason = dist_engine.can_open_position(symbol, side)
+    if not dist_ok:
+        logger.warning(f"PIPELINE_DISTRIBUTION: {dist_reason}")
+        return {"status": "REJECTED_DISTRIBUTION", "reason": dist_reason, "stage": "POSITION_DISTRIBUTION"}
+
+    # ── PRE-FLIGHT: Session suitability (Phase 6) ─────────────────
+    session_ok, session_reason, current_session = check_session_suitability(symbol)
+    if not session_ok:
+        logger.warning(f"PIPELINE_SESSION: {session_reason}")
+        return {"status": "REJECTED_SESSION", "reason": session_reason, "stage": "SESSION_FILTER"}
+
     # ── PRE-FLIGHT: Trade frequency ───────────────────────────────
     freq_guard = get_frequency_guard()
     freq_ok, freq_reason = freq_guard.check(symbol)
@@ -166,9 +200,11 @@ async def execute_sovereign_pipeline(
         )
         trade_executed = result.get("status") == "EXECUTED"
 
-        # Record trade in frequency guard if executed
+        # Record trade in frequency guard + distribution + tier if executed
         if trade_executed:
             freq_guard.record_trade(symbol)
+            dist_engine.register_position(symbol, side)
+            tier_engine.record_trade()
 
         return result
     except asyncio.TimeoutError:
