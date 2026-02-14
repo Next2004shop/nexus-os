@@ -3,6 +3,7 @@ node_modules
 # Environment & secrets — NEVER commit
 .env
 .env.*
+!.env.example
 .env.local
 .env.production
 *.env
@@ -47,3 +48,18 @@ Thumbs.db
 
 # Docker
 .docker/
+
+# API keys — NEVER commit
+api_key.txt
+api_key_log.txt
+
+# Vercel
+.vercel
+
+# Build logs
+*.log
+build_log_full.txt
+build_error.log
+build_stream.log
+cloud_build_log.txt
+frontend_build_log.txt
