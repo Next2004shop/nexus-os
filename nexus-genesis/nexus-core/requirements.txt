@@ -30,5 +30,7 @@ apscheduler
 # Security
 cryptography
 firebase-admin
+PyJWT
+bcrypt
 
 # Note: MetaTrader5 is Windows-only, handled via separate bridge

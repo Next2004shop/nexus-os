@@ -59,20 +59,23 @@ from app.services.auth_service import (
 from app.services.env_validator import validate_environment, get_env_status
 from app.services.live_data import get_live_data, initialize_live_data
 from app.services.model_ensemble import get_ensemble
+from app.services.nexus_logger import configure_nexus_logging
 from app.services.stealth_mode import get_stealth_mode
 from app.services.vault import VaultError, SecretRetrievalError
 from app.services.ws_manager import get_ws_manager
 from app.services.telegram_bot import get_telegram_service
 
+# Auth Layer
+from auth import auth_router, AuthMiddleware, seed_admin
+
 # =============================================================================
-# LOGGING CONFIGURATION
+# LOGGING + UPTIME
 # =============================================================================
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+configure_nexus_logging(json_format=True)
 logger = logging.getLogger("nexus.nervous_system")
+
+_startup_time: float = 0.0  # Set during startup_event()
 
 # =============================================================================
 # FASTAPI APPLICATION
@@ -81,8 +84,12 @@ logger = logging.getLogger("nexus.nervous_system")
 app = FastAPI(
     title="NEXUS SOVEREIGN SYSTEM",
     description="Private Trading System - Ancient Laws × Axelrod Discipline × Multi-Agent Council",
-    version="3.0.0"
+    version="3.2.0"
 )
+
+# Mount Auth
+app.include_router(auth_router)
+app.add_middleware(AuthMiddleware)
 
 
 # =============================================================================
@@ -192,6 +199,9 @@ _trade_audit = TradeAuditLogger()
 @app.on_event("startup")
 async def startup_event():
     """Initialize all systems on startup."""
+    global _startup_time
+    _startup_time = time.time()
+    
     logger.info("=" * 60)
     logger.info("NEXUS SOVEREIGN SYSTEM INITIALIZING...")
     logger.info("Architecture: Ancient Laws × Axelrod Game Theory × Netflix Resilience")
@@ -205,12 +215,39 @@ async def startup_event():
     try:
         env_status = validate_environment()
         logger.info(f"Environment validation passed. Trading ready: {env_status.trading_ready}")
+        
+        # Clear terminal warnings for missing optional vars
+        if env_status.trading_missing:
+            print("\n" + "=" * 60)
+            print("⚠  WARNING: Trading environment variables missing:")
+            for var in env_status.trading_missing:
+                print(f"   → {var}")
+            print("   Trading functionality will be LIMITED.")
+            print("=" * 60 + "\n")
+        
+        if env_status.optional_missing:
+            print("ℹ  INFO: Optional variables not set:")
+            for var in env_status.optional_missing:
+                print(f"   → {var}")
+            print()
+        
     except RuntimeError as e:
+        print("\n" + "!" * 60)
+        print("🛑  CRITICAL: Environment validation FAILED")
+        print(f"   {e}")
+        print("   System starting in DEGRADED mode — trading disabled")
+        print("!" * 60 + "\n")
         logger.critical(f"Environment validation FAILED: {e}")
         logger.critical("System starting in DEGRADED mode — trading disabled")
     
     # Start the Heartbeat Scheduler
     scheduler.start_scheduler()
+    
+    # Seed admin user on first startup
+    try:
+        seed_admin()
+    except Exception as e:
+        logger.warning(f"Admin seed skipped: {e}")
     
     # Initialize circuit breaker manager
     cb_manager = circuit_breaker.get_manager()
@@ -405,10 +442,17 @@ async def health_check():
     except Exception:
         risk_active = False
     
+    # Uptime calculation
+    uptime_seconds = time.time() - _startup_time if _startup_time else 0
+    hours, remainder = divmod(int(uptime_seconds), 3600)
+    minutes, seconds = divmod(remainder, 60)
+    uptime_str = f"{hours}h {minutes}m {seconds}s"
+    
     return {
-        "status": "ONLINE",
-        "version": "3.1.0",
-        "mt5_connection": mt5_connected,
+        "status": "ok",
+        "uptime": uptime_str,
+        "mt5_connected": mt5_connected,
+        "version": "3.2.0",
         "risk_engine": "active" if risk_active else "inactive",
         "execution_layer": "ready" if (mt5_connected or is_paper) else "not_ready",
         "mode": "paper" if is_paper else "live",

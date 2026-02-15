@@ -1,9 +1,74 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
     body {
-        @apply bg-zinc-950 text-zinc-400;
+        @apply bg-nexus-bg text-nexus-text font-sans antialiased;
+    }
+
+    * {
+        @apply border-nexus-border;
+    }
+
+    ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+        @apply bg-nexus-bg;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        @apply bg-nexus-border rounded-full;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        @apply bg-nexus-muted;
+    }
+}
+
+@layer components {
+    .stat-card {
+        @apply bg-nexus-surface border border-nexus-border rounded-lg p-4;
+    }
+
+    .data-table {
+        @apply w-full text-sm;
+    }
+
+    .data-table th {
+        @apply text-left text-nexus-muted font-medium text-xs uppercase tracking-wider pb-3 border-b border-nexus-border;
+    }
+
+    .data-table td {
+        @apply py-3 border-b border-nexus-border font-mono text-sm;
+    }
+
+    .data-table tr:hover td {
+        @apply bg-nexus-hover;
+    }
+
+    .input-field {
+        @apply w-full bg-nexus-bg border border-nexus-border rounded-md px-3 py-2 text-nexus-text placeholder-nexus-muted focus:outline-none focus:border-nexus-accent transition-colors;
+    }
+
+    .btn-primary {
+        @apply bg-nexus-accent text-white px-4 py-2 rounded-md font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+    }
+
+    .btn-danger {
+        @apply bg-nexus-red text-white px-4 py-2 rounded-md font-medium hover:bg-red-600 transition-colors;
+    }
+
+    .btn-ghost {
+        @apply text-nexus-muted px-4 py-2 rounded-md font-medium hover:text-nexus-text hover:bg-nexus-hover transition-colors;
+    }
+
+    .status-badge {
+        @apply inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium;
     }
 }

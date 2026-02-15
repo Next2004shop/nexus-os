@@ -5,20 +5,43 @@ NEXUS Structured Logger
 Unified logging with deterministic format:
     timestamp | layer | action | status | error_code
 
+File outputs:
+    logs/system.log — all INFO+ messages (JSON)
+    logs/error.log  — ERROR+ only (JSON with stack traces)
+
 All NEXUS services must use this logger instead of raw logging.getLogger().
 """
 
 import logging
 import json
+import os
+import traceback
 from datetime import datetime, timezone
 from typing import Optional, Dict, Any
+from logging.handlers import RotatingFileHandler
 
+# =============================================================================
+# LOG DIRECTORY (auto-created)
+# =============================================================================
+LOG_DIR = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+    "logs"
+)
+
+
+def _ensure_log_dir():
+    """Create logs directory if it doesn't exist."""
+    os.makedirs(LOG_DIR, exist_ok=True)
+
+
+# =============================================================================
+# FORMATTERS
+# =============================================================================
 
 class NexusFormatter(logging.Formatter):
     """Structured log formatter: timestamp | layer | action | status | error_code"""
     
     def format(self, record: logging.LogRecord) -> str:
-        # Extract NEXUS-specific fields injected via extra={}
         layer = getattr(record, 'layer', 'SYSTEM')
         action = getattr(record, 'action', record.funcName or '-')
         status = getattr(record, 'status', 'INFO')
@@ -31,33 +54,39 @@ class NexusFormatter(logging.Formatter):
             parts.append(f"ERR:{error_code}")
         
         structured = " | ".join(parts)
-        
-        # Append the actual message
         return f"{structured} | {record.getMessage()}"
 
 
 class NexusJSONFormatter(logging.Formatter):
-    """JSON-structured log formatter for production."""
+    """JSON-structured log formatter for production with full schema."""
     
     def format(self, record: logging.LogRecord) -> str:
         entry = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
+            "level": record.levelname,
+            "module": record.name,
             "layer": getattr(record, 'layer', 'SYSTEM'),
             "action": getattr(record, 'action', record.funcName or '-'),
             "status": getattr(record, 'status', record.levelname),
             "message": record.getMessage(),
-            "logger": record.name,
         }
         
         error_code = getattr(record, 'error_code', None)
         if error_code:
             entry["error_code"] = error_code
         
+        # Stack trace on errors
         if record.exc_info and record.exc_info[1]:
-            entry["exception"] = str(record.exc_info[1])
+            entry["stack_trace"] = ''.join(
+                traceback.format_exception(*record.exc_info)
+            )
         
         return json.dumps(entry)
 
+
+# =============================================================================
+# LAYER LOGGER
+# =============================================================================
 
 class NexusLayerLogger:
     """
@@ -124,23 +153,54 @@ def get_layer_logger(layer: str, name: Optional[str] = None) -> NexusLayerLogger
     return NexusLayerLogger(layer, logger_name)
 
 
-def configure_nexus_logging(json_format: bool = False):
+def configure_nexus_logging(json_format: bool = True):
     """
-    Configure root NEXUS logging with structured formatter.
+    Configure root NEXUS logging with file + console handlers.
     
-    Call once at startup (e.g., in main.py lifespan).
+    Creates:
+        logs/system.log — all INFO+ messages (10MB rotate, 5 backups)
+        logs/error.log  — ERROR+ only (5MB rotate, 5 backups)
+        Console          — pipe-delimited dev format
     
-    Args:
-        json_format: If True, use JSON format (production). Otherwise pipe-delimited (dev).
+    Call once at startup (in main.py startup_event).
     """
-    formatter = NexusJSONFormatter() if json_format else NexusFormatter()
+    _ensure_log_dir()
     
-    handler = logging.StreamHandler()
-    handler.setFormatter(formatter)
-    
-    # Configure all nexus.* loggers
     nexus_root = logging.getLogger("nexus")
     nexus_root.handlers.clear()
-    nexus_root.addHandler(handler)
     nexus_root.setLevel(logging.INFO)
     nexus_root.propagate = False
+    
+    # --- Console handler (dev-friendly pipe format) ---
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(NexusFormatter())
+    console_handler.setLevel(logging.INFO)
+    nexus_root.addHandler(console_handler)
+    
+    # --- system.log (all INFO+, JSON, rotating) ---
+    system_log_path = os.path.join(LOG_DIR, "system.log")
+    system_handler = RotatingFileHandler(
+        system_log_path,
+        maxBytes=10 * 1024 * 1024,  # 10 MB
+        backupCount=5,
+        encoding="utf-8"
+    )
+    system_handler.setFormatter(NexusJSONFormatter())
+    system_handler.setLevel(logging.INFO)
+    nexus_root.addHandler(system_handler)
+    
+    # --- error.log (ERROR+ only, JSON with stack traces, rotating) ---
+    error_log_path = os.path.join(LOG_DIR, "error.log")
+    error_handler = RotatingFileHandler(
+        error_log_path,
+        maxBytes=5 * 1024 * 1024,  # 5 MB
+        backupCount=5,
+        encoding="utf-8"
+    )
+    error_handler.setFormatter(NexusJSONFormatter())
+    error_handler.setLevel(logging.ERROR)
+    nexus_root.addHandler(error_handler)
+    
+    nexus_root.info("Structured logging initialized", extra={
+        'layer': 'SYSTEM', 'action': 'LOGGING_INIT', 'status': 'OK', 'error_code': None
+    })

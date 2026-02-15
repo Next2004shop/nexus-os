@@ -11,52 +11,76 @@ function getApiBaseUrl(): string {
     return import.meta.env.VITE_API_URL || 'http://localhost:8080';
 }
 
-const client = axios.create({
+const api = axios.create({
     baseURL: getApiBaseUrl(),
     headers: {
         'Content-Type': 'application/json',
     },
+    withCredentials: true, // Send cookies for auth
 });
 
-/**
- * Verifies if the Nexus Core backend is alive.
- */
+// JWT interceptor — attach token to every request
+api.interceptors.request.use((config) => {
+    const token = sessionStorage.getItem('nexus_token');
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+});
+
+// Response interceptor — handle 401 (try refresh, then redirect to login)
+api.interceptors.response.use(
+    (response) => response,
+    async (error) => {
+        const originalRequest = error.config;
+
+        if (error.response?.status === 401 && !originalRequest._retry) {
+            originalRequest._retry = true;
+
+            try {
+                const refreshResponse = await axios.post(
+                    `${getApiBaseUrl()}/auth/refresh`,
+                    {},
+                    { withCredentials: true }
+                );
+                const newToken = refreshResponse.data.access_token;
+                sessionStorage.setItem('nexus_token', newToken);
+                originalRequest.headers.Authorization = `Bearer ${newToken}`;
+                return api(originalRequest);
+            } catch {
+                sessionStorage.removeItem('nexus_token');
+                window.location.href = '/login';
+            }
+        }
+
+        return Promise.reject(error);
+    }
+);
+
+// API Methods
 export const checkHealth = async () => {
-    const response = await client.get('/health');
+    const response = await api.get('/health');
     return response.data;
 };
 
-/**
- * Sends data to Vertex AI for trade analysis.
- */
-export const triggerAnalysis = async (symbol: string, data: any) => {
-    const response = await client.post('/analyze', {
-        symbol,
-        data,
-    });
+export const getStatus = async () => {
+    const response = await api.get('/status');
     return response.data;
 };
 
-/**
- * Executes a trade via the backend body.
- */
 export const executeTrade = async (symbol: string, side: 'buy' | 'sell', quantity: number) => {
-    const response = await client.post('/trade', {
-        symbol,
-        side,
-        quantity,
-    });
+    const response = await api.post('/trade', { symbol, side, quantity });
     return response.data;
 };
 
-/**
- * Activates the emergency kill switch.
- */
 export const triggerKillSwitch = async (symbol?: string) => {
-    const response = await client.post('/kill', {
-        symbol,
-    });
+    const response = await api.post('/kill', { symbol });
     return response.data;
 };
 
-export default client;
+export const triggerAnalysis = async (symbol: string, data: any) => {
+    const response = await api.post('/analyze', { symbol, data });
+    return response.data;
+};
+
+export default api;
