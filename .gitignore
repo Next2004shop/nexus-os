@@ -1,1 +1,16 @@
-node_modules
+# Google Cloud SDK
+.tools/
+gcloud-sdk.zip
+
+# Python
+__pycache__/
+*.pyc
+
+# Node
+node_modules/
+.next/
+dist/
+
+# Environment
+.env
+.env.*

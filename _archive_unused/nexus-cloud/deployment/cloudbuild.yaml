@@ -1,0 +1,63 @@
+steps:
+  # Step 1: Build Backend Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'us-central1-docker.pkg.dev/$PROJECT_ID/nexus-repo/nexus-backend', '-f', 'nexus-genesis/nexus-core/Dockerfile', 'nexus-genesis/nexus-core']
+
+  # Step 2: Push Backend image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'us-central1-docker.pkg.dev/$PROJECT_ID/nexus-repo/nexus-backend']
+
+  # Step 3: Deploy Backend to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'nexus-backend'
+      - '--image'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/nexus-repo/nexus-backend'
+      - '--region'
+      - 'us-central1'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      - '--port'
+      - '8080'
+      - '--min-instances'
+      - '1'
+      - '--cpu-boost'
+
+  # Step 4: Build Frontend Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'us-central1-docker.pkg.dev/$PROJECT_ID/nexus-repo/nexus-frontend', '-f', 'nexus-genesis/nexus-terminal/Dockerfile', 'nexus-genesis/nexus-terminal']
+
+  # Step 5: Push Frontend image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'us-central1-docker.pkg.dev/$PROJECT_ID/nexus-repo/nexus-frontend']
+
+  # Step 6: Deploy Frontend to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'nexus-frontend'
+      - '--image'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/nexus-repo/nexus-frontend'
+      - '--region'
+      - 'us-central1'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      - '--port'
+      - '8080'
+      - '--min-instances'
+      - '1'
+      - '--cpu-boost'
+
+images:
+  - 'us-central1-docker.pkg.dev/$PROJECT_ID/nexus-repo/nexus-backend'
+  - 'us-central1-docker.pkg.dev/$PROJECT_ID/nexus-repo/nexus-frontend'
+
+options:
+  logging: CLOUD_LOGGING_ONLY

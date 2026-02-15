@@ -1,1 +1,0 @@
-ERROR: (gcloud.builds.log) NOT_FOUND: Requested entity was not found. This command is authenticated as danmutemi2023@gmail.com which is the active account specified by the [core/account] property.

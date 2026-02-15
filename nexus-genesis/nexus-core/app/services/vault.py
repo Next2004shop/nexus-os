@@ -6,35 +6,76 @@ Google Secret Manager integration for secure credential storage.
 All API keys and sensitive data fetched at runtime from Secret Manager.
 
 IMMUTABLE LAW: No secrets in code. All secrets from Secret Manager.
+
+UPGRADE: Removed sys.exit() crash behavior. Now raises exceptions for
+callers to handle gracefully. Lazy client initialization prevents
+import-time crashes.
 """
 
 import logging
-import sys
-from typing import Dict, Optional
+import os
+from typing import Optional
 
-from google.api_core.exceptions import GoogleAPICallError
-from google.cloud import secretmanager
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
 logger = logging.getLogger("nexus.vault")
+
+
+# =============================================================================
+# CUSTOM EXCEPTIONS
+# =============================================================================
+
+class VaultError(Exception):
+    """Base exception for vault operations."""
+    pass
+
+
+class VaultInitError(VaultError):
+    """Raised when Secret Manager client cannot be initialized."""
+    def __init__(self, original_error: Exception):
+        self.original_error = original_error
+        super().__init__(f"Failed to initialize Secret Manager Client: {original_error}")
+
+
+class SecretRetrievalError(VaultError):
+    """Raised when a secret cannot be retrieved from Secret Manager."""
+    def __init__(self, secret_id: str, original_error: Exception):
+        self.secret_id = secret_id
+        self.original_error = original_error
+        super().__init__(f"Could not retrieve secret '{secret_id}': {original_error}")
 
 
 # =============================================================================
 # CONFIGURATION
 # =============================================================================
 
-PROJECT_ID = "nexus-dyron-777"
+PROJECT_ID = os.getenv("GOOGLE_CLOUD_PROJECT", "nexus-dyron-777")
 
-# Initialize Secret Manager Client
-try:
-    client = secretmanager.SecretManagerServiceClient()
-except Exception as e:
-    logger.critical(f"Failed to initialize Secret Manager Client: {e}")
-    sys.exit(1)
+
+# =============================================================================
+# LAZY CLIENT INITIALIZATION
+# =============================================================================
+
+_client = None
+
+
+def _get_client():
+    """
+    Lazily initialize Secret Manager client.
+    
+    Raises VaultInitError if initialization fails.
+    Does NOT crash the process.
+    """
+    global _client
+    if _client is not None:
+        return _client
+    
+    try:
+        from google.cloud import secretmanager
+        _client = secretmanager.SecretManagerServiceClient()
+        logger.info("Secret Manager client initialized")
+        return _client
+    except Exception as e:
+        logger.critical(f"Failed to initialize Secret Manager Client: {e}")
+        raise VaultInitError(e)
 
 
 # =============================================================================
@@ -53,8 +94,11 @@ def get_secret(secret_id: str, version_id: str = "latest") -> str:
         str: The secret payload.
         
     Raises:
-        SystemExit: If the secret cannot be retrieved, the system STOPS.
+        SecretRetrievalError: If the secret cannot be retrieved.
+        VaultInitError: If the Secret Manager client cannot be initialized.
     """
+    client = _get_client()
+    
     name = f"projects/{PROJECT_ID}/secrets/{secret_id}/versions/{version_id}"
     
     try:
@@ -62,9 +106,6 @@ def get_secret(secret_id: str, version_id: str = "latest") -> str:
         response = client.access_secret_version(request={"name": name})
         payload = response.payload.data.decode("UTF-8")
         return payload
-    except GoogleAPICallError as e:
-        logger.critical(f"FATAL: Could not retrieve secret '{secret_id}': {e}")
-        sys.exit(1) # STOP THE SYSTEM
     except Exception as e:
-        logger.critical(f"FATAL: Unexpected error accessing vault for '{secret_id}': {e}")
-        sys.exit(1) # STOP THE SYSTEM
+        logger.critical(f"FATAL: Could not retrieve secret '{secret_id}': {e}")
+        raise SecretRetrievalError(secret_id, e)

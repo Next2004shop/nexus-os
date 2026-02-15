@@ -1,7 +1,18 @@
 import axios from 'axios';
 
+/**
+ * Resolve API base URL from environment.
+ * Priority: window.NEXUS_CONFIG (desktop/container) > VITE_API_URL (dev) > localhost fallback
+ */
+function getApiBaseUrl(): string {
+    if (typeof window !== 'undefined' && (window as any).NEXUS_CONFIG?.VITE_API_URL) {
+        return (window as any).NEXUS_CONFIG.VITE_API_URL;
+    }
+    return import.meta.env.VITE_API_URL || 'http://localhost:8080';
+}
+
 const client = axios.create({
-    baseURL: 'http://localhost:8080',
+    baseURL: getApiBaseUrl(),
     headers: {
         'Content-Type': 'application/json',
     },

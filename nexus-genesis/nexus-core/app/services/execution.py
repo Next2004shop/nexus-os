@@ -84,6 +84,21 @@ class OrderResult:
         }
 
 
+# =============================================================================
+# ASSET WHITELIST — Only these symbols can be traded
+# =============================================================================
+ASSET_WHITELIST = {
+    # Forex
+    "EURUSD", "GBPUSD", "USDJPY", "USDCHF", "AUDUSD", "NZDUSD", "USDCAD",
+    # Crypto
+    "BTCUSD", "BTCUSDT", "BTC/USDT", "ETHUSD", "ETHUSDT", "ETH/USDT",
+    # Indices
+    "US30", "US500", "NAS100", "US100",
+    # Metals
+    "XAUUSD", "XAGUSD",
+}
+
+
 @dataclass  
 class ExecutionConfig:
     """Execution engine configuration."""
@@ -94,6 +109,8 @@ class ExecutionConfig:
     retry_delay_seconds: float = 1.0
     use_paper_trading: bool = False
     enable_failover: bool = True
+    max_lot_size: float = 1.0  # Max lot per order
+    max_daily_loss_pct: float = 0.05  # 5% max daily loss
 
 
 # =============================================================================
@@ -566,10 +583,14 @@ class ExecutionEngine:
         side: str,
         quantity: float,
         venue: Optional[ExecutionVenue] = None,
-        limit_price: Optional[float] = None
+        limit_price: Optional[float] = None,
+        skip_risk_check: bool = False
     ) -> OrderResult:
         """
-        Execute a trade with failover support.
+        Execute a trade with mandatory risk gate and failover support.
+        
+        ARCHITECTURE LAW: Every trade passes through this method.
+        Risk gate fires here regardless of caller (API, scheduler, or direct).
         
         Args:
             symbol: Trading symbol
@@ -577,20 +598,89 @@ class ExecutionEngine:
             quantity: Position size
             venue: Specific venue (optional, uses primary if not specified)
             limit_price: Optional limit price
+            skip_risk_check: Only True if caller already validated (defense-in-depth still logs)
         
         Returns:
             OrderResult with execution details
         """
-        # Paper trading mode
+        order_id = f"NX-{__import__('uuid').uuid4().hex[:8]}"
+        
+        # =====================================================================
+        # GATE 1: ASSET WHITELIST
+        # =====================================================================
+        if symbol.upper() not in ASSET_WHITELIST and symbol not in ASSET_WHITELIST:
+            logger.warning(f"REJECTED: Asset {symbol} not in whitelist")
+            return OrderResult(
+                order_id=order_id, symbol=symbol, side=side, quantity=quantity,
+                requested_price=limit_price, filled_price=None, filled_quantity=0,
+                slippage=None, status=OrderStatus.REJECTED, venue=ExecutionVenue.PAPER,
+                timestamp=datetime.now(timezone.utc),
+                error=f"Asset '{symbol}' not in approved whitelist"
+            )
+        
+        # =====================================================================
+        # GATE 2: MAX LOT SIZE
+        # =====================================================================
+        if quantity > self.config.max_lot_size:
+            logger.warning(f"REJECTED: Lot size {quantity} exceeds max {self.config.max_lot_size}")
+            return OrderResult(
+                order_id=order_id, symbol=symbol, side=side, quantity=quantity,
+                requested_price=limit_price, filled_price=None, filled_quantity=0,
+                slippage=None, status=OrderStatus.REJECTED, venue=ExecutionVenue.PAPER,
+                timestamp=datetime.now(timezone.utc),
+                error=f"Lot size {quantity} exceeds maximum {self.config.max_lot_size}"
+            )
+        
+        # =====================================================================
+        # GATE 3: PAPER MODE — NEVER touch live markets
+        # =====================================================================
         if self.config.use_paper_trading:
+            logger.info(f"PAPER MODE: {side} {quantity} {symbol} — no live execution")
             return self._paper_trade(symbol, side, quantity, limit_price)
         
+        # =====================================================================
+        # GATE 4: RISK GOVERNOR (defense-in-depth)
+        # =====================================================================
+        if not skip_risk_check:
+            price = limit_price or 0.0
+            risk_ok, risk_msg = risk_governor.validate_trade(
+                symbol, quantity, price
+            )
+            if not risk_ok:
+                logger.warning(f"RISK GATE REJECTED: {risk_msg}")
+                return OrderResult(
+                    order_id=order_id, symbol=symbol, side=side, quantity=quantity,
+                    requested_price=limit_price, filled_price=None, filled_quantity=0,
+                    slippage=None, status=OrderStatus.REJECTED, venue=ExecutionVenue.PAPER,
+                    timestamp=datetime.now(timezone.utc),
+                    error=f"Risk gate: {risk_msg}"
+                )
+        else:
+            logger.info(f"Risk check skipped (caller pre-validated) for {symbol}")
+        
+        # =====================================================================
+        # GATE 5: MT5 CONNECTION CHECK
+        # =====================================================================
         order_side = OrderSide.BUY if side.upper() == "BUY" else OrderSide.SELL
         target_venue = venue or self.config.primary_venue
         
+        if target_venue == ExecutionVenue.MT5 and not self.mt5._initialized:
+            if not self.config.enable_failover:
+                logger.error("MT5 not connected and failover disabled — cannot execute")
+                return OrderResult(
+                    order_id=order_id, symbol=symbol, side=side, quantity=quantity,
+                    requested_price=limit_price, filled_price=None, filled_quantity=0,
+                    slippage=None, status=OrderStatus.FAILED, venue=ExecutionVenue.MT5,
+                    timestamp=datetime.now(timezone.utc),
+                    error="MT5 not connected. Failover disabled."
+                )
+            else:
+                logger.warning("MT5 not connected — failing over to secondary venue")
+                target_venue = self.config.secondary_venue
+        
         logger.info(f"EXECUTING: {side} {quantity} {symbol} on {target_venue.value}")
         
-        # Try primary venue
+        # Try target venue
         if target_venue == ExecutionVenue.MT5:
             result = self.mt5.execute(symbol, order_side, quantity, limit_price)
         else:

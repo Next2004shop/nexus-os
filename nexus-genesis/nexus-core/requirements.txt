@@ -28,9 +28,6 @@ numpy
 apscheduler
 
 # Security
-python-jose
-passlib
-bcrypt
 cryptography
 firebase-admin
 

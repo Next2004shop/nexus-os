@@ -14,25 +14,12 @@ IMMUTABLE LAW: Council Over King - No trade without quorum.
 All frontend access is READ-ONLY.
 """
 
-"""
-NEXUS Sovereign System - FastAPI Main Application
-==================================================
-
-Central nervous system orchestrating:
-1. Multi-Agent Council decision making (5 agents, quorum required)
-2. Model Ensemble voting (AI + rule-based consensus)
-3. Trade execution (with council + governor approval)
-4. Risk status and monitoring
-5. Emergency controls with stealth mode
-6. Health and heartbeat
-
-IMMUTABLE LAW: Council Over King - No trade without quorum.
-All frontend access is READ-ONLY.
-"""
-
 import asyncio
 import json
 import logging
+import os
+import time
+from collections import defaultdict
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 from uuid import uuid4
@@ -60,10 +47,20 @@ from app.services import (
     scheduler,
     strategy_engine
 )
-from app.services.agent_council import Vote, get_council, require_quorum
+from app.services.agent_council import get_council
+from app.services.auth_service import (
+    UserSession,
+    get_current_session,
+    require_trader,
+    require_admin,
+    require_master,
+    get_auth_service
+)
+from app.services.env_validator import validate_environment, get_env_status
 from app.services.live_data import get_live_data, initialize_live_data
-from app.services.model_ensemble import ensemble_predict, get_ensemble
+from app.services.model_ensemble import get_ensemble
 from app.services.stealth_mode import get_stealth_mode
+from app.services.vault import VaultError, SecretRetrievalError
 from app.services.ws_manager import get_ws_manager
 from app.services.telegram_bot import get_telegram_service
 
@@ -89,6 +86,107 @@ app = FastAPI(
 
 
 # =============================================================================
+# RATE LIMITER (In-Memory Token Bucket)
+# =============================================================================
+
+class RateLimiter:
+    """
+    Simple in-memory rate limiter using token bucket.
+    
+    Tracks requests per client IP per endpoint group.
+    Resets every window_seconds.
+    """
+    
+    def __init__(self):
+        # {endpoint_group: {client_ip: [timestamps]}}
+        self._requests: Dict[str, Dict[str, list]] = defaultdict(lambda: defaultdict(list))
+        
+        # Limits: (max_requests, window_seconds)
+        self.limits: Dict[str, tuple] = {
+            "trade": (10, 60),        # 10 req/min
+            "kill": (5, 60),          # 5 req/min
+            "auth": (20, 60),         # 20 req/min
+            "ai": (30, 60),           # 30 req/min
+            "default": (60, 60),      # 60 req/min
+        }
+    
+    def check(self, group: str, client_ip: str) -> bool:
+        """
+        Check if request is allowed.
+        Returns True if allowed, False if rate limited.
+        """
+        max_requests, window = self.limits.get(group, self.limits["default"])
+        now = time.time()
+        
+        # Clean old entries
+        self._requests[group][client_ip] = [
+            t for t in self._requests[group][client_ip]
+            if now - t < window
+        ]
+        
+        if len(self._requests[group][client_ip]) >= max_requests:
+            return False
+        
+        self._requests[group][client_ip].append(now)
+        return True
+
+
+_rate_limiter = RateLimiter()
+
+
+def rate_limit(group: str = "default"):
+    """FastAPI dependency for rate limiting."""
+    async def _check_rate(request: Request):
+        client_ip = request.client.host if request.client else "unknown"
+        if not _rate_limiter.check(group, client_ip):
+            raise HTTPException(
+                status_code=429,
+                detail=f"Rate limit exceeded for {group}. Try again later."
+            )
+    return _check_rate
+
+
+# =============================================================================
+# TRADE AUDIT LOGGER
+# =============================================================================
+
+class TradeAuditLogger:
+    """
+    Structured audit log for all trade pipeline activity.
+    
+    Every trade attempt is logged with:
+    - Timestamp (UTC ISO)
+    - User ID
+    - Symbol, side, quantity
+    - Pipeline stages passed
+    - Result (EXECUTED / REJECTED_AT_{stage})
+    """
+    
+    MAX_LOG_SIZE = 500  # Keep last 500 entries in memory
+    
+    def __init__(self):
+        self._log: List[Dict[str, Any]] = []
+    
+    def log_trade(self, entry: Dict[str, Any]):
+        """Add a trade audit entry."""
+        entry["timestamp"] = datetime.now(timezone.utc).isoformat()
+        self._log.append(entry)
+        
+        # Trim if over limit
+        if len(self._log) > self.MAX_LOG_SIZE:
+            self._log = self._log[-self.MAX_LOG_SIZE:]
+        
+        logger.info(f"TRADE_AUDIT: {json.dumps(entry)}")
+    
+    def get_recent(self, count: int = 50) -> List[Dict]:
+        """Get most recent audit entries."""
+        return self._log[-count:]
+
+
+_trade_audit = TradeAuditLogger()
+
+
+# =============================================================================
 # STARTUP & SHUTDOWN
 # =============================================================================
 @app.on_event("startup")
@@ -102,6 +200,14 @@ async def startup_event():
     logger.info("Execution: Dual-Path (MT5 + Binance)")
     logger.info("Security: Stealth Mode Active")
     logger.info("=" * 60)
+    
+    # STEP 0: Environment Validation Gate
+    try:
+        env_status = validate_environment()
+        logger.info(f"Environment validation passed. Trading ready: {env_status.trading_ready}")
+    except RuntimeError as e:
+        logger.critical(f"Environment validation FAILED: {e}")
+        logger.critical("System starting in DEGRADED mode — trading disabled")
     
     # Start the Heartbeat Scheduler
     scheduler.start_scheduler()
@@ -204,15 +310,71 @@ async def websocket_endpoint(websocket: WebSocket):
 
 
 # =============================================================================
-# CORS CONFIGURATION
+# CORS CONFIGURATION (Locked Down)
 # =============================================================================
+_allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:5173").split(",")
+_allowed_origins = [origin.strip() for origin in _allowed_origins if origin.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Sovereing choice: allow all for cloud flexibility
+    allow_origins=_allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "X-Request-ID"],
 )
+
+
+# =============================================================================
+# GLOBAL ERROR HANDLERS
+# =============================================================================
+
+@app.exception_handler(SecretRetrievalError)
+async def secret_error_handler(request: Request, exc: SecretRetrievalError):
+    """Handle vault secret retrieval failures gracefully."""
+    logger.critical(f"Secret retrieval failed: {exc.secret_id}")
+    return JSONResponse(
+        status_code=503,
+        content={
+            "status": "SERVICE_UNAVAILABLE",
+            "detail": "A required service credential is unavailable. System degraded.",
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+    )
+
+
+@app.exception_handler(VaultError)
+async def vault_error_handler(request: Request, exc: VaultError):
+    """Handle vault initialization errors."""
+    logger.critical(f"Vault error: {exc}")
+    return JSONResponse(
+        status_code=503,
+        content={
+            "status": "SERVICE_UNAVAILABLE",
+            "detail": "Secret management service unavailable.",
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+    )
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """
+    Global catch-all exception handler.
+    
+    Prevents raw exception messages from leaking to clients.
+    Logs full error server-side, returns safe message to client.
+    """
+    error_id = str(uuid4())[:8]
+    logger.error(f"Unhandled exception [{error_id}]: {type(exc).__name__}: {exc}", exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={
+            "status": "INTERNAL_ERROR",
+            "detail": "An unexpected error occurred. Contact system administrator.",
+            "error_id": error_id,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+    )
 
 
 # =============================================================================
@@ -220,14 +382,39 @@ app.add_middleware(
 # =============================================================================
 @app.get("/health")
 async def health_check():
-    """System health check."""
+    """System health check — hardened with full control layer status."""
     cb_manager = circuit_breaker.get_manager()
     trading_allowed, reason = cb_manager.is_trading_allowed()
     
+    # Include environment validation status
+    try:
+        env_status = get_env_status()
+        env_info = env_status.to_dict()
+    except Exception:
+        env_info = {"environment_valid": False, "trading_ready": False}
+    
+    # Execution engine status
+    engine = execution.get_engine()
+    mt5_connected = engine.mt5._initialized
+    is_paper = engine.config.use_paper_trading
+    
+    # Risk engine status
+    try:
+        risk_status = risk_governor.get_risk_status()
+        risk_active = risk_status.get("trading_enabled", False)
+    except Exception:
+        risk_active = False
+    
     return {
         "status": "ONLINE",
+        "version": "3.1.0",
+        "mt5_connection": mt5_connected,
+        "risk_engine": "active" if risk_active else "inactive",
+        "execution_layer": "ready" if (mt5_connected or is_paper) else "not_ready",
+        "mode": "paper" if is_paper else "live",
         "trading_enabled": trading_allowed,
         "trading_status": reason,
+        "environment": env_info,
         "timestamp": datetime.now(timezone.utc).isoformat()
     }
 
@@ -267,14 +454,18 @@ async def get_risk_status():
 # =============================================================================
 # MARKET ANALYSIS ENDPOINTS
 # =============================================================================
-@app.post("/analyze")
-async def analyze_market(data: Dict[str, Any] = Body(...)):
+@app.post("/analyze", dependencies=[Depends(rate_limit("default"))])
+async def analyze_market(
+    data: Dict[str, Any] = Body(...),
+    session: UserSession = Depends(get_current_session)
+):
     """
     Analyze market data using AI + Strategy Engine.
     
     This is advisory only - does not place trades.
+    Requires authentication (VIEWER+).
     """
-    logger.info("Received analysis request")
+    logger.info(f"Analysis request from user {session.user_id}")
     
     try:
         # Run AI analysis
@@ -288,19 +479,21 @@ async def analyze_market(data: Dict[str, Any] = Body(...)):
         
     except Exception as e:
         logger.error(f"Analysis route error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Analysis failed")
 
 
-@app.post("/analyze/full")
+@app.post("/analyze/full", dependencies=[Depends(rate_limit("default"))])
 async def full_market_analysis(
     symbol: str = Body(...),
     asset_class: str = Body(default="forex"),
-    timeframe: str = Body(default="M15")
+    timeframe: str = Body(default="M15"),
+    session: UserSession = Depends(get_current_session)
 ):
     """
     Full analysis using market data + all strategy modules.
+    Requires authentication (VIEWER+).
     """
-    logger.info(f"Full analysis request: {symbol}")
+    logger.info(f"Full analysis request: {symbol} from user {session.user_id}")
     
     try:
         # Fetch market data
@@ -332,25 +525,28 @@ async def full_market_analysis(
         
     except Exception as e:
         logger.error(f"Full analysis error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Analysis failed")
 
 
 # =============================================================================
 # TRADE EXECUTION ENDPOINTS
 # =============================================================================
-@app.post("/trade")
+@app.post("/trade", dependencies=[Depends(rate_limit("trade"))])
 async def place_trade(
     symbol: str = Body(...),
     side: str = Body(...),
     quantity: float = Body(...),
-    market_context: Dict[str, Any] = Body(default={})
+    market_context: Dict[str, Any] = Body(default={}),
+    session: UserSession = Depends(require_trader)
 ):
     """
-    The Sovereign Execution Flow: Council → Ensemble → Governor → Execute.
+    The Sovereign Execution Flow: Auth → Council → Ensemble → Governor → Execute.
     
     IMMUTABLE LAW: No trade without council quorum (3/5 agents agree).
+    IMMUTABLE LAW: No trade without authenticated TRADER session.
     
     Flow:
+    0. Authentication + Authorization (TRADER+)
     1. Stealth Mode check (system operational?)
     2. Multi-Agent Council deliberation (QUORUM REQUIRED)
     3. Model Ensemble prediction validation
@@ -358,19 +554,35 @@ async def place_trade(
     5. Risk Governor validation
     6. Circuit Breaker check
     7. Execution via dual-path engine
+    8. Audit log
     """
-    logger.info(f"NEXUS_TRADE_COMMAND: {side.upper()} {quantity} {symbol}")
+    logger.info(f"NEXUS_TRADE_COMMAND: {side.upper()} {quantity} {symbol} by user {session.user_id}")
     stealth = get_stealth_mode()
+    
+    # Initialize audit entry
+    audit_entry = {
+        "user_id": session.user_id,
+        "symbol": symbol,
+        "side": side,
+        "quantity": quantity,
+        "stages_passed": ["AUTH"],
+        "result": None,
+        "rejection_reason": None
+    }
     
     # Log trade attempt
     stealth.log_event("TRADE_ATTEMPT", {
-        "symbol": symbol, "side": side, "quantity": quantity
+        "symbol": symbol, "side": side, "quantity": quantity,
+        "user_id": session.user_id
     }, sensitivity="HIGH")
     
     try:
         # STEP 0: STEALTH MODE CHECK
         if not stealth.is_operational():
             logger.critical("System in PURGE mode - all trading halted")
+            audit_entry["result"] = "REJECTED_SYSTEM_PURGE"
+            audit_entry["rejection_reason"] = "System in emergency purge mode"
+            _trade_audit.log_trade(audit_entry)
             return {
                 "status": "REJECTED_SYSTEM_PURGE",
                 "reason": "System is in emergency purge mode",
@@ -406,6 +618,10 @@ async def place_trade(
                 "stage": "COUNCIL", "reason": council_decision.reasoning,
                 "votes": council_decision.vote_summary
             }, sensitivity="NORMAL")
+            audit_entry["stages_passed"].append("STEALTH")
+            audit_entry["result"] = "REJECTED_BY_COUNCIL"
+            audit_entry["rejection_reason"] = council_decision.reasoning
+            _trade_audit.log_trade(audit_entry)
             return {
                 "status": "REJECTED_BY_COUNCIL",
                 "reason": council_decision.reasoning,
@@ -425,6 +641,10 @@ async def place_trade(
         
         if ensemble_decision.should_halt:
             logger.warning(f"REJECTED BY ENSEMBLE: {ensemble_decision.reasoning}")
+            audit_entry["stages_passed"].extend(["STEALTH", "COUNCIL"])
+            audit_entry["result"] = "REJECTED_BY_ENSEMBLE"
+            audit_entry["rejection_reason"] = ensemble_decision.reasoning
+            _trade_audit.log_trade(audit_entry)
             return {
                 "status": "REJECTED_BY_ENSEMBLE",
                 "reason": ensemble_decision.reasoning,
@@ -440,6 +660,10 @@ async def place_trade(
         cycle_ok, cycle_msg = ancient_logic.check_cycle(market_context)
         if not cycle_ok:
             logger.warning(f"REJECTED BY GOVERNOR (Ancient Logic): {cycle_msg}")
+            audit_entry["stages_passed"].extend(["STEALTH", "COUNCIL", "ENSEMBLE"])
+            audit_entry["result"] = "REJECTED_BY_GOVERNOR"
+            audit_entry["rejection_reason"] = cycle_msg
+            _trade_audit.log_trade(audit_entry)
             return {
                 "status": "REJECTED_BY_GOVERNOR",
                 "reason": cycle_msg,
@@ -456,6 +680,10 @@ async def place_trade(
         )
         if not risk_ok:
             logger.warning(f"REJECTED BY GOVERNOR (Risk Filter): {risk_msg}")
+            audit_entry["stages_passed"].extend(["STEALTH", "COUNCIL", "ENSEMBLE", "ANCIENT_LOGIC"])
+            audit_entry["result"] = "REJECTED_BY_GOVERNOR"
+            audit_entry["rejection_reason"] = risk_msg
+            _trade_audit.log_trade(audit_entry)
             return {
                 "status": "REJECTED_BY_GOVERNOR",
                 "reason": risk_msg,
@@ -467,6 +695,10 @@ async def place_trade(
         trading_allowed, cb_reason = cb_manager.is_trading_allowed()
         if not trading_allowed:
             logger.warning(f"REJECTED BY CIRCUIT BREAKER: {cb_reason}")
+            audit_entry["stages_passed"].extend(["STEALTH", "COUNCIL", "ENSEMBLE", "ANCIENT_LOGIC", "RISK"])
+            audit_entry["result"] = "REJECTED_BY_CIRCUIT_BREAKER"
+            audit_entry["rejection_reason"] = cb_reason
+            _trade_audit.log_trade(audit_entry)
             return {
                 "status": "REJECTED_BY_CIRCUIT_BREAKER",
                 "reason": cb_reason,
@@ -475,7 +707,7 @@ async def place_trade(
 
         # STEP 6: EXECUTION
         engine = execution.get_engine()
-        result = engine.execute_trade(symbol, side, adjusted_quantity)
+        result = engine.execute_trade(symbol, side, adjusted_quantity, skip_risk_check=True)
         
         if result.status == execution.OrderStatus.FAILED:
             stealth.log_event("TRADE_FAILED", {
@@ -490,6 +722,13 @@ async def place_trade(
             "adjusted_quantity": adjusted_quantity,
             "council_confidence": council_decision.consensus_confidence
         }, sensitivity="HIGH")
+        
+        # Full audit trail for successful execution
+        audit_entry["stages_passed"] = ["AUTH", "STEALTH", "COUNCIL", "ENSEMBLE", "ANCIENT_LOGIC", "RISK", "CIRCUIT_BREAKER", "EXECUTED"]
+        audit_entry["result"] = "EXECUTED"
+        audit_entry["adjusted_quantity"] = adjusted_quantity
+        audit_entry["council_confidence"] = council_decision.consensus_confidence
+        _trade_audit.log_trade(audit_entry)
         
         return stealth.minimize_response({
             "status": "EXECUTED",
@@ -509,16 +748,23 @@ async def place_trade(
     except Exception as e:
         logger.error(f"Trade route error: {e}")
         stealth.log_event("TRADE_ERROR", {"error": str(e)}, sensitivity="CRITICAL")
-        raise HTTPException(status_code=500, detail=str(e))
+        audit_entry["result"] = "ERROR"
+        audit_entry["rejection_reason"] = str(e)
+        _trade_audit.log_trade(audit_entry)
+        raise HTTPException(status_code=500, detail="Trade execution failed")
 
 
 # =============================================================================
 # EMERGENCY CONTROLS
 # =============================================================================
-@app.post("/kill")
-async def emergency_kill(symbol: str = Body(None), purge: bool = Body(False)):
+@app.post("/kill", dependencies=[Depends(rate_limit("kill"))])
+async def emergency_kill(
+    symbol: str = Body(None),
+    purge: bool = Body(False),
+    session: UserSession = Depends(require_trader)
+):
     """Emergency Kill Switch: Cancels all orders and disables trading."""
-    logger.critical("EMERGENCY KILL TRIGGERED VIA API")
+    logger.critical(f"EMERGENCY KILL TRIGGERED VIA API by user {session.user_id}")
     stealth = get_stealth_mode()
     
     # Log critical event
@@ -556,11 +802,14 @@ async def emergency_kill(symbol: str = Body(None), purge: bool = Body(False)):
 
 
 @app.post("/resume")
-async def resume_trading(admin_key: str = Body(...)):
+async def resume_trading(
+    admin_key: str = Body(...),
+    session: UserSession = Depends(require_trader)
+):
     """
     Resume trading after emergency halt (requires admin key).
     """
-    logger.warning("RESUME TRADING REQUESTED")
+    logger.warning(f"RESUME TRADING REQUESTED by user {session.user_id}")
     
     try:
         # Reset circuit breaker
@@ -590,7 +839,10 @@ async def resume_trading(admin_key: str = Body(...)):
 # EQUITY MANAGEMENT
 # =============================================================================
 @app.post("/update_equity")
-async def update_equity(equity: float = Body(...)):
+async def update_equity(
+    equity: float = Body(...),
+    session: UserSession = Depends(require_trader)
+):
     """Update governor equity for drawdown tracking."""
     risk_governor.update_equity(equity)
     return {
@@ -652,10 +904,10 @@ async def get_recent_orders():
 # =============================================================================
 # MASTER AI COMMAND INTERFACE
 # =============================================================================
-@app.post("/ai/command")
+@app.post("/ai/command", dependencies=[Depends(rate_limit("ai"))])
 async def master_ai_command(
     command: str = Body(..., embed=True),
-    authorization: Optional[str] = Header(None)
+    session: UserSession = Depends(require_trader)
 ):
     """
     Master AI Command Interface.
@@ -664,24 +916,15 @@ async def master_ai_command(
     Only the Master can execute sensitive commands.
     """
     from app.services.master_ai import get_master_ai
-    from app.services.auth_service import get_auth_service
     
     master_ai = get_master_ai()
     auth_service = get_auth_service()
     
-    # Determine if user is master
-    is_master = False
-    user_id = "anonymous"
-    
-    if authorization:
-        token = authorization.replace("Bearer ", "")
-        session = auth_service.validate_request(token)
-        if session:
-            is_master = auth_service.is_master(session)
-            user_id = session.user_id
+    # Session already validated by Depends(require_trader)
+    is_master = auth_service.is_master(session)
     
     # Process command
-    result = await master_ai.process_command(command, user_id, is_master)
+    result = await master_ai.process_command(command, session.user_id, is_master)
     
     return result.to_response()
 
@@ -705,7 +948,7 @@ async def master_ai_status():
 # =============================================================================
 # AUTHENTICATION ENDPOINTS
 # =============================================================================
-@app.post("/auth/login")
+@app.post("/auth/login", dependencies=[Depends(rate_limit("auth"))])
 async def login(
     id_token: str = Body(..., embed=True),
     device_id: Optional[str] = Body(None),
@@ -716,9 +959,8 @@ async def login(
     
     Returns session token for subsequent requests.
     NO CREDENTIALS RETURNED TO FRONTEND.
+    Rate limited: 20 req/min per IP.
     """
-    from app.services.auth_service import get_auth_service
-    
     auth_service = get_auth_service()
     
     # Get IP address
@@ -744,29 +986,17 @@ async def login(
 
 
 @app.post("/auth/logout")
-async def logout(authorization: str = Header(...)):
+async def logout(session: UserSession = Depends(get_current_session)):
     """Logout and invalidate session."""
-    from app.services.auth_service import get_auth_service
-    
-    token = authorization.replace("Bearer ", "")
     auth_service = get_auth_service()
-    auth_service.logout(token)
+    auth_service.logout(session.session_token)
     
     return {"status": "logged_out"}
 
 
 @app.get("/auth/session")
-async def get_session(authorization: str = Header(...)):
+async def get_session(session: UserSession = Depends(get_current_session)):
     """Get current session info."""
-    from app.services.auth_service import get_auth_service
-    
-    token = authorization.replace("Bearer ", "")
-    auth_service = get_auth_service()
-    session = auth_service.validate_request(token)
-    
-    if not session:
-        raise HTTPException(status_code=401, detail="Invalid session")
-    
     return session.to_frontend()
 
 
@@ -779,25 +1009,16 @@ async def register_trading_account(
     login: str = Body(...),
     password: str = Body(...),
     server: str = Body(...),
-    authorization: str = Header(...)
+    session: UserSession = Depends(require_trader)
 ):
     """
     Register a trading account.
     
     Credentials are encrypted and stored server-side only.
     FRONTEND NEVER SEES CREDENTIALS AGAIN.
+    Requires TRADER+ authorization.
     """
-    from app.services.auth_service import get_auth_service, AuthLevel
-    
-    token = authorization.replace("Bearer ", "")
     auth_service = get_auth_service()
-    session = auth_service.validate_request(token)
-    
-    if not session:
-        raise HTTPException(status_code=401, detail="Invalid session")
-    
-    if session.auth_level not in [AuthLevel.TRADER, AuthLevel.ADMIN, AuthLevel.MASTER]:
-        raise HTTPException(status_code=403, detail="Insufficient permissions")
     
     account_id = auth_service.trading_accounts.register_account(
         user_id=session.user_id,
@@ -815,17 +1036,9 @@ async def register_trading_account(
 
 
 @app.get("/accounts/list")
-async def list_trading_accounts(authorization: str = Header(...)):
+async def list_trading_accounts(session: UserSession = Depends(get_current_session)):
     """List user's trading accounts (safe info only)."""
-    from app.services.auth_service import get_auth_service
-    
-    token = authorization.replace("Bearer ", "")
     auth_service = get_auth_service()
-    session = auth_service.validate_request(token)
-    
-    if not session:
-        raise HTTPException(status_code=401, detail="Invalid session")
-    
     accounts = auth_service.trading_accounts.list_user_accounts(session.user_id)
     
     return {"accounts": accounts, "count": len(accounts)}
@@ -835,14 +1048,16 @@ async def list_trading_accounts(authorization: str = Header(...)):
 # LIVE DATA ENDPOINTS
 # =============================================================================
 @app.get("/data/tick/{symbol}")
-async def get_live_tick(symbol: str):
+async def get_live_tick(
+    symbol: str,
+    session: UserSession = Depends(get_current_session)
+):
     """
     Get live tick data for symbol.
     
     Safe data only - no API keys exposed.
+    Requires authentication (VIEWER+).
     """
-    from app.services.live_data import get_live_data
-    
     manager = get_live_data()
     data = manager.get_frontend_data(symbol.upper())
     
@@ -854,11 +1069,30 @@ async def get_live_tick(symbol: str):
 
 @app.get("/data/health")
 async def get_data_health():
-    """Check live data integrity."""
-    from app.services.live_data import get_live_data
-    
+    """Check live data integrity — public endpoint."""
     manager = get_live_data()
     return manager.check_data_integrity()
+
+
+# =============================================================================
+# TRADE AUDIT ENDPOINT
+# =============================================================================
+@app.get("/audit/trades")
+async def get_trade_audit(
+    count: int = 50,
+    session: UserSession = Depends(require_admin)
+):
+    """
+    Get recent trade audit log.
+    
+    Requires ADMIN+ authorization.
+    Returns timestamped log of all trade pipeline activity.
+    """
+    return {
+        "audit_log": _trade_audit.get_recent(count),
+        "total_logged": len(_trade_audit._log),
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
 
 
 # =============================================================================

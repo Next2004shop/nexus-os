@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Activity, ShieldAlert, Terminal, Zap, Power } from 'lucide-react';
 import { checkHealth, triggerKillSwitch } from '../api/client';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import ConnectionStatus from './ConnectionStatus';
 
 const Dashboard: React.FC = () => {
-    const [status, setStatus] = useState<'online' | 'offline'>('offline');
+    const [status, setStatus] = useState<'connecting' | 'online' | 'offline'>('connecting');
     const [logs, setLogs] = useState<{ time: string, msg: string, type: 'info' | 'warn' | 'brain' }[]>([]);
     const [priceData] = useState([
         { name: '10:00', price: 65000 },
@@ -26,7 +27,19 @@ const Dashboard: React.FC = () => {
             }
         };
         init();
-    }, []);
+
+        // Auto-reconnect every 30s when offline
+        const interval = setInterval(async () => {
+            if (status === 'offline') {
+                try {
+                    await checkHealth();
+                    setStatus('online');
+                    addLog("RECONNECTED: Nexus Core handshake restored.", 'info');
+                } catch { /* still offline */ }
+            }
+        }, 30000);
+        return () => clearInterval(interval);
+    }, [status]);
 
     const addLog = (msg: string, type: 'info' | 'warn' | 'brain') => {
         const time = new Date().toLocaleTimeString();
@@ -43,8 +56,12 @@ const Dashboard: React.FC = () => {
         }
     };
 
+    if (status !== 'online') {
+        return <ConnectionStatus status={status} />;
+    }
+
     return (
-        <div className="min-h-screen p-6 grid grid-cols-12 gap-6 font-mono selection:bg-green-500 selection:text-black">
+        <div className="p-6 grid grid-cols-12 gap-6 font-mono selection:bg-green-500 selection:text-black">
             {/* SECTION A: SYSTEM STATUS */}
             <div className="col-span-12 lg:col-span-3 border border-zinc-800 bg-zinc-900/50 p-4 rounded-sm flex flex-col justify-between">
                 <div>

@@ -4,8 +4,6 @@ const path = require('path');
 
 // Configuration
 const BACKEND_URL = 'https://nexus-core-29008535318.us-central1.run.app';
-// const FRONTEND_URL = 'https://nexus-frontend-5fyoxvonna-uc.a.run.app'; // Production
-const FRONTEND_URL = 'http://localhost:5173'; // Local Development (Capital Warfare UI)
 
 let mainWindow;
 let tray;
@@ -44,12 +42,10 @@ function createWindow() {
     });
 
     // Load the frontend
-    // mainWindow.loadURL(FRONTEND_URL);
     mainWindow.loadFile(path.join(__dirname, 'app_renderer', 'index.html'));
 
     // Show when ready
     mainWindow.once('ready-to-show', () => {
-        mainWindow.webContents.openDevTools();
         mainWindow.show();
     });
 
@@ -130,19 +126,10 @@ app.whenReady().then(() => {
         console.warn("[NEXUS] Tray icon failed to load (Non-Critical):", e);
     }
 
-    // Check for updates (Safe Mode)
-    try {
-        // autoUpdater.checkForUpdatesAndNotify();
-        console.log('[NEXUS] Updater disabled for stability.');
-    } catch (err) {
-        console.error('[NEXUS] Updater error:', err);
-    }
 });
 
 app.on('window-all-closed', () => {
-    if (process.platform !== 'darwin') {
-        // Don't quit on Windows/Linux - stay in tray
-    }
+    // Stay in tray on all platforms — do not quit
 });
 
 app.on('activate', () => {
@@ -164,16 +151,6 @@ process.on('unhandledRejection', (reason, promise) => {
     // Prevent app quit
 });
 
-// Auto-updater events (Listeners preserved but inactive)
-/* 
-autoUpdater.on('update-available', () => {
-    mainWindow.webContents.send('update-available');
-});
- 
-autoUpdater.on('update-downloaded', () => {
-    mainWindow.webContents.send('update-downloaded');
-});
-*/
-/* ipcMain handlers remain... */
+// IPC Handlers
 ipcMain.handle('get-backend-url', () => BACKEND_URL);
 ipcMain.handle('get-app-version', () => app.getVersion());

@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C /c/Users/Danteh/Desktop/nexus-ai ls-files:*)",
+      "Bash(set HOME=%USERPROFILE%)",
+      "Bash(git -C \"C:\\\\Users\\\\Danteh\\\\Desktop\\\\nexus-ai\" remote -v)",
+      "Bash(cmd /c \"git remote -v\")",
+      "Bash(powershell -Command \"git remote -v\")",
+      "Bash(MSYS_NO_PATHCONV=1 git remote:*)",
+      "Bash(dir:*)",
+      "Bash(findstr:*)"
+    ]
+  }
+}

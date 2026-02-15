@@ -1,0 +1,34 @@
+
+# Root items to ignore
+.agent/
+.git/
+.tools/
+.venv/
+.vscode/
+build_staging/
+infrastructure/
+nexus-desktop/
+
+node_modules/
+pages/
+php/
+styles/
+tests/
+
+# Root files
+*.zip
+*.log
+*.txt
+deploy.ps1
+deploy_to_gcp.ps1
+
+# Inner junk
+nexus-cloud/frontend/
+nexus-cloud/backend/
+NEXUS-GENESIS-OMEGA/nexus-terminal/node_modules/
+NEXUS-GENESIS-OMEGA/nexus-terminal/dist/
+NEXUS-GENESIS-OMEGA/nexus-terminal/.firebase/
+NEXUS-GENESIS-OMEGA/nexus-terminal/android/
+NEXUS-GENESIS-OMEGA/nexus-terminal/electron/
+NEXUS-GENESIS-OMEGA/nexus-core/__pycache__/
+NEXUS-GENESIS-OMEGA/nexus-core/venv/

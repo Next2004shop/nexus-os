@@ -532,37 +532,107 @@ class AuthService:
 
 
 # =============================================================================
-# DECORATORS
+# FASTAPI AUTH DEPENDENCIES
 # =============================================================================
 
-def require_auth(min_level: AuthLevel = AuthLevel.VIEWER):
-    """Decorator to require authentication."""
-    def decorator(func):
-        @wraps(func)
-        async def wrapper(*args, **kwargs):
-            from fastapi import HTTPException, Header
-            
-            auth_header = kwargs.get("authorization")
-            if not auth_header:
-                raise HTTPException(status_code=401, detail="Authorization required")
-            
-            token = auth_header.replace("Bearer ", "")
-            
-            auth_service = get_auth_service()
-            session = auth_service.validate_request(token)
-            
-            if not session:
-                raise HTTPException(status_code=401, detail="Invalid session")
-            
-            # Check auth level
-            level_order = [AuthLevel.VIEWER, AuthLevel.TRADER, AuthLevel.ADMIN, AuthLevel.MASTER]
-            if level_order.index(session.auth_level) < level_order.index(min_level):
-                raise HTTPException(status_code=403, detail="Insufficient permissions")
-            
-            kwargs["session"] = session
-            return await func(*args, **kwargs)
-        return wrapper
-    return decorator
+# Auth level hierarchy for permission checks
+_LEVEL_ORDER = [AuthLevel.VIEWER, AuthLevel.TRADER, AuthLevel.ADMIN, AuthLevel.MASTER]
+
+
+def _extract_session(authorization: str) -> UserSession:
+    """
+    Internal: Extract and validate session from Authorization header.
+    
+    Raises HTTPException on failure.
+    """
+    from fastapi import HTTPException
+    
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Authorization required. Send: Bearer <session_token>")
+    
+    token = authorization.replace("Bearer ", "")
+    
+    auth_service = get_auth_service()
+    session = auth_service.validate_request(token)
+    
+    if not session:
+        raise HTTPException(status_code=401, detail="Invalid or expired session")
+    
+    return session
+
+
+def _check_level(session: UserSession, min_level: AuthLevel):
+    """Internal: Check session meets minimum auth level."""
+    from fastapi import HTTPException
+    
+    if _LEVEL_ORDER.index(session.auth_level) < _LEVEL_ORDER.index(min_level):
+        raise HTTPException(
+            status_code=403,
+            detail=f"Insufficient permissions. Required: {min_level.value}, current: {session.auth_level.value}"
+        )
+
+
+async def get_current_session(authorization: str = Header(None)) -> UserSession:
+    """
+    FastAPI dependency: Returns current valid session.
+    
+    Usage: session: UserSession = Depends(get_current_session)
+    Any authenticated user (VIEWER+) can access.
+    """
+    from fastapi import HTTPException
+    
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Authorization required")
+    
+    return _extract_session(authorization)
+
+
+async def require_trader(authorization: str = Header(None)) -> UserSession:
+    """
+    FastAPI dependency: Requires TRADER level or above.
+    
+    Usage: session: UserSession = Depends(require_trader)
+    """
+    from fastapi import HTTPException
+    
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Authorization required")
+    
+    session = _extract_session(authorization)
+    _check_level(session, AuthLevel.TRADER)
+    return session
+
+
+async def require_admin(authorization: str = Header(None)) -> UserSession:
+    """
+    FastAPI dependency: Requires ADMIN level or above.
+    
+    Usage: session: UserSession = Depends(require_admin)
+    """
+    from fastapi import HTTPException
+    
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Authorization required")
+    
+    session = _extract_session(authorization)
+    _check_level(session, AuthLevel.ADMIN)
+    return session
+
+
+async def require_master(authorization: str = Header(None)) -> UserSession:
+    """
+    FastAPI dependency: Requires MASTER level.
+    
+    Usage: session: UserSession = Depends(require_master)
+    """
+    from fastapi import HTTPException
+    
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Authorization required")
+    
+    session = _extract_session(authorization)
+    _check_level(session, AuthLevel.MASTER)
+    return session
 
 
 # =============================================================================

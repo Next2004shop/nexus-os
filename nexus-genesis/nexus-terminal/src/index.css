@@ -4,6 +4,6 @@
 
 @layer base {
     body {
-        @apply bg-zinc-950 text-zinc-400 overflow-hidden;
+        @apply bg-zinc-950 text-zinc-400;
     }
 }

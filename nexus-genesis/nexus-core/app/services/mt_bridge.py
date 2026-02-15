@@ -531,10 +531,187 @@ class TradeExecutionGateway:
 
 
 # =============================================================================
-# GLOBAL INSTANCE
+# SESSION-BOUND MT BRIDGE (Upgrade Layer)
+# =============================================================================
+
+class SessionBoundMTBridge:
+    """
+    Session-bound wrapper for MTBridgeClient.
+    
+    Ensures:
+    - MT5 connection is initialized ONLY after user login
+    - Each connection is bound to an authenticated session
+    - Exponential backoff reconnection (3 retries: 1s → 2s → 4s)
+    - Connection timeout detection (30s default)
+    - Graceful failure instead of process crash
+    
+    Existing MTBridgeClient and TradeExecutionGateway are untouched.
+    This is an upgrade layer, not a rewrite.
+    """
+    
+    MAX_RETRIES = 3
+    BASE_BACKOFF = 1.0  # seconds
+    CONNECTION_TIMEOUT = 30  # seconds
+    
+    def __init__(self, bridge_url: str = "http://localhost:5000"):
+        self.bridge_url = bridge_url
+        # Per-user connection state: {user_id: {client, connected, last_activity, session_id}}
+        self._connections: Dict[str, Dict[str, Any]] = {}
+        self._lock = None  # Created lazily since asyncio loop may not exist yet
+    
+    def _get_user_state(self, user_id: str) -> Optional[Dict[str, Any]]:
+        """Get connection state for a user."""
+        return self._connections.get(user_id)
+    
+    async def initialize_for_session(self, user_id: str, session_token: str) -> bool:
+        """
+        Initialize MT5 connection for an authenticated session.
+        
+        Must be called AFTER login. Connection is bound to this user.
+        Returns True if connected, False otherwise.
+        """
+        import asyncio
+        
+        # Check if already connected for this user
+        existing = self._connections.get(user_id)
+        if existing and existing.get("connected"):
+            existing["last_activity"] = time.time()
+            logger.info(f"MT5 bridge already connected for user {user_id[:8]}...")
+            return True
+        
+        # Create new client for this user
+        client = MTBridgeClient(
+            bridge_url=self.bridge_url,
+            timeout=self.CONNECTION_TIMEOUT
+        )
+        
+        # Attempt connection with exponential backoff
+        connected = await self._connect_with_backoff(client, user_id)
+        
+        # Store connection state
+        self._connections[user_id] = {
+            "client": client,
+            "connected": connected,
+            "session_token": session_token,
+            "created_at": time.time(),
+            "last_activity": time.time(),
+            "reconnect_count": 0,
+        }
+        
+        if connected:
+            logger.info(f"MT5 bridge connected for user {user_id[:8]}...")
+        else:
+            logger.warning(f"MT5 bridge connection FAILED for user {user_id[:8]}... (will retry on next trade)")
+        
+        return connected
+    
+    async def _connect_with_backoff(self, client: MTBridgeClient, user_id: str) -> bool:
+        """
+        Attempt connection with exponential backoff.
+        
+        Retries: 1s → 2s → 4s then gives up.
+        """
+        import asyncio
+        
+        for attempt in range(self.MAX_RETRIES):
+            try:
+                connected = await client.connect()
+                if connected:
+                    return True
+            except Exception as e:
+                logger.warning(f"MT5 connection attempt {attempt + 1}/{self.MAX_RETRIES} failed: {e}")
+            
+            if attempt < self.MAX_RETRIES - 1:
+                backoff = self.BASE_BACKOFF * (2 ** attempt)
+                logger.info(f"Retrying MT5 connection in {backoff}s...")
+                await asyncio.sleep(backoff)
+        
+        return False
+    
+    async def reconnect(self, user_id: str) -> bool:
+        """Attempt to reconnect for a user."""
+        state = self._connections.get(user_id)
+        if not state:
+            logger.error(f"No connection state for user {user_id[:8]}... — must initialize first")
+            return False
+        
+        client = state["client"]
+        state["reconnect_count"] += 1
+        
+        connected = await self._connect_with_backoff(client, user_id)
+        state["connected"] = connected
+        state["last_activity"] = time.time()
+        
+        return connected
+    
+    def is_connected(self, user_id: str) -> bool:
+        """Check if user has an active MT5 connection."""
+        state = self._connections.get(user_id)
+        if not state:
+            return False
+        
+        # Check for timeout
+        if time.time() - state["last_activity"] > self.CONNECTION_TIMEOUT:
+            state["connected"] = False
+            logger.warning(f"MT5 connection timed out for user {user_id[:8]}...")
+            return False
+        
+        return state.get("connected", False)
+    
+    def get_client(self, user_id: str) -> Optional[MTBridgeClient]:
+        """
+        Get the MT5 client for a user.
+        
+        Returns None if not connected. Caller should check is_connected() first
+        or handle None gracefully.
+        """
+        state = self._connections.get(user_id)
+        if not state or not state.get("connected"):
+            return None
+        
+        state["last_activity"] = time.time()
+        return state["client"]
+    
+    async def disconnect(self, user_id: str):
+        """Disconnect and cleanup for a user."""
+        state = self._connections.pop(user_id, None)
+        if state and state.get("client"):
+            try:
+                await state["client"].disconnect()
+            except Exception as e:
+                logger.error(f"Error disconnecting MT5 for user {user_id[:8]}...: {e}")
+            logger.info(f"MT5 bridge disconnected for user {user_id[:8]}...")
+    
+    async def disconnect_all(self):
+        """Disconnect all user connections."""
+        for user_id in list(self._connections.keys()):
+            await self.disconnect(user_id)
+    
+    def get_status(self) -> Dict[str, Any]:
+        """Get connection status for all users."""
+        return {
+            "active_connections": len([
+                uid for uid, state in self._connections.items()
+                if state.get("connected")
+            ]),
+            "total_sessions": len(self._connections),
+            "connections": {
+                uid[:8] + "...": {
+                    "connected": state.get("connected", False),
+                    "reconnect_count": state.get("reconnect_count", 0),
+                    "age_seconds": int(time.time() - state.get("created_at", time.time())),
+                }
+                for uid, state in self._connections.items()
+            }
+        }
+
+
+# =============================================================================
+# GLOBAL INSTANCES
 # =============================================================================
 
 _gateway: Optional[TradeExecutionGateway] = None
+_session_bridge: Optional[SessionBoundMTBridge] = None
 
 
 def get_mt_gateway() -> TradeExecutionGateway:
@@ -543,3 +720,12 @@ def get_mt_gateway() -> TradeExecutionGateway:
     if _gateway is None:
         _gateway = TradeExecutionGateway()
     return _gateway
+
+
+def get_session_bridge() -> SessionBoundMTBridge:
+    """Get or create session-bound MT bridge."""
+    global _session_bridge
+    if _session_bridge is None:
+        _session_bridge = SessionBoundMTBridge()
+    return _session_bridge
+
