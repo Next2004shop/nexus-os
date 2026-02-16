@@ -20,7 +20,8 @@ from typing import Dict, Any, List, Optional
 from dataclasses import dataclass, field
 
 # Import internal state accessors
-from app.services.risk_governor import get_risk_status
+from risk.risk_governor import get_risk_status
+from system.runtime_guard import get_guard
 
 logger = logging.getLogger("nexus.telemetry")
 
@@ -37,6 +38,7 @@ class SystemMetrics:
     system_mode: str = "RUNNING"
     latency_ms: float = 0.0
     error_rate: float = 0.0
+    runtime_status: str = "UNKNOWN"
     
     # Warning flags
     warning_drawdown: bool = False
@@ -117,6 +119,19 @@ class TelemetryEngine:
         # 1. Get Risk State
         risk_state = get_risk_status() # This is fast (in-memory)
         
+        # 1.5. Get Runtime Guard Status
+        try:
+            from system.runtime_guard import get_guard
+            guard_status = get_guard().get_status()
+            self._metrics.runtime_status = guard_status["mode"]
+        except ImportError:
+            self._metrics.runtime_status = "UNKNOWN"
+        except Exception as e:
+            logger.error(f"Failed to get guard status: {e}")
+            self._metrics.runtime_status = "ERROR"
+        
+
+        
         # 2. Update scalar metrics
         self._metrics.equity = risk_state["equity"]["current"]
         self._metrics.balance = risk_state["equity"]["initial"] # Using initial as balance proxy if balance not in status
@@ -165,6 +180,7 @@ class TelemetryEngine:
                 "drawdown": self._metrics.drawdown,
                 "open_positions": self._metrics.open_positions,
                 "system_mode": self._metrics.system_mode,
+                "runtime_status": self._metrics.runtime_status,
                 "latency_ms": self._metrics.latency_ms,
                 "error_rate": self._metrics.error_rate,
                 "margin_usage": self._metrics.margin_usage

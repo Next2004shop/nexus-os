@@ -34,6 +34,7 @@ interface TelemetryData {
         system_mode: string;
         latency_ms: number;
         error_rate: number;
+        runtime_status: string;
     };
     history: {
         equity: { timestamp: string; value: number }[];
@@ -218,9 +219,21 @@ export default function DashboardPage() {
                         <h3 className="text-xs text-nexus-muted uppercase tracking-wider mb-4">Diagnostics</h3>
                         <div className="space-y-4">
                             <div className="flex justify-between items-center">
+                                <span className="text-sm text-nexus-muted">Runtime Guard</span>
+                                <span className={`px-2 py-0.5 rounded text-xs font-mono border ${metrics?.runtime_status === 'RUNNING' ? 'bg-green-500/10 text-nexus-green border-green-500/20' :
+                                    metrics?.runtime_status === 'RECOVERING' ? 'bg-amber-500/10 text-nexus-amber border-amber-500/20 animate-pulse' :
+                                        'bg-red-500/10 text-nexus-red border-red-500/20'
+                                    }`}>
+                                    <span className={`inline-block w-1.5 h-1.5 rounded-full mr-1.5 ${metrics?.runtime_status === 'RUNNING' ? 'bg-nexus-green' :
+                                        metrics?.runtime_status === 'RECOVERING' ? 'bg-nexus-amber' : 'bg-nexus-red'
+                                        }`}></span>
+                                    {metrics?.runtime_status || 'UNKNOWN'}
+                                </span>
+                            </div>
+                            <div className="flex justify-between items-center">
                                 <span className="text-sm text-nexus-muted">System Mode</span>
                                 <span className={`px-2 py-0.5 rounded text-xs font-mono ${metrics?.system_mode === 'NORMAL' ? 'bg-green-500/10 text-nexus-green' :
-                                        metrics?.system_mode === 'SHUTDOWN' ? 'bg-red-500/10 text-nexus-red' : 'bg-nexus-accent/10 text-nexus-accent'
+                                    metrics?.system_mode === 'SHUTDOWN' ? 'bg-red-500/10 text-nexus-red' : 'bg-nexus-accent/10 text-nexus-accent'
                                     }`}>
                                     {metrics?.system_mode || 'OFFLINE'}
                                 </span>

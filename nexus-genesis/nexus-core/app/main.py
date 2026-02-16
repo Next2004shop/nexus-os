@@ -73,7 +73,11 @@ from command.api import router as command_api_router
 from risk.api import router as risk_api_router
 from intelligence.api import router as intelligence_api_router
 from telemetry.api import router as telemetry_api_router
+from risk.api import router as risk_api_router
+from intelligence.api import router as intelligence_api_router
+from telemetry.api import router as telemetry_api_router
 from telemetry.telemetry_engine import get_telemetry
+from system.runtime_guard import get_guard
 
 # =============================================================================
 # LOGGING + UPTIME
@@ -303,6 +307,9 @@ async def startup_event():
 
     # Start Telemetry Engine
     await get_telemetry().start()
+    
+    # Start Runtime Guard
+    await get_guard().start()
 
     logger.info("NEXUS SOVEREIGN SYSTEM ONLINE")
 
@@ -335,6 +342,9 @@ async def shutdown_event():
     
     # Stop Telemetry Engine
     await get_telemetry().stop()
+    
+    # Stop Runtime Guard
+    await get_guard().stop()
     
     logger.info("NEXUS CORE OFFLINE")
 
