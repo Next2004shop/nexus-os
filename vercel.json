@@ -1,0 +1,11 @@
+{
+    "buildCommand": "cd nexus-genesis/nexus-terminal && npm install && npm run build",
+    "outputDirectory": "nexus-genesis/nexus-terminal/dist",
+    "framework": "vite",
+    "rewrites": [
+        {
+            "source": "/(.*)",
+            "destination": "/index.html"
+        }
+    ]
+}
