@@ -72,6 +72,8 @@ from auth import auth_router, AuthMiddleware, seed_admin
 from command.api import router as command_api_router
 from risk.api import router as risk_api_router
 from intelligence.api import router as intelligence_api_router
+from telemetry.api import router as telemetry_api_router
+from telemetry.telemetry_engine import get_telemetry
 
 # =============================================================================
 # LOGGING + UPTIME
@@ -104,6 +106,9 @@ app.include_router(risk_api_router)
 
 # Mount Intelligence API
 app.include_router(intelligence_api_router)
+
+# Mount Telemetry API
+app.include_router(telemetry_api_router)
 
 
 # =============================================================================
@@ -296,6 +301,9 @@ async def startup_event():
     telegram = get_telegram_service()
     await telegram.start()
 
+    # Start Telemetry Engine
+    await get_telemetry().start()
+
     logger.info("NEXUS SOVEREIGN SYSTEM ONLINE")
 
 
@@ -321,8 +329,12 @@ async def shutdown_event():
     await provider.close()
     
     # Shutdown execution engine
+    # Shutdown execution engine
     engine = execution.get_engine()
     engine.shutdown()
+    
+    # Stop Telemetry Engine
+    await get_telemetry().stop()
     
     logger.info("NEXUS CORE OFFLINE")
 

@@ -1,92 +1,139 @@
 import React, { useEffect, useState } from 'react';
-import { checkHealth } from '../api/client';
+import api from '../api/client';
 import {
     DollarSign,
     TrendingUp,
     BarChart3,
     Activity,
     Zap,
+    AlertTriangle,
+    Shield
 } from 'lucide-react';
+import {
+    LineChart,
+    Line,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
+    ResponsiveContainer,
+    AreaChart,
+    Area
+} from 'recharts';
 
-interface HealthData {
-    status: string;
-    uptime: string;
-    mt5_connected: boolean;
-    version: string;
-    risk_engine: string;
-    execution_layer: string;
-    mode: string;
-    trading_enabled: boolean;
-    trading_status: string;
+interface TelemetryData {
+    metrics: {
+        equity: number;
+        balance: number;
+        floating_pl: number;
+        daily_return: number;
+        win_rate: number;
+        drawdown: number;
+        open_positions: number;
+        margin_usage: number;
+        system_mode: string;
+        latency_ms: number;
+        error_rate: number;
+    };
+    history: {
+        equity: { timestamp: string; value: number }[];
+        pnl: { timestamp: string; value: number }[];
+    };
+    warnings: {
+        drawdown: boolean;
+        latency: boolean;
+        errors: boolean;
+    };
 }
 
 export default function DashboardPage() {
-    const [health, setHealth] = useState<HealthData | null>(null);
+    const [data, setData] = useState<TelemetryData | null>(null);
+    const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
 
-    useEffect(() => {
-        loadHealth();
-        const interval = setInterval(loadHealth, 5000);
-        return () => clearInterval(interval);
-    }, []);
-
-    const loadHealth = async () => {
+    const fetchData = async () => {
         try {
-            const data = await checkHealth();
-            setHealth(data);
-            setError('');
-        } catch (err: any) {
-            setError('Failed to connect to backend');
+            const res = await api.get('/api/system/telemetry');
+            setData(res.data);
+            setLastUpdate(new Date());
+        } catch (err) {
+            console.error("Telemetry fetch failed", err);
         } finally {
             setLoading(false);
         }
     };
 
-    if (loading) {
+    useEffect(() => {
+        fetchData();
+        const interval = setInterval(fetchData, 2000); // Poll every 2s for "live" feel
+        return () => clearInterval(interval);
+    }, []);
+
+    if (loading && !data) {
         return (
             <div className="flex items-center justify-center h-64">
-                <div className="text-nexus-muted text-sm font-mono">Loading system status...</div>
+                <div className="text-nexus-muted text-sm font-mono animate-pulse">Initializing Telemetry Uplink...</div>
             </div>
         );
     }
 
+    const metrics = data?.metrics;
+    const isWarning = data?.warnings.drawdown || data?.warnings.latency || data?.warnings.errors;
+
+    // Formatting helpers
+    const fmtCurrency = (val: number) => `$${val?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const fmtPct = (val: number) => `${val > 0 ? '+' : ''}${val?.toFixed(2)}%`;
+
     const stats = [
         {
-            label: 'Account Balance',
-            value: '$50,000.00',
-            icon: DollarSign,
-            change: '+2.4%',
-            positive: true,
-        },
-        {
-            label: 'Equity',
-            value: '$51,200.00',
+            label: 'Total Equity',
+            value: fmtCurrency(metrics?.equity || 0),
             icon: TrendingUp,
-            change: '+$1,200.00',
-            positive: true,
+            change: fmtPct(metrics?.daily_return || 0),
+            positive: (metrics?.daily_return || 0) >= 0,
         },
         {
-            label: 'Open Positions',
-            value: '3',
-            icon: BarChart3,
-            change: '',
-            positive: true,
-        },
-        {
-            label: "Today's P/L",
-            value: '+$340.50',
+            label: 'Floating P/L',
+            value: fmtCurrency(metrics?.floating_pl || 0),
             icon: Activity,
-            change: '+0.68%',
-            positive: true,
+            change: '', // Real-time floating
+            positive: (metrics?.floating_pl || 0) >= 0,
+        },
+        {
+            label: 'Margin Usage',
+            value: `${(metrics?.margin_usage || 0).toFixed(1)}%`,
+            icon: Zap,
+            change: `Exp: ${(metrics?.open_positions || 0)} Pos`,
+            positive: (metrics?.margin_usage || 0) < 50,
+        },
+        {
+            label: 'Drawdown',
+            value: `${(metrics?.drawdown || 0).toFixed(2)}%`,
+            icon: Shield,
+            change: 'Max 5.0%',
+            positive: (metrics?.drawdown || 0) < 5.0,
         },
     ];
 
+    // Prepare chart data
+    const chartData = data?.history.equity.map(p => ({
+        time: new Date(p.timestamp).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+        value: p.value,
+        rawTime: p.timestamp
+    })).slice(-50) || []; // Last 50 points
+
     return (
         <div className="space-y-6">
-            {error && (
-                <div className="bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-3 text-red-400 text-sm">
-                    {error}
+            {/* Warnings Banner */}
+            {isWarning && (
+                <div className="bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-3 flex items-center gap-3 animate-pulse">
+                    <AlertTriangle className="w-5 h-5 text-nexus-red" />
+                    <div className="text-sm font-mono text-nexus-red">
+                        SYSTEM WARNING:
+                        {data?.warnings.drawdown && " HIGH DRAWDOWN DETECTED "}
+                        {data?.warnings.latency && " HIGH LATENCY "}
+                        {data?.warnings.errors && " ELEVATED ERROR RATE "}
+                    </div>
                 </div>
             )}
 
@@ -96,11 +143,11 @@ export default function DashboardPage() {
                     <div key={stat.label} className="stat-card">
                         <div className="flex items-center justify-between mb-3">
                             <span className="text-xs text-nexus-muted uppercase tracking-wider">{stat.label}</span>
-                            <stat.icon className="w-4 h-4 text-nexus-muted" />
+                            <stat.icon className={`w-4 h-4 ${stat.positive !== undefined ? (stat.positive ? 'text-nexus-green' : 'text-nexus-red') : 'text-nexus-muted'}`} />
                         </div>
                         <div className="text-2xl font-semibold text-nexus-text font-mono">{stat.value}</div>
                         {stat.change && (
-                            <div className={`text-xs mt-1 ${stat.positive ? 'text-nexus-green' : 'text-nexus-red'}`}>
+                            <div className={`text-xs mt-1 font-mono ${stat.positive !== undefined ? (stat.positive ? 'text-nexus-green' : 'text-nexus-red') : 'text-nexus-muted'}`}>
                                 {stat.change}
                             </div>
                         )}
@@ -108,64 +155,102 @@ export default function DashboardPage() {
                 ))}
             </div>
 
-            {/* System Status */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {/* System Mode */}
-                <div className="stat-card">
-                    <h3 className="text-xs text-nexus-muted uppercase tracking-wider mb-4">System Mode</h3>
-                    <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                            <span className="text-sm text-nexus-muted">Status</span>
-                            <span className={`status-badge ${health?.trading_enabled ? 'bg-green-500/10 text-nexus-green' : 'bg-red-500/10 text-nexus-red'}`}>
-                                <span className={`w-1.5 h-1.5 rounded-full ${health?.trading_enabled ? 'bg-nexus-green' : 'bg-nexus-red'}`} />
-                                {health?.trading_enabled ? 'RUNNING' : 'HALTED'}
-                            </span>
+            {/* Charts Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Main Equity Curve */}
+                <div className="stat-card lg:col-span-2 h-[350px] flex flex-col">
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-xs text-nexus-muted uppercase tracking-wider">Live Equity Curve</h3>
+                        <div className="text-[10px] text-nexus-muted font-mono">
+                            Latency: <span className={metrics && metrics.latency_ms > 200 ? 'text-nexus-amber' : 'text-nexus-green'}>{metrics?.latency_ms}ms</span>
                         </div>
-                        <div className="flex items-center justify-between">
-                            <span className="text-sm text-nexus-muted">Mode</span>
-                            <span className="text-sm text-nexus-text font-mono uppercase">{health?.mode || '—'}</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                            <span className="text-sm text-nexus-muted">Version</span>
-                            <span className="text-sm text-nexus-text font-mono">{health?.version || '—'}</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                            <span className="text-sm text-nexus-muted">Uptime</span>
-                            <span className="text-sm text-nexus-text font-mono">{health?.uptime || '—'}</span>
-                        </div>
+                    </div>
+
+                    <div className="flex-1 w-full min-h-0">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={chartData}>
+                                <defs>
+                                    <linearGradient id="colorEquity" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.2} />
+                                        <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#333" vertical={false} />
+                                <XAxis
+                                    dataKey="time"
+                                    stroke="#666"
+                                    tick={{ fontSize: 10 }}
+                                    tickLine={false}
+                                    axisLine={false}
+                                    minTickGap={30}
+                                />
+                                <YAxis
+                                    domain={['auto', 'auto']}
+                                    stroke="#666"
+                                    tick={{ fontSize: 10 }}
+                                    tickLine={false}
+                                    axisLine={false}
+                                    width={60}
+                                    tickFormatter={(val) => `$${val}`}
+                                />
+                                <Tooltip
+                                    contentStyle={{ backgroundColor: '#111827', borderColor: '#374151', fontSize: '12px' }}
+                                    itemStyle={{ color: '#10b981' }}
+                                    formatter={(val: number) => [`$${val.toFixed(2)}`, 'Equity']}
+                                />
+                                <Area
+                                    type="monotone"
+                                    dataKey="value"
+                                    stroke="#10b981"
+                                    strokeWidth={2}
+                                    fillOpacity={1}
+                                    fill="url(#colorEquity)"
+                                    isAnimationActive={false} // Disable animation for smoother realtime updates
+                                />
+                            </AreaChart>
+                        </ResponsiveContainer>
                     </div>
                 </div>
 
-                {/* Connections */}
-                <div className="stat-card">
-                    <h3 className="text-xs text-nexus-muted uppercase tracking-wider mb-4">Connections</h3>
-                    <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                            <span className="text-sm text-nexus-muted">MT5 Bridge</span>
-                            <span className={`status-badge ${health?.mt5_connected ? 'bg-green-500/10 text-nexus-green' : 'bg-red-500/10 text-nexus-red'}`}>
-                                <span className={`w-1.5 h-1.5 rounded-full ${health?.mt5_connected ? 'bg-nexus-green' : 'bg-nexus-red'}`} />
-                                {health?.mt5_connected ? 'CONNECTED' : 'DISCONNECTED'}
-                            </span>
+                {/* System Diagnostics */}
+                <div className="space-y-4">
+                    <div className="stat-card">
+                        <h3 className="text-xs text-nexus-muted uppercase tracking-wider mb-4">Diagnostics</h3>
+                        <div className="space-y-4">
+                            <div className="flex justify-between items-center">
+                                <span className="text-sm text-nexus-muted">System Mode</span>
+                                <span className={`px-2 py-0.5 rounded text-xs font-mono ${metrics?.system_mode === 'NORMAL' ? 'bg-green-500/10 text-nexus-green' :
+                                        metrics?.system_mode === 'SHUTDOWN' ? 'bg-red-500/10 text-nexus-red' : 'bg-nexus-accent/10 text-nexus-accent'
+                                    }`}>
+                                    {metrics?.system_mode || 'OFFLINE'}
+                                </span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <span className="text-sm text-nexus-muted">Error Rate</span>
+                                <span className={`text-sm font-mono ${(metrics?.error_rate || 0) > 0 ? 'text-nexus-red' : 'text-nexus-green'
+                                    }`}>
+                                    {metrics?.error_rate.toFixed(1)} / min
+                                </span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <span className="text-sm text-nexus-muted">Win Rate (20)</span>
+                                <span className="text-sm font-mono text-nexus-text">
+                                    {(metrics?.win_rate || 0).toFixed(0)}%
+                                </span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <span className="text-sm text-nexus-muted">Balance</span>
+                                <span className="text-sm font-mono text-nexus-muted">
+                                    {fmtCurrency(metrics?.balance || 0)}
+                                </span>
+                            </div>
                         </div>
-                        <div className="flex items-center justify-between">
-                            <span className="text-sm text-nexus-muted">Risk Engine</span>
-                            <span className={`status-badge ${health?.risk_engine === 'active' ? 'bg-green-500/10 text-nexus-green' : 'bg-amber-500/10 text-nexus-amber'}`}>
-                                <span className={`w-1.5 h-1.5 rounded-full ${health?.risk_engine === 'active' ? 'bg-nexus-green' : 'bg-nexus-amber'}`} />
-                                {health?.risk_engine?.toUpperCase() || '—'}
-                            </span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                            <span className="text-sm text-nexus-muted">Execution Layer</span>
-                            <span className={`status-badge ${health?.execution_layer === 'ready' ? 'bg-green-500/10 text-nexus-green' : 'bg-red-500/10 text-nexus-red'}`}>
-                                <span className={`w-1.5 h-1.5 rounded-full ${health?.execution_layer === 'ready' ? 'bg-nexus-green' : 'bg-nexus-red'}`} />
-                                {health?.execution_layer?.toUpperCase() || '—'}
-                            </span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                            <span className="text-sm text-nexus-muted">Trading Status</span>
-                            <span className="text-sm text-nexus-text font-mono text-right max-w-[200px] truncate">
-                                {health?.trading_status || '—'}
-                            </span>
+                    </div>
+
+                    <div className="stat-card bg-nexus-surface/50">
+                        <h3 className="text-xs text-nexus-muted uppercase tracking-wider mb-2">Last Update</h3>
+                        <div className="text-right font-mono text-xs text-nexus-muted">
+                            {lastUpdate.toLocaleTimeString()}
                         </div>
                     </div>
                 </div>
