@@ -68,8 +68,10 @@ from app.services.telegram_bot import get_telegram_service
 # Auth Layer
 from auth import auth_router, AuthMiddleware, seed_admin
 
-# Command API
+# Command & Intelligence APIs
 from command.api import router as command_api_router
+from risk.api import router as risk_api_router
+from intelligence.api import router as intelligence_api_router
 
 # =============================================================================
 # LOGGING + UPTIME
@@ -96,6 +98,12 @@ app.add_middleware(AuthMiddleware)
 
 # Mount Command API
 app.include_router(command_api_router)
+
+# Mount Risk API
+app.include_router(risk_api_router)
+
+# Mount Intelligence API
+app.include_router(intelligence_api_router)
 
 
 # =============================================================================

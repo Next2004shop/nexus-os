@@ -491,6 +491,13 @@ def get_risk_status() -> Dict[str, Any]:
     dd = calculate_drawdown()
     total_pnl = calculate_total_pnl()
     
+    current_exposure = sum(
+        pos.get("notional", 0) for pos in state.open_positions.values()
+    )
+    exposure_pct = 0.0
+    if state.current_equity > 0:
+        exposure_pct = current_exposure / state.current_equity
+
     return {
         "risk_level": state.risk_level,
         "trading_enabled": state.trading_enabled,
@@ -499,6 +506,11 @@ def get_risk_status() -> Dict[str, Any]:
             "current": round(dd * 100, 2),
             "warning_threshold": round(state.warning_drawdown * 100, 2),
             "max_limit": round(state.max_drawdown_limit * 100, 2)
+        },
+        "exposure": {
+            "current_pct": round(exposure_pct * 100, 2),
+            "max_pct": round(state.max_total_exposure_pct * 100, 2),
+            "max_position_pct": round(state.max_position_size_pct * 100, 2)
         },
         "equity": {
             "current": round(state.current_equity, 2),
