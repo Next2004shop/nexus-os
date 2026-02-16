@@ -68,6 +68,9 @@ from app.services.telegram_bot import get_telegram_service
 # Auth Layer
 from auth import auth_router, AuthMiddleware, seed_admin
 
+# Command API
+from command.api import router as command_api_router
+
 # =============================================================================
 # LOGGING + UPTIME
 # =============================================================================
@@ -90,6 +93,9 @@ app = FastAPI(
 # Mount Auth
 app.include_router(auth_router)
 app.add_middleware(AuthMiddleware)
+
+# Mount Command API
+app.include_router(command_api_router)
 
 
 # =============================================================================
