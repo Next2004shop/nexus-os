@@ -83,6 +83,14 @@ from system.runtime_guard import get_guard
 from meta.api import router as meta_api_router
 from meta.performance_intelligence import get_performance_intelligence
 
+# Security & Infrastructure Hardening (Phase 11)
+from security.api import router as security_api_router
+from security.startup_hardening import run_startup_checks
+from security.failsafe import get_failsafe
+from security.capital_lock import get_capital_lock
+from security.state_integrity import get_state_integrity
+from security.position_shadow import get_position_shadow
+
 # =============================================================================
 # LOGGING + UPTIME
 # =============================================================================
@@ -120,6 +128,9 @@ app.include_router(telemetry_api_router)
 
 # Mount Meta-Intelligence API (Phase 10)
 app.include_router(meta_api_router)
+
+# Mount Security API (Phase 11)
+app.include_router(security_api_router)
 
 
 # =============================================================================
@@ -239,8 +250,27 @@ async def startup_event():
     logger.info("Brain: Model Ensemble (Gemini Pro + Rule-Based + Pattern)")
     logger.info("Execution: Dual-Path (MT5 + Binance)")
     logger.info("Security: Stealth Mode Active")
+    logger.info("Infrastructure: Phase 11 Hardening Active")
     logger.info("=" * 60)
-    
+
+    # STEP -1: Production Startup Hardening (Phase 11)
+    try:
+        startup_report = run_startup_checks()
+        if not startup_report.can_start:
+            logger.critical(f"STARTUP BLOCKED by hardening checks: {startup_report.critical_failures}")
+            print("\n" + "!" * 60)
+            print("STARTUP BLOCKED — Critical hardening failures:")
+            for f in startup_report.critical_failures:
+                print(f"   FAIL: {f}")
+            print("!" * 60 + "\n")
+        else:
+            if startup_report.warnings:
+                logger.warning(f"Startup hardening warnings: {startup_report.warnings}")
+            else:
+                logger.info("Startup hardening: All checks passed")
+    except Exception as e:
+        logger.error(f"Startup hardening check failed: {e}")
+
     # STEP 0: Environment Validation Gate
     try:
         env_status = validate_environment()
@@ -322,6 +352,12 @@ async def startup_event():
     await get_performance_intelligence().start()
     logger.info("Meta-Intelligence Layer (Phase 10) ACTIVE")
 
+    # Start Security Infrastructure (Phase 11)
+    await get_state_integrity().start()
+    await get_position_shadow().start()
+    logger.info("Security Infrastructure (Phase 11) ACTIVE")
+    logger.info(f"Failsafe Mode: {get_failsafe().mode.value}")
+
     logger.info("NEXUS SOVEREIGN SYSTEM ONLINE")
 
 
@@ -359,6 +395,10 @@ async def shutdown_event():
 
     # Stop Meta-Intelligence Layer
     await get_performance_intelligence().stop()
+
+    # Stop Security Infrastructure
+    await get_state_integrity().stop()
+    await get_position_shadow().stop()
 
     logger.info("NEXUS CORE OFFLINE")
 
