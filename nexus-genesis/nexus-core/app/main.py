@@ -79,6 +79,10 @@ from telemetry.api import router as telemetry_api_router
 from telemetry.telemetry_engine import get_telemetry
 from system.runtime_guard import get_guard
 
+# Meta-Intelligence Layer (Phase 10)
+from meta.api import router as meta_api_router
+from meta.performance_intelligence import get_performance_intelligence
+
 # =============================================================================
 # LOGGING + UPTIME
 # =============================================================================
@@ -113,6 +117,9 @@ app.include_router(intelligence_api_router)
 
 # Mount Telemetry API
 app.include_router(telemetry_api_router)
+
+# Mount Meta-Intelligence API (Phase 10)
+app.include_router(meta_api_router)
 
 
 # =============================================================================
@@ -311,6 +318,10 @@ async def startup_event():
     # Start Runtime Guard
     await get_guard().start()
 
+    # Start Meta-Intelligence Layer (Phase 10)
+    await get_performance_intelligence().start()
+    logger.info("Meta-Intelligence Layer (Phase 10) ACTIVE")
+
     logger.info("NEXUS SOVEREIGN SYSTEM ONLINE")
 
 
@@ -345,7 +356,10 @@ async def shutdown_event():
     
     # Stop Runtime Guard
     await get_guard().stop()
-    
+
+    # Stop Meta-Intelligence Layer
+    await get_performance_intelligence().stop()
+
     logger.info("NEXUS CORE OFFLINE")
 
 

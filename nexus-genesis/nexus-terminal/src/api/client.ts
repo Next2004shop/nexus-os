@@ -83,4 +83,20 @@ export const triggerAnalysis = async (symbol: string, data: any) => {
     return response.data;
 };
 
+// Meta-Intelligence (Phase 10)
+export const getSystemEvolution = async () => {
+    const response = await api.get('/api/meta/evolution');
+    return response.data;
+};
+
+export const getTradeledger = async (count: number = 30) => {
+    const response = await api.get(`/api/meta/ledger?count=${count}`);
+    return response.data;
+};
+
+export const forceMetaAnalysis = async () => {
+    const response = await api.post('/api/meta/analyze');
+    return response.data;
+};
+
 export default api;

@@ -3,6 +3,7 @@ import { Activity, ShieldAlert, Terminal, Zap, Power } from 'lucide-react';
 import { checkHealth, triggerKillSwitch } from '../api/client';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import ConnectionStatus from './ConnectionStatus';
+import SystemEvolution from './SystemEvolution';
 
 const Dashboard: React.FC = () => {
     const [status, setStatus] = useState<'connecting' | 'online' | 'offline'>('connecting');
@@ -115,6 +116,9 @@ const Dashboard: React.FC = () => {
                     Warning: Activating the Kill Switch will purge all orders and stop the body execution logic.
                 </p>
             </div>
+
+            {/* SECTION E: SYSTEM EVOLUTION (Phase 10 Meta-Intelligence) */}
+            <SystemEvolution />
 
             {/* SECTION D: MARKET FEED */}
             <div className="col-span-12 border border-zinc-800 bg-zinc-900/30 p-4 rounded-sm h-[200px]">
