@@ -54,7 +54,10 @@ function RiskGauge({ label, value, max, unit = '%', warn = false, inverse = fals
                 Limit: {max.toFixed(2)}{unit}
             </div>
             <div className="w-full h-1.5 bg-nexus-bg rounded-full overflow-hidden">
-                <div className={`h-full rounded-full transition-all duration-500 ${color}`} style={{ width: `${pct}%` }} />
+                <div
+                    className={`h-full rounded-full transition-all duration-500 ${color} w-[var(--risk-width)]`}
+                    style={{ '--risk-width': `${pct}%` } as React.CSSProperties}
+                />
             </div>
         </div>
     );

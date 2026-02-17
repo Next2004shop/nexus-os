@@ -21,7 +21,11 @@ from dataclasses import dataclass, field
 
 # Import internal state accessors
 from risk.risk_governor import get_risk_status
+from risk.risk_governor import get_risk_status
 from system.runtime_guard import get_guard
+from risk.capital_allocator import get_allocator
+from intelligence.strategic_engine import get_status as get_strategic_status
+from execution.execution_optimizer import get_optimizer
 
 logger = logging.getLogger("nexus.telemetry")
 
@@ -39,6 +43,9 @@ class SystemMetrics:
     latency_ms: float = 0.0
     error_rate: float = 0.0
     runtime_status: str = "UNKNOWN"
+    capital_status: Dict[str, Any] = field(default_factory=dict)
+    strategic_status: Dict[str, Any] = field(default_factory=dict)
+    execution_health: Dict[str, Any] = field(default_factory=dict)
     
     # Warning flags
     warning_drawdown: bool = False
@@ -130,8 +137,30 @@ class TelemetryEngine:
             logger.error(f"Failed to get guard status: {e}")
             self._metrics.runtime_status = "ERROR"
         
+        # 1.6. Get Capital Allocator Status
+        try:
+            cap_status = get_allocator().get_status()
+            self._metrics.capital_status = cap_status
+        except Exception as e:
+            logger.error(f"Failed to get capital status: {e}")
+            self._metrics.capital_status = {"mode": "ERROR"}
 
-        
+        # 1.7. Get Strategic Status
+        try:
+            strat_status = get_strategic_status()
+            self._metrics.strategic_status = strat_status
+        except Exception as e:
+            logger.error(f"Failed to get strategic status: {e}")
+            self._metrics.strategic_status = {"regime": "ERROR"}
+
+        # 1.8. Get Execution Health
+        try:
+            optimizer = get_optimizer()
+            self._metrics.execution_health = optimizer.get_status()
+        except Exception as e:
+            logger.error(f"Failed to get execution health: {e}")
+            self._metrics.execution_health = {"execution_score": 0}
+
         # 2. Update scalar metrics
         self._metrics.equity = risk_state["equity"]["current"]
         self._metrics.balance = risk_state["equity"]["initial"] # Using initial as balance proxy if balance not in status
@@ -181,6 +210,9 @@ class TelemetryEngine:
                 "open_positions": self._metrics.open_positions,
                 "system_mode": self._metrics.system_mode,
                 "runtime_status": self._metrics.runtime_status,
+                "capital_status": self._metrics.capital_status,
+                "strategic_status": self._metrics.strategic_status,
+                "execution_health": self._metrics.execution_health,
                 "latency_ms": self._metrics.latency_ms,
                 "error_rate": self._metrics.error_rate,
                 "margin_usage": self._metrics.margin_usage

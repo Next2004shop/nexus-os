@@ -23,7 +23,10 @@ function ConfidenceBar({ value }: { value: number }) {
     return (
         <div className="flex items-center gap-2">
             <div className="w-16 h-1.5 bg-nexus-bg rounded-full overflow-hidden">
-                <div className={`h-full rounded-full ${color}`} style={{ width: `${value * 100}%` }} />
+                <div
+                    className={`h-full rounded-full ${color} w-[var(--prog-width)]`}
+                    style={{ '--prog-width': `${value * 100}%` } as React.CSSProperties}
+                />
             </div>
             <span className="text-xs font-mono w-8">{(value * 100).toFixed(0)}%</span>
         </div>
@@ -81,7 +84,7 @@ export default function IntelligencePage() {
                     <div>
                         <div className="text-xs text-nexus-muted mb-1">Bias</div>
                         <div className={`text-lg font-semibold font-mono ${regime.includes('UP') ? 'text-nexus-green' :
-                                regime.includes('DOWN') ? 'text-nexus-red' : 'text-nexus-muted'
+                            regime.includes('DOWN') ? 'text-nexus-red' : 'text-nexus-muted'
                             }`}>
                             {regime.includes('UP') ? 'BULLISH' : regime.includes('DOWN') ? 'BEARISH' : 'NEUTRAL'}
                         </div>

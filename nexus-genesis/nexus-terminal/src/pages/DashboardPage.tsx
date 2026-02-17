@@ -7,7 +7,8 @@ import {
     Activity,
     Zap,
     AlertTriangle,
-    Shield
+    Shield,
+    Lock
 } from 'lucide-react';
 import {
     LineChart,
@@ -35,6 +36,22 @@ interface TelemetryData {
         latency_ms: number;
         error_rate: number;
         runtime_status: string;
+        capital_status: {
+            mode: string;
+            daily_start_equity: number;
+            daily_pnl_pct: number;
+            active_risk_pct: number;
+        };
+        strategic_status: {
+            regime: string;
+            volatility: string;
+            bias: string;
+        };
+        execution_health: {
+            execution_score: number;
+            slippage_avg: number;
+            broker_condition: string;
+        };
     };
     history: {
         equity: { timestamp: string; value: number }[];
@@ -214,58 +231,150 @@ export default function DashboardPage() {
                 </div>
 
                 {/* System Diagnostics */}
+                {/* Modified to include Capital Status */}
                 <div className="space-y-4">
-                    <div className="stat-card">
-                        <h3 className="text-xs text-nexus-muted uppercase tracking-wider mb-4">Diagnostics</h3>
-                        <div className="space-y-4">
+                    {/* Capital Status Card */}
+                    <div className="stat-card border-l-4 border-l-nexus-accent">
+                        <h3 className="text-xs text-nexus-muted uppercase tracking-wider mb-4 flex items-center gap-2">
+                            <Lock className="w-3 h-3" /> Capital Discipline
+                        </h3>
+                        <div className="space-y-3">
                             <div className="flex justify-between items-center">
-                                <span className="text-sm text-nexus-muted">Runtime Guard</span>
-                                <span className={`px-2 py-0.5 rounded text-xs font-mono border ${metrics?.runtime_status === 'RUNNING' ? 'bg-green-500/10 text-nexus-green border-green-500/20' :
-                                    metrics?.runtime_status === 'RECOVERING' ? 'bg-amber-500/10 text-nexus-amber border-amber-500/20 animate-pulse' :
-                                        'bg-red-500/10 text-nexus-red border-red-500/20'
+                                <span className="text-sm text-nexus-muted">Allocation Mode</span>
+                                <span className={`px-2 py-0.5 rounded text-xs font-mono font-bold ${metrics?.capital_status?.mode === 'NORMAL' ? 'text-nexus-green bg-green-500/10' :
+                                    metrics?.capital_status?.mode === 'REDUCED' ? 'text-nexus-amber bg-amber-500/10' :
+                                        metrics?.capital_status?.mode === 'DEFENSIVE' ? 'text-nexus-red bg-red-500/10' : 'text-gray-500'
                                     }`}>
-                                    <span className={`inline-block w-1.5 h-1.5 rounded-full mr-1.5 ${metrics?.runtime_status === 'RUNNING' ? 'bg-nexus-green' :
-                                        metrics?.runtime_status === 'RECOVERING' ? 'bg-nexus-amber' : 'bg-nexus-red'
-                                        }`}></span>
-                                    {metrics?.runtime_status || 'UNKNOWN'}
+                                    {metrics?.capital_status?.mode || 'INIT'}
                                 </span>
                             </div>
                             <div className="flex justify-between items-center">
-                                <span className="text-sm text-nexus-muted">System Mode</span>
-                                <span className={`px-2 py-0.5 rounded text-xs font-mono ${metrics?.system_mode === 'NORMAL' ? 'bg-green-500/10 text-nexus-green' :
-                                    metrics?.system_mode === 'SHUTDOWN' ? 'bg-red-500/10 text-nexus-red' : 'bg-nexus-accent/10 text-nexus-accent'
+                                <span className="text-sm text-nexus-muted">Daily P/L</span>
+                                <span className={`text-sm font-mono ${(metrics?.capital_status?.daily_pnl_pct || 0) >= 0 ? 'text-nexus-green' : 'text-nexus-red'
                                     }`}>
-                                    {metrics?.system_mode || 'OFFLINE'}
+                                    {fmtPct(metrics?.capital_status?.daily_pnl_pct || 0)}
                                 </span>
                             </div>
                             <div className="flex justify-between items-center">
-                                <span className="text-sm text-nexus-muted">Error Rate</span>
-                                <span className={`text-sm font-mono ${(metrics?.error_rate || 0) > 0 ? 'text-nexus-red' : 'text-nexus-green'
-                                    }`}>
-                                    {metrics?.error_rate.toFixed(1)} / min
-                                </span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                                <span className="text-sm text-nexus-muted">Win Rate (20)</span>
-                                <span className="text-sm font-mono text-nexus-text">
-                                    {(metrics?.win_rate || 0).toFixed(0)}%
-                                </span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                                <span className="text-sm text-nexus-muted">Balance</span>
+                                <span className="text-sm text-nexus-muted">Daily Start</span>
                                 <span className="text-sm font-mono text-nexus-muted">
-                                    {fmtCurrency(metrics?.balance || 0)}
+                                    {fmtCurrency(metrics?.capital_status?.daily_start_equity || 0)}
                                 </span>
                             </div>
                         </div>
                     </div>
 
-                    <div className="stat-card bg-nexus-surface/50">
-                        <h3 className="text-xs text-nexus-muted uppercase tracking-wider mb-2">Last Update</h3>
-                        <div className="text-right font-mono text-xs text-nexus-muted">
-                            {lastUpdate.toLocaleTimeString()}
-                        </div>
+                    {/* Strategic Intelligence Card */}
+                    <div className="stat-card border-l-4 border-l-purple-500">
+                        <h3 className="text-xs text-nexus-muted uppercase tracking-wider mb-4 flex items-center gap-2">
+                            <Activity className="w-3 h-3 text-purple-500" /> Strategic Intelligence
+                        </h3>
+                        <div className="space-y-3">
+                            <div className="flex justify-between items-center">
+                                <span className="text-sm text-nexus-muted">Macro Regime</span>
+                                <span className="text-sm font-mono text-purple-400 font-bold">
+                                    {metrics?.strategic_status?.regime || 'WAITING'}
+                                </span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <span className="text-sm text-nexus-muted">Volatility</span>
+                                <span className={`text-sm font-mono ${metrics?.strategic_status?.volatility === 'HIGH' ? 'text-nexus-red' :
+                                    metrics?.strategic_status?.volatility === 'LOW' ? 'text-nexus-amber' : 'text-nexus-green'
+                                    }`}>
+                                    {metrics?.strategic_status?.volatility || 'NORMAL'}
+                                </span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <span className="text-sm text-nexus-muted">Risk Bias</span>
+                                <span className={`px-2 py-0.5 rounded text-xs font-mono uppercase ${metrics?.strategic_status?.bias === 'RISK_ON' ? 'text-nexus-green bg-green-500/10' :
+                                    metrics?.strategic_status?.bias === 'RISK_OFF' ? 'text-nexus-red bg-red-500/10' : 'text-nexus-muted bg-gray-500/10'
+                                    }`}>
+                                    {metrics?.strategic_status?.bias || 'NEUTRAL'}
+                                </span>
+                            </div>
+                        </span>
                     </div>
+                </div>
+            </div>
+
+            {/* Execution Health Card */}
+            <div className="stat-card border-l-4 border-l-blue-500">
+                <h3 className="text-xs text-nexus-muted uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <Zap className="w-3 h-3 text-blue-500" /> Execution Health
+                </h3>
+                <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                        <span className="text-sm text-nexus-muted">Quality Score</span>
+                        <span className="text-sm font-mono text-blue-400 font-bold">
+                            {metrics?.execution_health?.execution_score || 100}/100
+                        </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                        <span className="text-sm text-nexus-muted">Avg Slippage</span>
+                        <span className={`text-sm font-mono ${(metrics?.execution_health?.slippage_avg || 0) > 0.1 ? 'text-nexus-red' : 'text-nexus-green'
+                            }`}>
+                            {metrics?.execution_health?.slippage_avg?.toFixed(3) || '0.000'}%
+                        </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                        <span className="text-sm text-nexus-muted">Broker Condition</span>
+                        <span className={`px-2 py-0.5 rounded text-xs font-mono uppercase ${metrics?.execution_health?.broker_condition === 'OPTIMAL' ? 'text-nexus-green bg-green-500/10' : 'text-nexus-red bg-red-500/10'
+                            }`}>
+                            {metrics?.execution_health?.broker_condition || 'OPTIMAL'}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div className="stat-card">
+                <h3 className="text-xs text-nexus-muted uppercase tracking-wider mb-4">Diagnostics</h3>
+                <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                        <span className="text-sm text-nexus-muted">Runtime Guard</span>
+                        <span className={`px-2 py-0.5 rounded text-xs font-mono border ${metrics?.runtime_status === 'RUNNING' ? 'bg-green-500/10 text-nexus-green border-green-500/20' :
+                            metrics?.runtime_status === 'RECOVERING' ? 'bg-amber-500/10 text-nexus-amber border-amber-500/20 animate-pulse' :
+                                'bg-red-500/10 text-nexus-red border-red-500/20'
+                            }`}>
+                            <span className={`inline-block w-1.5 h-1.5 rounded-full mr-1.5 ${metrics?.runtime_status === 'RUNNING' ? 'bg-nexus-green' :
+                                metrics?.runtime_status === 'RECOVERING' ? 'bg-nexus-amber' : 'bg-nexus-red'
+                                }`}></span>
+                            {metrics?.runtime_status || 'UNKNOWN'}
+                        </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                        <span className="text-sm text-nexus-muted">System Mode</span>
+                        <span className={`px-2 py-0.5 rounded text-xs font-mono ${metrics?.system_mode === 'NORMAL' ? 'bg-green-500/10 text-nexus-green' :
+                            metrics?.system_mode === 'SHUTDOWN' ? 'bg-red-500/10 text-nexus-red' : 'bg-nexus-accent/10 text-nexus-accent'
+                            }`}>
+                            {metrics?.system_mode || 'OFFLINE'}
+                        </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                        <span className="text-sm text-nexus-muted">Error Rate</span>
+                        <span className={`text-sm font-mono ${(metrics?.error_rate || 0) > 0 ? 'text-nexus-red' : 'text-nexus-green'
+                            }`}>
+                            {metrics?.error_rate.toFixed(1)} / min
+                        </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                        <span className="text-sm text-nexus-muted">Win Rate (20)</span>
+                        <span className="text-sm font-mono text-nexus-text">
+                            {(metrics?.win_rate || 0).toFixed(0)}%
+                        </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                        <span className="text-sm text-nexus-muted">Balance</span>
+                        <span className="text-sm font-mono text-nexus-muted">
+                            {fmtCurrency(metrics?.balance || 0)}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div className="stat-card bg-nexus-surface/50">
+                <h3 className="text-xs text-nexus-muted uppercase tracking-wider mb-2">Last Update</h3>
+                <div className="text-right font-mono text-xs text-nexus-muted">
+                    {lastUpdate.toLocaleTimeString()}
                 </div>
             </div>
         </div>

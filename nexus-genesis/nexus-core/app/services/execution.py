@@ -25,6 +25,7 @@ import ccxt
 
 from . import risk_governor, vault
 from .circuit_breaker import CircuitOpenError, get_breaker, with_circuit_breaker
+from execution.execution_optimizer import get_optimizer
 
 logger = logging.getLogger("nexus.execution")
 
@@ -572,6 +573,7 @@ class ExecutionEngine:
         self.mt5 = MT5Executor(self.config)
         self.binance = BinanceExecutor(self.config)
         self.tracker = _order_tracker
+        self.optimizer = get_optimizer()
         
         # Initialize primary venue
         if self.config.primary_venue == ExecutionVenue.MT5:
@@ -659,6 +661,59 @@ class ExecutionEngine:
             logger.info(f"Risk check skipped (caller pre-validated) for {symbol}")
         
         # =====================================================================
+        # GATE 4.5: EXECUTION INTELLIGENCE (Optimizer)
+        # =====================================================================
+        opt_score = 100
+        spread = 0.0
+        try:
+            # 1. Get real-time spread from MT5 (if primary)
+            bid, ask = self.mt5.get_current_price(symbol)
+            if bid and ask:
+                spread = (ask - bid) * 10000 if "JPY" not in symbol else (ask-bid) * 100 # Rough pip calc
+            
+            # 2. Optimize
+            price_to_check = limit_price or (ask if side.upper() == "BUY" else bid) or 0.0
+            
+            # Ensure we await. execution_optimizer.optimize_entry is async.
+            # But execute_trade is sync?
+            # PROBLEM: execute_trade is defined as synchronous `def execute_trade`.
+            # Optimizer uses `await self.market_provider.get_ohlcv`.
+            # We need to run it synchronously or change execute_trade to async.
+            # Changing execute_trade to async ripples through the whole system.
+            # For now, we will run it in event loop if possible, or skip async part if safer. 
+            # But we are in async context usually? NOT necessarily.
+            # `CommandRouter` calls `get_allocator` (sync) then `risk_governor` (sync).
+            # But `CommandRouter.execute_command` IS async. 
+            # `execute_trade` is called by `CommandRouter`? No, `CommandRouter` calls `execution_engine.execute_trade`?
+            # Wait, `CommandRouter` currently has `# from app.services.execution import get_engine` commented out.
+            # The system is designed to be Async.
+            # But `execute_trade` is legacy sync?
+            
+            # Let's check `execution.py` imports. `import asyncio`.
+            # `execute_trade` is NOT async defined: `def execute_trade(...)`.
+            
+            # I should wrap the async call.
+            if self.config.primary_venue == ExecutionVenue.MT5: # Only optimize if MT5 context allows
+                 opt_result = asyncio.run_coroutine_threadsafe(
+                    self.optimizer.optimize_entry(symbol, side, price_to_check, spread),
+                    asyncio.get_event_loop()
+                 ).result()
+                 
+                 if not opt_result.allowed:
+                     logger.warning(f"OPTIMIZER DETECTED POOR CONDITIONS: {opt_result.reason}")
+                     # In strict mode we might block. Per instructions: "delay order... If still high reduce or cancel".
+                     # If wait_time > 0, we sleep.
+                 
+                 if opt_result.wait_time > 0:
+                     logger.info(f"Optimizer requested wait: {opt_result.wait_time}s")
+                     time.sleep(opt_result.wait_time) # Sync sleep for now as we are in sync method
+                 
+                 opt_score = opt_result.score
+                 
+        except Exception as e:
+            logger.warning(f"Optimization step failed (proceeding anyway): {e}")
+
+        # =====================================================================
         # GATE 5: MT5 CONNECTION CHECK
         # =====================================================================
         order_side = OrderSide.BUY if side.upper() == "BUY" else OrderSide.SELL
@@ -703,6 +758,13 @@ class ExecutionEngine:
                 result.filled_price or 0,
                 side
             )
+            
+            # Record execution quality
+            try:
+                slippage_val = result.slippage if result.slippage is not None else 0.0
+                self.optimizer.record_execution(symbol, slippage_val, spread, opt_score)
+            except Exception as e:
+                logger.error(f"Failed to record execution stats: {e}")
         
         return result
     

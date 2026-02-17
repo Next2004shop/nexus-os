@@ -45,8 +45,10 @@ from app.services import (
     market_data,
     risk_governor,
     scheduler,
-    strategy_engine
+    scheduler,
+    # strategy_engine  # Removed legacy engine
 )
+from strategies.strategy_engine import get_strategy_engine
 from app.services.agent_council import get_council
 from app.services.auth_service import (
     UserSession,
@@ -311,6 +313,18 @@ async def startup_event():
     # Start Runtime Guard
     await get_guard().start()
 
+    
+    # Initialize Strategy Engine
+    strat_engine = get_strategy_engine()
+    # Load default strategies
+    try:
+        from strategies import BreakoutStrategy
+        strat_engine.load_strategy(BreakoutStrategy())
+    except Exception as e:
+        logger.error(f"Failed to load default strategies: {e}")
+        
+    await strat_engine.start()
+
     logger.info("NEXUS SOVEREIGN SYSTEM ONLINE")
 
 
@@ -346,6 +360,9 @@ async def shutdown_event():
     # Stop Runtime Guard
     await get_guard().stop()
     
+    # Stop Strategy Engine
+    await get_strategy_engine().stop()
+
     logger.info("NEXUS CORE OFFLINE")
 
 
