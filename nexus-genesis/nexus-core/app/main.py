@@ -73,9 +73,6 @@ from command.api import router as command_api_router
 from risk.api import router as risk_api_router
 from intelligence.api import router as intelligence_api_router
 from telemetry.api import router as telemetry_api_router
-from risk.api import router as risk_api_router
-from intelligence.api import router as intelligence_api_router
-from telemetry.api import router as telemetry_api_router
 from telemetry.telemetry_engine import get_telemetry
 from system.runtime_guard import get_guard
 
@@ -102,6 +99,7 @@ from deployment.resource_monitor import get_resource_monitor
 from deployment.rollback import save_stable_state
 from deployment.stability_loop import get_stability_loop
 from deployment.update_guard import get_update_guard
+from deployment.mt5_heartbeat import get_mt5_heartbeat
 
 # =============================================================================
 # LOGGING + UPTIME
@@ -454,6 +452,10 @@ async def startup_event():
         except Exception as e:
             logger.error(f"Telegram deployment report error: {e}")
 
+    # MT5 Heartbeat Monitor (Phase F)
+    await get_mt5_heartbeat().start()
+    logger.info("MT5 heartbeat monitor ACTIVE")
+
     logger.info("Deployment Architecture (Phase 12) ACTIVE")
     logger.info("NEXUS SOVEREIGN SYSTEM ONLINE")
 
@@ -498,6 +500,7 @@ async def shutdown_event():
     await get_position_shadow().stop()
 
     # Stop Deployment Infrastructure (Phase 12)
+    await get_mt5_heartbeat().stop()
     await get_stability_loop().stop()
     await get_resource_monitor().stop()
     await get_backup_manager().stop()
@@ -685,6 +688,60 @@ async def system_status():
 async def get_risk_status():
     """Get current risk status for frontend display."""
     return risk_governor.get_risk_status()
+
+
+@app.get("/broker-status")
+async def broker_status():
+    """Broker connection status — MT5 bridge + Binance."""
+    engine = execution.get_engine()
+    mt5_connected = engine.mt5._initialized
+    is_paper = engine.config.use_paper_trading
+
+    # Session bridge status
+    from app.services.mt_bridge import get_session_bridge
+    bridge = get_session_bridge()
+    bridge_status = bridge.get_status()
+
+    return {
+        "mt5": {
+            "connected": mt5_connected,
+            "mode": "paper" if is_paper else "live",
+        },
+        "session_bridge": bridge_status,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+@app.get("/ai/engine-status")
+async def ai_engine_status():
+    """AI subsystem status — ensemble, council, intelligence."""
+    council = get_council()
+    ensemble = get_ensemble()
+
+    # Intent interpreter status
+    interpreter_online = False
+    try:
+        from app.services.intent_interpreter import get_interpreter
+        interp = get_interpreter()
+        interpreter_online = interp._initialized if hasattr(interp, '_initialized') else True
+    except Exception:
+        pass
+
+    return {
+        "council": {
+            "agents": len(council.agents),
+            "status": council.get_status(),
+        },
+        "ensemble": {
+            "models": len(ensemble.models),
+            "last_decision": bool(ensemble.last_decision),
+            "status": ensemble.get_status(),
+        },
+        "intent_interpreter": {
+            "online": interpreter_online,
+        },
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
 
 
 # =============================================================================

@@ -87,20 +87,22 @@ class TradingAccount:
 
 class CredentialVault:
     """
-    Secure credential storage.
-    
+    Secure credential storage using AES-256-GCM.
+
     Uses Google Secret Manager for encryption keys.
-    All passwords encrypted at rest.
+    All passwords encrypted at rest with authenticated encryption.
+
+    Format: base64(salt[16] + nonce[12] + tag[16] + ciphertext)
     """
-    
+
     def __init__(self):
         self._encryption_key: Optional[bytes] = None
-    
+
     def _get_encryption_key(self) -> bytes:
         """Get encryption key from Secret Manager."""
         if self._encryption_key:
             return self._encryption_key
-        
+
         try:
             from app.services.vault import get_secret
             key = get_secret("NEXUS_ENCRYPTION_KEY")
@@ -110,35 +112,44 @@ class CredentialVault:
             logger.error(f"Failed to get encryption key: {e}")
             # Fallback to derived key (less secure but functional)
             return hashlib.sha256(b"nexus-default-key").digest()
-    
+
+    def _derive_key(self, master_key: bytes, salt: bytes) -> bytes:
+        """Derive AES-256 key using PBKDF2-HMAC-SHA256."""
+        return hashlib.pbkdf2_hmac('sha256', master_key, salt, 100000)
+
     def encrypt(self, plaintext: str) -> str:
-        """Encrypt sensitive data."""
-        key = self._get_encryption_key()
-        
-        # Simple HMAC-based encryption (use proper AES in production)
+        """Encrypt sensitive data using AES-256-GCM."""
         import base64
+        from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
+        master_key = self._get_encryption_key()
         salt = secrets.token_bytes(16)
-        cipher_key = hashlib.pbkdf2_hmac('sha256', key, salt, 100000)
-        
-        # XOR cipher (simplified - use AES-GCM in production)
-        data = plaintext.encode()
-        encrypted = bytes(a ^ b for a, b in zip(data, (cipher_key * (len(data) // 32 + 1))[:len(data)]))
-        
-        return base64.b64encode(salt + encrypted).decode()
-    
+        derived_key = self._derive_key(master_key, salt)
+        nonce = secrets.token_bytes(12)
+
+        aesgcm = AESGCM(derived_key)
+        ciphertext_with_tag = aesgcm.encrypt(nonce, plaintext.encode(), None)
+
+        # Format: salt(16) + nonce(12) + ciphertext_with_tag(data + 16-byte tag)
+        return base64.b64encode(salt + nonce + ciphertext_with_tag).decode()
+
     def decrypt(self, ciphertext: str) -> str:
-        """Decrypt sensitive data."""
-        key = self._get_encryption_key()
-        
+        """Decrypt sensitive data using AES-256-GCM."""
         import base64
+        from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
+        master_key = self._get_encryption_key()
         raw = base64.b64decode(ciphertext)
+
         salt = raw[:16]
-        encrypted = raw[16:]
-        
-        cipher_key = hashlib.pbkdf2_hmac('sha256', key, salt, 100000)
-        decrypted = bytes(a ^ b for a, b in zip(encrypted, (cipher_key * (len(encrypted) // 32 + 1))[:len(encrypted)]))
-        
-        return decrypted.decode()
+        nonce = raw[16:28]
+        ciphertext_with_tag = raw[28:]
+
+        derived_key = self._derive_key(master_key, salt)
+        aesgcm = AESGCM(derived_key)
+
+        plaintext_bytes = aesgcm.decrypt(nonce, ciphertext_with_tag, None)
+        return plaintext_bytes.decode()
 
 
 # =============================================================================

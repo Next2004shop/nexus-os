@@ -36,11 +36,14 @@ MAX_COMMANDS_PER_MINUTE = 5
 # High-risk commands requiring confirmation
 HIGH_RISK_COMMANDS = {
     "/kill",          # Kill switch
+    "/halt",          # Emergency halt (alias)
     "/trade",         # Manual trade
     "/reset",         # Reset circuit breaker
     "/unlock",        # Capital unlock
     "/restore",       # Disaster recovery
     "/lockdown",      # Enter lockdown
+    "/resume",        # Resume trading after halt
+    "/close_all",     # Close all open positions
 }
 
 # Confirmation timeout
