@@ -91,6 +91,18 @@ from security.capital_lock import get_capital_lock
 from security.state_integrity import get_state_integrity
 from security.position_shadow import get_position_shadow
 
+# Deployment Architecture & Global Stability (Phase 12)
+from config.config_loader import get_config
+from config.version_tag import stamp_deployment, get_version_info
+from deployment.api import router as deployment_api_router
+from deployment.backup import get_backup_manager
+from deployment.deployment_check import run_deployment_checks
+from deployment.deployment_lock import get_deployment_lock
+from deployment.resource_monitor import get_resource_monitor
+from deployment.rollback import save_stable_state
+from deployment.stability_loop import get_stability_loop
+from deployment.update_guard import get_update_guard
+
 # =============================================================================
 # LOGGING + UPTIME
 # =============================================================================
@@ -107,7 +119,7 @@ _startup_time: float = 0.0  # Set during startup_event()
 app = FastAPI(
     title="NEXUS SOVEREIGN SYSTEM",
     description="Private Trading System - Ancient Laws × Axelrod Discipline × Multi-Agent Council",
-    version="3.2.0"
+    version="4.0.0"
 )
 
 # Mount Auth
@@ -131,6 +143,9 @@ app.include_router(meta_api_router)
 
 # Mount Security API (Phase 11)
 app.include_router(security_api_router)
+
+# Mount Deployment API (Phase 12)
+app.include_router(deployment_api_router)
 
 
 # =============================================================================
@@ -243,14 +258,20 @@ async def startup_event():
     global _startup_time
     _startup_time = time.time()
     
+    # PHASE 12: Load configuration and stamp version FIRST
+    nexus_config = get_config()
+    version_info = stamp_deployment(nexus_config.env_mode.value)
+
     logger.info("=" * 60)
     logger.info("NEXUS SOVEREIGN SYSTEM INITIALIZING...")
+    logger.info(f"Version: v{version_info.get('version', '?')} | Commit: {version_info.get('git_commit', '?')}")
+    logger.info(f"Environment: {nexus_config.env_mode.value} | Risk: {nexus_config.risk_level}")
     logger.info("Architecture: Ancient Laws × Axelrod Game Theory × Netflix Resilience")
     logger.info("Decision: Multi-Agent Council (5 Agents, 3/5 Quorum)")
     logger.info("Brain: Model Ensemble (Gemini Pro + Rule-Based + Pattern)")
     logger.info("Execution: Dual-Path (MT5 + Binance)")
     logger.info("Security: Stealth Mode Active")
-    logger.info("Infrastructure: Phase 11 Hardening Active")
+    logger.info("Infrastructure: Phase 11 Hardening + Phase 12 Deployment")
     logger.info("=" * 60)
 
     # STEP -1: Production Startup Hardening (Phase 11)
@@ -358,6 +379,82 @@ async def startup_event():
     logger.info("Security Infrastructure (Phase 11) ACTIVE")
     logger.info(f"Failsafe Mode: {get_failsafe().mode.value}")
 
+    # ---- Phase 12: Deployment Architecture ----
+
+    # D) Safe Deployment Check (production only)
+    deployment_report = None
+    if nexus_config.is_production():
+        try:
+            deployment_report = run_deployment_checks()
+            if not deployment_report.can_deploy:
+                logger.critical(f"DEPLOYMENT CHECK FAILED: {deployment_report.failures}")
+                print("\n" + "!" * 60)
+                print("DEPLOYMENT CHECK FAILED — Blocking issues:")
+                for f in deployment_report.failures:
+                    print(f"   FAIL: {f}")
+                print("!" * 60 + "\n")
+            else:
+                logger.info("Pre-production deployment checks passed")
+        except Exception as e:
+            logger.error(f"Deployment check error: {e}")
+
+    # J) Deployment Lock
+    deploy_lock = get_deployment_lock()
+    if nexus_config.deployment_lock:
+        deploy_lock.activate("Configured via ENV/config", source="CONFIG")
+    logger.info(f"Deployment Lock: {'ACTIVE' if deploy_lock.is_locked else 'INACTIVE'}")
+
+    # H) Update Guard — snapshot checksums on clean start
+    try:
+        guard = get_update_guard()
+        guard.snapshot_checksums()
+        logger.info("Update guard checksums captured")
+    except Exception as e:
+        logger.error(f"Update guard error: {e}")
+
+    # E) Save stable state for rollback
+    try:
+        save_stable_state()
+        logger.info("Rollback stable state saved")
+    except Exception as e:
+        logger.error(f"Rollback state save error: {e}")
+
+    # F) Automated Backup
+    if nexus_config.backup_enabled:
+        backup_mgr = get_backup_manager()
+        backup_mgr.configure(retention_days=nexus_config.backup_retention_days)
+        await backup_mgr.start()
+        logger.info("Automated backup system ACTIVE")
+
+    # I) Resource Monitoring
+    if nexus_config.resource_monitoring_enabled:
+        await get_resource_monitor().start()
+        logger.info("Resource monitoring ACTIVE")
+
+    # K) Stability Loop Supervisor
+    await get_stability_loop().start()
+    logger.info("Stability loop supervisor ACTIVE")
+
+    # G) Telegram Deployment Report (production)
+    if nexus_config.is_production() or nexus_config.telegram_bot_token:
+        try:
+            from deployment.telegram_report import send_deployment_report
+            await send_deployment_report(
+                version_info=version_info,
+                config_info=nexus_config.to_safe_dict(),
+                deployment_report=(
+                    {
+                        "can_deploy": deployment_report.can_deploy,
+                        "failures": deployment_report.failures,
+                        "warnings": deployment_report.warnings,
+                    }
+                    if deployment_report else None
+                ),
+            )
+        except Exception as e:
+            logger.error(f"Telegram deployment report error: {e}")
+
+    logger.info("Deployment Architecture (Phase 12) ACTIVE")
     logger.info("NEXUS SOVEREIGN SYSTEM ONLINE")
 
 
@@ -399,6 +496,11 @@ async def shutdown_event():
     # Stop Security Infrastructure
     await get_state_integrity().stop()
     await get_position_shadow().stop()
+
+    # Stop Deployment Infrastructure (Phase 12)
+    await get_stability_loop().stop()
+    await get_resource_monitor().stop()
+    await get_backup_manager().stop()
 
     logger.info("NEXUS CORE OFFLINE")
 
@@ -542,7 +644,7 @@ async def health_check():
         "status": "ok",
         "uptime": uptime_str,
         "mt5_connected": mt5_connected,
-        "version": "3.2.0",
+        "version": "4.0.0",
         "risk_engine": "active" if risk_active else "inactive",
         "execution_layer": "ready" if (mt5_connected or is_paper) else "not_ready",
         "mode": "paper" if is_paper else "live",
@@ -566,7 +668,7 @@ async def system_status():
     return {
         "system": {
             "status": "ONLINE",
-            "version": "3.0.0",
+            "version": "4.0.0",
             "architecture": "Multi-Agent Council",
             "timestamp": datetime.now(timezone.utc).isoformat()
         },

@@ -30,3 +30,8 @@ npm-debug.log*
 
 # Logs
 *.log
+
+# Deployment (Phase 12)
+nexus-core/backups/
+nexus-core/deployment/rollback_state/
+nexus-core/logs/
