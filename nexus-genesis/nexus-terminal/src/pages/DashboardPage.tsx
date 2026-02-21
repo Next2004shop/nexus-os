@@ -292,7 +292,7 @@ export default function DashboardPage() {
                                     {metrics?.strategic_status?.bias || 'NEUTRAL'}
                                 </span>
                             </div>
-                        </span>
+                        </div>
                     </div>
                 </div>
             </div>
