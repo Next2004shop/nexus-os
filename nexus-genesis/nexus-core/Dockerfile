@@ -35,4 +35,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 EXPOSE 8080
 
 # Ignition command with production settings
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080", "--workers", "2"]
+# PORT env var is injected by Render; defaults to 8080 for Cloud Run/local
+CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080} --workers 2

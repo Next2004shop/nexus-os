@@ -1,0 +1,39 @@
+# NEXUS Backend - Render Blueprint
+# Deploy via: Render Dashboard → New → Blueprint → Connect GitHub repo
+# Account: galaxisys2300@gmail.com ONLY
+
+services:
+  - type: web
+    name: nexus-core
+    runtime: docker
+    dockerfilePath: ./nexus-genesis/nexus-core/Dockerfile
+    dockerContext: ./nexus-genesis/nexus-core
+    region: oregon
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: LOG_LEVEL
+        value: INFO
+      - key: NEXUS_VERSION
+        value: "3.0.0"
+      - key: PORT
+        value: "8080"
+      # Secrets - set via Render Dashboard (never in code)
+      - key: BINANCE_API_KEY
+        sync: false
+      - key: BINANCE_API_SECRET
+        sync: false
+      - key: MT5_LOGIN
+        sync: false
+      - key: MT5_PASSWORD
+        sync: false
+      - key: MT5_SERVER
+        sync: false
+      - key: POLYGON_API_KEY
+        sync: false
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_CHAT_ID
+        sync: false
