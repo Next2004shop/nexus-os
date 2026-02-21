@@ -8,7 +8,13 @@
       "Bash(powershell -Command \"git remote -v\")",
       "Bash(MSYS_NO_PATHCONV=1 git remote:*)",
       "Bash(dir:*)",
-      "Bash(findstr:*)"
+      "Bash(findstr:*)",
+      "Bash(git -C \"C:/Users/Danteh/Desktop/nexus-ai\" remote -v)",
+      "Bash(gh repo view:*)",
+      "Bash(set:*)",
+      "Bash(git -C C:UsersDantehDesktopnexus-ai remote:*)",
+      "Bash(cmd /c \"type C:\\\\Users\\\\Danteh\\\\Desktop\\\\nexus-ai\\\\.git\\\\config\")",
+      "WebFetch(domain:github.com)"
     ]
   }
 }
